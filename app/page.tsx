@@ -1,65 +1,609 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import {
+  ArrowRight,
+  BadgeCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  Gift,
+  Headphones,
+  Linkedin,
+  Mail,
+  ReceiptText,
+  ShieldCheck,
+  Smartphone,
+  Tv,
+  Users,
+  Wallet,
+  Wifi,
+  Zap,
+} from 'lucide-react';
+
+const heroSlides = [
+  {
+    title: 'Pay Everything.',
+    highlight: 'Earn More.',
+    suffix: 'Live Better.',
+    desc: 'Your all-in-one payment platform for airtime, data, bills, TV subscriptions, wallet funding and more.',
+    image:
+      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=90',
+  },
+  {
+    title: 'Fast Bills.',
+    highlight: 'Instant VTU.',
+    suffix: 'Zero Stress.',
+    desc: 'Buy airtime, data, electricity tokens and subscriptions from one reliable Remopay wallet.',
+    image:
+      'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1800&q=90',
+  },
+  {
+    title: 'Invite Friends.',
+    highlight: 'Get Rewarded.',
+    suffix: 'Repeat.',
+    desc: 'Earn up to ₦200 when you refer verified customers who use Remopay.',
+    image:
+      'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1800&q=90',
+  },
+];
+
+const services = [
+  {
+    title: 'Airtime Recharge',
+    desc: 'Recharge all major networks instantly.',
+    icon: Smartphone,
+    image:
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    title: 'Data Bundles',
+    desc: 'Buy affordable data bundles in seconds.',
+    icon: Wifi,
+    image:
+      'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    title: 'Electricity Bills',
+    desc: 'Pay electricity bills and get tokens instantly.',
+    icon: Zap,
+    image:
+      'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    title: 'TV Subscription',
+    desc: 'Renew DSTV, GOtv, Startimes and more.',
+    icon: Tv,
+    image:
+      'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=85',
+  },
+  {
+    title: 'Wallet Funding',
+    desc: 'Fund your wallet securely anytime.',
+    icon: Wallet,
+    image:
+      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=85',
+  },
+];
+
+const whyChoose = [
+  {
+    title: 'Lightning Fast',
+    desc: 'Get your airtime, data and bills processed instantly.',
+    icon: Zap,
+  },
+  {
+    title: 'Secure & Safe',
+    desc: 'Your transactions are protected and properly tracked.',
+    icon: ShieldCheck,
+  },
+  {
+    title: 'Rewards That Pay',
+    desc: 'Earn cashback, bonuses and referral rewards.',
+    icon: Gift,
+  },
+  {
+    title: '24/7 Support',
+    desc: 'Our support team is always here for you.',
+    icon: Headphones,
+  },
+];
+
+const stats = [
+  { value: '50K+', label: 'Happy Users', icon: Users },
+  { value: '250K+', label: 'Transactions', icon: CircleDollarSign },
+  { value: '₦2B+', label: 'Total Payments', icon: Wallet },
+  { value: '99.9%', label: 'Success Rate', icon: BadgeCheck },
+];
+
+export default function RemopayLandingPage() {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const slider = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5500);
+
+    return () => clearInterval(slider);
+  }, []);
+
+  const currentHero = heroSlides[activeSlide];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-[#100303] text-white">
+      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/35 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/icon.png" alt="Remopay Logo" width={48} height={48} />
+            <span className="text-2xl font-black tracking-tight">Remopay</span>
+          </Link>
+
+          <div className="hidden items-center gap-8 text-sm font-semibold text-white/85 lg:flex">
+            <a href="#services" className="flex items-center gap-1 hover:text-[#ff4b55]">
+              Services <ChevronDown size={14} />
+            </a>
+            <a href="#rewards" className="hover:text-[#ff4b55]">Rewards</a>
+            <a href="#how" className="hover:text-[#ff4b55]">How It Works</a>
+            <a href="#security" className="hover:text-[#ff4b55]">Security</a>
+            <a href="#about" className="hover:text-[#ff4b55]">About Us</a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="/auth/login"
+              className="hidden rounded-xl border border-[#ff4b55]/50 px-7 py-3 text-sm font-bold text-white transition hover:bg-white/10 sm:inline-flex"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Login
+            </Link>
+
+            <Link
+              href="/auth/register"
+              className="rounded-xl bg-[#c91522] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#c91522]/30 transition hover:bg-[#a9111b]"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Create Account
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </nav>
+
+      <section className="relative min-h-[760px] overflow-hidden pt-20">
+        {heroSlides.map((slide, index) => (
+          <div
+            key={slide.title}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === activeSlide ? 'opacity-100' : 'opacity-0'
+            }`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="h-full w-full object-cover object-[center_right] brightness-95 contrast-110 saturate-110"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute left-0 top-0 h-full w-[58%] bg-gradient-to-r from-black/80 to-transparent" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_42%,rgba(255,60,60,0.16),transparent_58%)]" />
+          </div>
+        ))}
+
+        <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:px-8 lg:py-24">
+          <div>
+            <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+              {currentHero.title}
+              <br />
+              <span className="text-[#ff2635]">{currentHero.highlight}</span>
+              <br />
+              {currentHero.suffix}
+            </h1>
+
+            <p className="mt-6 max-w-xl text-base leading-8 text-white/85 sm:text-lg">
+              {currentHero.desc}
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href="/auth/register"
+                className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-7 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420]"
+              >
+                Create Free Account <ArrowRight size={18} />
+              </Link>
+
+              <a
+                href="#services"
+                className="inline-flex items-center gap-3 rounded-xl border border-[#ff4b55]/50 bg-black/20 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/10"
+              >
+                Explore Services <ArrowRight size={18} />
+              </a>
+            </div>
+
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {[
+                ['Instant Payments', '24/7', Zap],
+                ['Secure Platform', 'Bank-level Security', ShieldCheck],
+                ['Rewards & Bonuses', 'Earn as you pay', Gift],
+                ['Trusted by Users', 'Across Nigeria', Users],
+              ].map(([title, desc, Icon]: any) => (
+                <div key={title} className="border-r border-white/15 pr-4 last:border-0">
+                  <Icon className="mb-3 h-7 w-7 text-white" />
+                  <p className="text-sm font-black">{title}</p>
+                  <p className="mt-1 text-xs text-white/65">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="hidden lg:block" />
+
+          <button
+            onClick={() =>
+              setActiveSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)
+            }
+            className="absolute left-5 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+            aria-label="Previous slide"
           >
-            Documentation
-          </a>
+            <ChevronLeft size={22} />
+          </button>
+
+          <button
+            onClick={() => setActiveSlide((prev) => (prev + 1) % heroSlides.length)}
+            className="absolute right-5 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+            aria-label="Next slide"
+          >
+            <ChevronRight size={22} />
+          </button>
+
+          <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 gap-3">
+            {heroSlides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setActiveSlide(index)}
+                className={`h-3 rounded-full transition-all ${
+                  index === activeSlide ? 'w-8 bg-[#ff2635]' : 'w-3 bg-white/50'
+                }`}
+                aria-label={`Go to hero slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
+
+      <section id="services" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-20 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[0.8fr_2.2fr]">
+          <div>
+            <h2 className="text-4xl font-black tracking-tight">
+              Our <span className="text-[#ff2635]">Services</span>
+            </h2>
+            <p className="mt-5 max-w-sm text-base leading-7 text-white/70">
+              Everything you need for everyday payments in one simple app.
+            </p>
+
+            <Link
+              href="/auth/register"
+              className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white transition hover:bg-[#b91420]"
+            >
+              View All Services <ArrowRight size={18} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+            {services.map((service) => {
+              const Icon = service.icon;
+
+              return (
+                <div
+                  key={service.title}
+                  className="group overflow-hidden rounded-2xl border border-[#ff4b55]/25 bg-[#1c0606] transition duration-300 hover:-translate-y-2 hover:border-[#ff4b55] hover:shadow-2xl hover:shadow-[#d71927]/20"
+                >
+                  <div className="relative h-44 overflow-hidden">
+                    <img
+                      src={service.image}
+                      alt={service.title}
+                      className="h-full w-full object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                    <div className="absolute bottom-4 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d71927] shadow-lg">
+                      <Icon size={23} />
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <h3 className="text-lg font-black text-[#ff2635]">{service.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/75">{service.desc}</p>
+
+                    <button className="mt-5 flex h-9 w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1">
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="security" className="bg-[#100303] px-5 py-14 lg:px-8">
+        <div className="mx-auto max-w-7xl border-t border-[#ff4b55]/20 pt-14">
+          <div className="text-center">
+            <h2 className="text-3xl font-black sm:text-4xl">
+              Why Choose <span className="text-[#ff2635]">Remopay?</span>
+            </h2>
+            <p className="mt-3 text-white/65">
+              We make payments simple, fast and rewarding.
+            </p>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {whyChoose.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-7"
+                >
+                  <Icon className="mb-6 h-10 w-10 text-[#ff737b]" />
+                  <h3 className="font-black">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-white/65">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section id="rewards" className="bg-[#100303] px-5 pb-14 lg:px-8">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-[#ff4b55]/25 bg-gradient-to-r from-[#b91420] via-[#7f0f17] to-[#220606] p-8 shadow-2xl shadow-[#d71927]/20 lg:p-12">
+          <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_1fr_0.8fr]">
+            <div>
+              <h2 className="text-3xl font-black sm:text-4xl">
+                Invite. Earn. Repeat.
+              </h2>
+              <p className="mt-4 max-w-md leading-7 text-white/80">
+                Refer your friends and earn up to ₦200 per verified referral.
+              </p>
+
+              <Link
+                href="/auth/register"
+                className="mt-7 inline-flex items-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-[#9b111e] transition hover:bg-white/90"
+              >
+                Start Referring <ArrowRight size={18} />
+              </Link>
+            </div>
+
+            <div className="relative flex justify-center">
+              <img
+                src="https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=900&q=85"
+                alt="Referral rewards"
+                className="h-60 w-full rounded-3xl object-cover brightness-95 contrast-110 saturate-110 shadow-2xl"
+              />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+              <Gift className="absolute bottom-6 right-6 h-16 w-16 text-white drop-shadow-lg" />
+            </div>
+
+            <div className="rounded-2xl border border-white/20 bg-black/20 p-7 backdrop-blur">
+              <p className="text-sm font-bold text-white/70">Your Reward Wallet</p>
+              <h3 className="mt-4 text-5xl font-black text-[#ff737b]">₦200</h3>
+              <p className="mt-2 text-sm text-white/60">Available Balance</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#100303] px-5 pb-16 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 rounded-3xl border border-[#ff4b55]/25 bg-[#180505] p-6 md:grid-cols-4 lg:p-8">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+
+            return (
+              <div key={stat.label} className="flex items-center gap-5 border-white/10 md:border-r md:last:border-0">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#ff4b55]/50">
+                  <Icon className="h-7 w-7 text-[#ff737b]" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black">{stat.value}</h3>
+                  <p className="text-sm text-white/65">{stat.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section id="how" className="bg-[#100303] px-5 pb-20 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 border-t border-[#ff4b55]/20 pt-16 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <h2 className="text-3xl font-black sm:text-4xl">
+              Everything You Need,
+              <br />
+              <span className="text-[#ff2635]">Right in Your Pocket.</span>
+            </h2>
+            <p className="mt-4 max-w-md leading-7 text-white/70">
+              Download the Remopay app and start paying smarter today.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-5 lg:justify-end">
+            <Link
+              href="/auth/register"
+              className="rounded-2xl border border-white/20 bg-black px-8 py-4 text-sm font-black text-white transition hover:bg-white/10"
+            >
+              Get it on Google Play
+            </Link>
+
+            <Link
+              href="/auth/register"
+              className="rounded-2xl border border-white/20 bg-black px-8 py-4 text-sm font-black text-white transition hover:bg-white/10"
+            >
+              Download on App Store
+            </Link>
+
+            <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-white text-black">
+              <ReceiptText size={52} />
+            </div>
+          </div>
+        </div>
+      </section>
+      <section
+  id="download-app"
+  className="relative overflow-hidden bg-[#100303] px-5 pb-24 pt-10 lg:px-8"
+>
+  <div className="absolute left-0 top-20 h-80 w-80 rounded-full bg-[#d71927]/20 blur-3xl" />
+  <div className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-[#ff737b]/10 blur-3xl" />
+
+  <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 rounded-[2rem] border border-[#ff4b55]/25 bg-gradient-to-br from-[#220606] via-[#140404] to-[#090101] p-6 shadow-2xl shadow-[#d71927]/10 lg:grid-cols-[1fr_0.9fr] lg:p-12">
+    <div>
+      <div className="mb-5 inline-flex rounded-full border border-[#ff4b55]/40 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#ff737b]">
+        Mobile App
+      </div>
+
+      <h2 className="max-w-xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
+        Everything you need,
+        <br />
+        <span className="text-[#ff2635]">right in your pocket.</span>
+      </h2>
+
+      <p className="mt-5 max-w-xl text-base leading-8 text-white/70">
+        Download the Remopay mobile app to buy airtime, data, pay bills, fund
+        your wallet, track transactions, and earn rewards anytime.
+      </p>
+
+      <div className="mt-8 flex flex-wrap items-center gap-4">
+        <a
+          href="/remopay.apk"
+          download
+          className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420]"
+        >
+          Direct Download
+          <ArrowRight size={18} />
+        </a>
+
+        <a
+          href="#"
+          className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
+        >
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+            alt="Get it on Google Play"
+            className="h-10 w-auto"
+          />
+        </a>
+
+        <a
+          href="#"
+          className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
+        >
+          <img
+            src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+            alt="Download on the App Store"
+            className="h-10 w-auto"
+          />
+        </a>
+      </div>
+
+      <div className="mt-8 grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          'Instant VTU',
+          'Wallet Funding',
+          'Bill Payments',
+          'Rewards',
+        ].map((item) => (
+          <div
+            key={item}
+            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white/75"
+          >
+            {item}
+          </div>
+        ))}
+      </div>
     </div>
+
+    <div className="relative flex justify-center lg:justify-end">
+      <div className="absolute top-10 h-72 w-72 rounded-full bg-[#d71927]/30 blur-3xl" />
+
+      <div className="relative rounded-[2.5rem] border border-white/15 bg-white/10 p-4 shadow-2xl backdrop-blur">
+        <div className="relative h-[560px] w-[280px] overflow-hidden rounded-[2rem] border-[8px] border-black bg-black shadow-2xl sm:h-[620px] sm:w-[310px]">
+          <div className="absolute left-1/2 top-0 z-20 h-7 w-28 -translate-x-1/2 rounded-b-2xl bg-black" />
+
+          <img
+            src="/app-screenshot.png"
+            alt="Remopay mobile app preview"
+            className="h-full w-full object-cover"
+          />
+        </div>
+
+        <div className="absolute -left-8 top-24 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
+          <p className="text-xs font-bold text-white/50">Wallet Balance</p>
+          <p className="mt-1 text-2xl font-black text-white">₦25,680.50</p>
+        </div>
+
+        <div className="absolute -right-8 bottom-24 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
+          <p className="text-xs font-bold text-white/50">Reward Wallet</p>
+          <p className="mt-1 text-2xl font-black text-[#ff737b]">₦200</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+      <footer id="about" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-12 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 md:grid-cols-5">
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-3">
+              <Image src="/icon.png" alt="Remopay Logo" width={44} height={44} />
+              <span className="text-xl font-black">Remopay</span>
+            </div>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-white/65">
+              Pay smarter, live better with fast, secure and reliable payments.
+            </p>
+          </div>
+
+          {[
+            ['Company', ['About Us', 'Careers', 'Blog', 'Contact Us']],
+            ['Help', ['FAQs', 'Support Center', 'Terms of Service', 'Privacy Policy']],
+            ['Services', ['Airtime', 'Data', 'Electricity', 'TV Subscription', 'More Services']],
+          ].map(([title, links]: any) => (
+            <div key={title}>
+              <h3 className="mb-4 font-black">{title}</h3>
+              <ul className="space-y-3 text-sm text-white/60">
+                {links.map((item: string) => (
+                  <li key={item}>
+                    <a href="#" className="hover:text-[#ff737b]">{item}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <div>
+            <h3 className="mb-4 font-black">Follow Us</h3>
+            <div className="flex gap-3">
+              <a
+                href="https://www.linkedin.com/products/remonode-remopay/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10"
+              >
+                <Linkedin size={18} />
+              </a>
+              <a
+                href="mailto:support@remopay.com"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10"
+              >
+                <Mail size={18} />
+              </a>
+            </div>
+
+            <p className="mt-6 text-sm text-white/50">
+              © 2026 Remopay. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }
