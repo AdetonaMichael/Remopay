@@ -251,8 +251,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-3">
-        <Card className="rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+      <section className="flex gap-5 overflow-x-auto md:grid md:grid-cols-3 pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500">Monthly Transactions</p>
@@ -268,7 +268,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500">Successful Payments</p>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500">Total Records</p>
@@ -311,7 +311,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="flex gap-5 overflow-x-auto sm:grid sm:grid-cols-2 xl:grid-cols-4 pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
           {quickActions.map((action) => {
             const Icon = action.icon;
 
@@ -319,7 +319,7 @@ export default function DashboardPage() {
               <Link
                 key={action.href}
                 href={action.href}
-                className="group overflow-hidden rounded-[1.5rem] border border-[#d71927]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#d71927]/10"
+                className="group min-w-[calc(100vw-2rem)] sm:min-w-fit overflow-hidden rounded-[1.5rem] border border-[#d71927]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#d71927]/10"
               >
                 <div className="relative h-36 overflow-hidden">
                   <img
