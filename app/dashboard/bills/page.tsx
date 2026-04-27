@@ -10,7 +10,7 @@ import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
 import { vtuService } from '@/services/vtu.service';
 import { Spinner } from '@/components/shared/Spinner';
-import { ChevronRight, Check, Zap, AlertCircle, Loader } from 'lucide-react';
+import { ChevronRight, Check, Zap, AlertCircle } from 'lucide-react';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
 import { paymentService } from '@/services/payment.service';
 import { generateIdempotencyKey } from '@/utils/idempotency.utils';
@@ -251,7 +251,7 @@ export default function BillsPage() {
       <div className="flex min-h-[70vh] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Loader className="animate-spin text-[#4a5ff7]" size={26} />
+            <Spinner />
           </div>
           <p className="text-sm font-medium text-[#6b7280]">Loading electricity providers...</p>
         </div>

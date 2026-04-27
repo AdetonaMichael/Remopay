@@ -23,7 +23,7 @@ import { Badge } from '@/components/shared/Badge';
 import { Button } from '@/components/shared/Button';
 import { AdminTable } from '@/components/admin/AdminTable';
 import { useAuthStore } from '@/store/auth.store';
-import { Spinner } from '@/components/shared/Spinner';
+import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { adminService } from '@/services/admin.service';
 
@@ -297,18 +297,7 @@ export default function AdminDashboardPage() {
   if (!isAdmin) return null;
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Spinner />
-          </div>
-          <p className="text-sm font-medium text-[#6b7280]">
-            Loading dashboard…
-          </p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error || !data) {

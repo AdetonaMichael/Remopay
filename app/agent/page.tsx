@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Spinner } from '@/components/shared/Spinner';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 
@@ -20,11 +20,7 @@ export default function AgentPage() {
   }, [user, router]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (

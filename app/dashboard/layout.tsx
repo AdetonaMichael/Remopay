@@ -23,7 +23,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { Topbar } from '@/components/shared/Topbar';
 import { AuthProtected } from '@/components/AuthProtected';
-import { Spinner } from '@/components/shared/Spinner';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const pathname = usePathname();
@@ -150,11 +150,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   );
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#100303]">
-        <Spinner />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (
@@ -189,14 +185,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             )}
           >
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
-              <Link href="/dashboard" className="flex items-center gap-3">
-                <Image src="/icon.png" alt="Remopay" width={40} height={40} />
-                <span className="text-xl font-black">Remopay</span>
-              </Link>
-
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white"
+                className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white ml-auto"
                 aria-label="Close menu"
               >
                 <X size={22} />

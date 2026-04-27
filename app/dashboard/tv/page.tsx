@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader, Tv } from 'lucide-react';
+import { ChevronRight, Tv } from 'lucide-react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
+import { CardSkeleton } from '@/components/shared/SkeletonLoader';
+import { Spinner } from '@/components/shared/Spinner';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider, VTUVariation } from '@/types/vtu.types';
@@ -191,14 +193,7 @@ export default function TVPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader className="animate-spin text-[#a9b7ff] mx-auto mb-4" size={40} />
-          <p className="text-gray-600">Loading TV providers...</p>
-        </div>
-      </div>
-    );
+    return <CardSkeleton count={3} />;
   }
 
   return (
@@ -367,7 +362,7 @@ export default function TVPage() {
                 </label>
                 {loadingVariations ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader className="animate-spin text-[#a9b7ff]" size={32} />
+                    <Spinner className="text-[#a9b7ff]" />
                   </div>
                 ) : variations.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">

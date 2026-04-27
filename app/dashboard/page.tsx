@@ -21,7 +21,7 @@ import {
 
 import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
-import { Spinner } from '@/components/shared/Spinner';
+import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -195,11 +195,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <Spinner />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

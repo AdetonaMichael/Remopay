@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Spinner } from '@/components/shared/Spinner';
+import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { BarChart3, Download } from 'lucide-react';
 
 export default function AdminReportsPage() {
@@ -53,11 +53,7 @@ export default function AdminReportsPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
-    );
+    return <TableSkeleton rows={5} cols={3} />;
   }
 
   return (

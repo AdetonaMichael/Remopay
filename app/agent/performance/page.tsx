@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Spinner } from '@/components/shared/Spinner';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { TrendingUp, Calendar } from 'lucide-react';
 
 export default function AgentPerformancePage() {
@@ -27,11 +27,7 @@ export default function AgentPerformancePage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (

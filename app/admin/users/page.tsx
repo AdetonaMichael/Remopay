@@ -21,6 +21,8 @@ import { Badge } from '@/components/shared/Badge';
 import { Input } from '@/components/shared/Input';
 import { Card } from '@/components/shared/Card';
 import { Modal } from '@/components/shared/Modal';
+import { TableSkeleton } from '@/components/shared/SkeletonLoader';
+import { Spinner } from '@/components/shared/Spinner';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
 import { formatDate } from '@/utils/format.utils';
@@ -53,31 +55,6 @@ function getStatusVariant(
     inactive: 'warning',
   };
   return map[status ?? ''] ?? 'info';
-}
-
-function Spinner() {
-  return (
-    <svg
-      className="h-6 w-6 animate-spin text-[#4a5ff7]"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
-      />
-    </svg>
-  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -230,16 +207,7 @@ export default function AdminUsersPage() {
   if (!isAdmin) return null;
 
   if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Spinner />
-          </div>
-          <p className="text-sm font-medium text-[#6b7280]">Loading users…</p>
-        </div>
-      </div>
-    );
+    return <TableSkeleton rows={6} cols={5} />;
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
-import { Spinner } from '@/components/shared/Spinner';
+import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Badge } from '@/components/shared/Badge';
 import { MessageSquare, Clock } from 'lucide-react';
 
@@ -87,11 +87,7 @@ export default function AgentSupportPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
-    );
+    return <TableSkeleton rows={4} cols={3} />;
   }
 
   return (

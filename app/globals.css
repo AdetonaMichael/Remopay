@@ -49,3 +49,38 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Professional Typography Classes */
+@layer utilities {
+  .prose-h1 {
+    @apply text-5xl lg:text-6xl font-black leading-tight tracking-tight text-gray-900;
+  }
+
+  .prose-h2 {
+    @apply text-4xl lg:text-5xl font-black leading-snug tracking-tight text-gray-900;
+  }
+
+  .prose-h3 {
+    @apply text-2xl lg:text-3xl font-bold leading-snug text-gray-900;
+  }
+
+  .prose-h4 {
+    @apply text-xl font-bold leading-snug text-gray-900;
+  }
+
+  .prose-p {
+    @apply text-base lg:text-lg leading-relaxed text-gray-600;
+  }
+
+  .prose-small {
+    @apply text-sm leading-relaxed text-gray-500;
+  }
+
+  .section-header {
+    @apply text-4xl lg:text-5xl font-black leading-snug tracking-tight text-gray-900 mb-4;
+  }
+
+  .section-subtext {
+    @apply text-base lg:text-lg leading-relaxed text-gray-600 mb-8 max-w-2xl;
+  }
+}

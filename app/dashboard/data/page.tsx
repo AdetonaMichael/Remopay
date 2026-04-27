@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Loader, Wifi } from 'lucide-react';
+import { ChevronRight, Wifi } from 'lucide-react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Toast } from '@/components/shared/Toast';
+import { CardSkeleton } from '@/components/shared/SkeletonLoader';
+import { Spinner } from '@/components/shared/Spinner';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider } from '@/types/vtu.types';
@@ -153,16 +155,7 @@ export default function DataPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Loader className="animate-spin text-[#4a5ff7]" size={26} />
-          </div>
-          <p className="text-sm font-medium text-[#6b7280]">Loading data providers...</p>
-        </div>
-      </div>
-    );
+    return <CardSkeleton count={3} />;
   }
 
   return (
@@ -256,7 +249,7 @@ export default function DataPage() {
             {loadingVariations ? (
               <div className="flex justify-center py-8">
                 <div className="text-center">
-                  <Loader className="animate-spin mx-auto mb-2 text-[#4a5ff7]" size={24} />
+                  <Spinner className="mx-auto mb-2" />
                   <p className="text-sm text-[#6b7280]">Loading available plans...</p>
                 </div>
               </div>

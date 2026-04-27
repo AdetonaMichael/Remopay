@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Phone, ChevronRight, Loader } from 'lucide-react';
+import { Phone, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
+import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider } from '@/types/vtu.types';
@@ -211,14 +212,7 @@ export default function AirtimePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader className="animate-spin text-[#a9b7ff] mx-auto mb-4" size={40} />
-          <p className="text-gray-600">Loading airtime providers...</p>
-        </div>
-      </div>
-    );
+    return <CardSkeleton count={3} />;
   }
 
   return (

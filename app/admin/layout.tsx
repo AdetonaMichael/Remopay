@@ -3,7 +3,7 @@
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Spinner } from '@/components/shared/Spinner';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { Topbar } from '@/components/shared/Topbar';
 import {
   LayoutDashboard,
@@ -60,11 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [user, activeRole, router]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   return (

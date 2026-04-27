@@ -15,7 +15,7 @@ import {
 import { Card } from '@/components/shared/Card';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
-import { Spinner } from '@/components/shared/Spinner';
+import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { formatCurrency } from '@/utils/format.utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -118,18 +118,7 @@ export default function AdminAnalyticsPage() {
   if (!isAdmin) return null;
 
   if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Spinner />
-          </div>
-          <p className="text-sm font-medium text-[#6b7280]">
-            Loading analytics dashboard…
-          </p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

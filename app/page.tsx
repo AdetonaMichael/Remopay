@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -10,7 +10,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
+  CreditCard,
   Gift,
+  Globe,
   Headphones,
   Linkedin,
   Mail,
@@ -58,6 +60,7 @@ const services = [
     icon: Smartphone,
     image:
       'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=85',
+    href: '/',
   },
   {
     title: 'Data Bundles',
@@ -65,6 +68,7 @@ const services = [
     icon: Wifi,
     image:
       'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=900&q=85',
+    href: '/',
   },
   {
     title: 'Electricity Bills',
@@ -72,6 +76,7 @@ const services = [
     icon: Zap,
     image:
       'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=900&q=85',
+    href: '/',
   },
   {
     title: 'TV Subscription',
@@ -79,6 +84,7 @@ const services = [
     icon: Tv,
     image:
       'https://images.unsplash.com/photo-1593784991095-a205069470b6?auto=format&fit=crop&w=900&q=85',
+    href: '/',
   },
   {
     title: 'Wallet Funding',
@@ -86,6 +92,23 @@ const services = [
     icon: Wallet,
     image:
       'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=85',
+    href: '/',
+  },
+  {
+    title: 'Virtual Dollar Card',
+    desc: 'Create and manage virtual card instantly.',
+    icon: CreditCard,
+    image:
+      'https://images.unsplash.com/photo-1569163139394-de4798aa62b1?auto=format&fit=crop&w=900&q=85',
+    href: '/dashboard/virtual-card',
+  },
+  {
+    title: 'Multi-Currency Accounts',
+    desc: 'Hold and manage accounts in multiple currencies.',
+    icon: Globe,
+    image:
+      'https://images.unsplash.com/photo-1526304640581-d334cdbbf35f?auto=format&fit=crop&w=900&q=85',
+    href: '/dashboard/multi-currency',
   },
 ];
 
@@ -121,6 +144,8 @@ const stats = [
 
 export default function RemopayLandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [servicesScroll, setServicesScroll] = useState(0);
+  const servicesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const slider = setInterval(() => {
@@ -129,6 +154,18 @@ export default function RemopayLandingPage() {
 
     return () => clearInterval(slider);
   }, []);
+
+  const scrollServices = (direction: 'left' | 'right') => {
+    if (servicesRef.current) {
+      const scrollAmount = 400;
+      const newScroll =
+        direction === 'left'
+          ? servicesScroll - scrollAmount
+          : servicesScroll + scrollAmount;
+      servicesRef.current.scrollTo({ left: newScroll, behavior: 'smooth' });
+      setServicesScroll(newScroll);
+    }
+  };
 
   const currentHero = heroSlides[activeSlide];
 
@@ -272,12 +309,13 @@ export default function RemopayLandingPage() {
       </section>
 
       <section id="services" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 lg:grid-cols-[0.8fr_2.2fr]">
-          <div>
+        <div className="mx-auto max-w-7xl">
+          {/* Header section */}
+          <div className="mb-12">
             <h2 className="text-4xl font-black tracking-tight">
               Our <span className="text-[#ff2635]">Services</span>
             </h2>
-            <p className="mt-5 max-w-sm text-base leading-7 text-white/70">
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/70">
               Everything you need for everyday payments in one simple app.
             </p>
 
@@ -289,39 +327,67 @@ export default function RemopayLandingPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
-            {services.map((service) => {
-              const Icon = service.icon;
+          {/* Horizontally scrollable services */}
+          <div className="relative">
+            <div
+              ref={servicesRef}
+              className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {services.map((service) => {
+                const Icon = service.icon;
 
-              return (
-                <div
-                  key={service.title}
-                  className="group overflow-hidden rounded-2xl border border-[#ff4b55]/25 bg-[#1c0606] transition duration-300 hover:-translate-y-2 hover:border-[#ff4b55] hover:shadow-2xl hover:shadow-[#d71927]/20"
-                >
-                  <div className="relative h-44 overflow-hidden">
-                    <img
-                      src={service.image}
-                      alt={service.title}
-                      className="h-full w-full object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                return (
+                  <div
+                    key={service.title}
+                    className="group flex-shrink-0 w-96 overflow-hidden rounded-2xl border border-[#ff4b55]/25 bg-[#1c0606] transition duration-300 hover:-translate-y-2 hover:border-[#ff4b55] hover:shadow-2xl hover:shadow-[#d71927]/20"
+                  >
+                    <div className="relative h-56 overflow-hidden">
+                      <img
+                        src={service.image}
+                        alt={service.title}
+                        className="h-full w-full object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                    <div className="absolute bottom-4 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d71927] shadow-lg">
-                      <Icon size={23} />
+                      <div className="absolute bottom-4 left-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#d71927] shadow-lg">
+                        <Icon size={23} />
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <h3 className="text-lg font-black text-[#ff2635]">
+                        {service.title}
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-white/75">
+                        {service.desc}
+                      </p>
+
+                      <button className="mt-5 flex h-9 w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1">
+                        <ArrowRight size={16} />
+                      </button>
                     </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="p-5">
-                    <h3 className="text-lg font-black text-[#ff2635]">{service.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-white/75">{service.desc}</p>
+            {/* Navigation buttons */}
+            <button
+              onClick={() => scrollServices('left')}
+              className="absolute left-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 -translate-x-6 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+              aria-label="Scroll services left"
+            >
+              <ChevronLeft size={22} />
+            </button>
 
-                    <button className="mt-5 flex h-9 w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1">
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            <button
+              onClick={() => scrollServices('right')}
+              className="absolute right-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 translate-x-6 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+              aria-label="Scroll services right"
+            >
+              <ChevronRight size={22} />
+            </button>
           </div>
         </div>
       </section>
@@ -414,40 +480,7 @@ export default function RemopayLandingPage() {
         </div>
       </section>
 
-      <section id="how" className="bg-[#100303] px-5 pb-20 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 border-t border-[#ff4b55]/20 pt-16 lg:grid-cols-[1fr_1fr]">
-          <div>
-            <h2 className="text-3xl font-black sm:text-4xl">
-              Everything You Need,
-              <br />
-              <span className="text-[#ff2635]">Right in Your Pocket.</span>
-            </h2>
-            <p className="mt-4 max-w-md leading-7 text-white/70">
-              Download the Remopay app and start paying smarter today.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-5 lg:justify-end">
-            <Link
-              href="/auth/register"
-              className="rounded-2xl border border-white/20 bg-black px-8 py-4 text-sm font-black text-white transition hover:bg-white/10"
-            >
-              Get it on Google Play
-            </Link>
-
-            <Link
-              href="/auth/register"
-              className="rounded-2xl border border-white/20 bg-black px-8 py-4 text-sm font-black text-white transition hover:bg-white/10"
-            >
-              Download on App Store
-            </Link>
-
-            <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-white text-black">
-              <ReceiptText size={52} />
-            </div>
-          </div>
-        </div>
-      </section>
       <section
   id="download-app"
   className="relative overflow-hidden bg-[#100303] px-5 pb-24 pt-10 lg:px-8"
@@ -457,9 +490,7 @@ export default function RemopayLandingPage() {
 
   <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 rounded-[2rem] border border-[#ff4b55]/25 bg-gradient-to-br from-[#220606] via-[#140404] to-[#090101] p-6 shadow-2xl shadow-[#d71927]/10 lg:grid-cols-[1fr_0.9fr] lg:p-12">
     <div>
-      <div className="mb-5 inline-flex rounded-full border border-[#ff4b55]/40 bg-white/5 px-4 py-2 text-xs font-black uppercase tracking-widest text-[#ff737b]">
-        Mobile App
-      </div>
+     
 
       <h2 className="max-w-xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
         Everything you need,
@@ -472,76 +503,84 @@ export default function RemopayLandingPage() {
         your wallet, track transactions, and earn rewards anytime.
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-4">
+      <div className="mt-8 w-fit">
+        <div className="flex items-center gap-4 mb-4">
+          <a
+            href="#"
+            className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
+          >
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+              alt="Get it on Google Play"
+              className="h-10 w-auto"
+            />
+          </a>
+
+          <a
+            href="#"
+            className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
+          >
+            <img
+              src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+              alt="Download on the App Store"
+              className="h-10 w-auto"
+            />
+          </a>
+        </div>
         <a
-          href="/remopay.apk"
+          href="/"
           download
-          className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420]"
+          className="flex items-center justify-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420] w-full"
         >
           Direct Download
           <ArrowRight size={18} />
         </a>
-
-        <a
-          href="#"
-          className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
-        >
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-            alt="Get it on Google Play"
-            className="h-10 w-auto"
-          />
-        </a>
-
-        <a
-          href="#"
-          className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-6 py-3.5 text-white transition hover:bg-white/10"
-        >
-          <img
-            src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
-            alt="Download on the App Store"
-            className="h-10 w-auto"
-          />
-        </a>
       </div>
+       
 
-      <div className="mt-8 grid max-w-xl grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          'Instant VTU',
-          'Wallet Funding',
-          'Bill Payments',
-          'Rewards',
-        ].map((item) => (
-          <div
-            key={item}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-white/75"
-          >
-            {item}
-          </div>
-        ))}
-      </div>
     </div>
 
     <div className="relative flex justify-center lg:justify-end">
       <div className="absolute top-10 h-72 w-72 rounded-full bg-[#d71927]/30 blur-3xl" />
 
-      <div className="relative rounded-[2.5rem] border border-white/15 bg-white/10 p-4 shadow-2xl backdrop-blur">
-        <div className="relative h-[560px] w-[280px] overflow-hidden rounded-[2rem] border-[8px] border-black bg-black shadow-2xl sm:h-[620px] sm:w-[310px]">
-          <div className="absolute left-1/2 top-0 z-20 h-7 w-28 -translate-x-1/2 rounded-b-2xl bg-black" />
+      {/* Phone mockup frame */}
+      <div className="relative">
+        {/* Outer phone body */}
+        <div className="relative h-[680px] w-[340px] rounded-[3rem] bg-gradient-to-br from-gray-900 via-black to-gray-950 p-3 shadow-2xl shadow-black/80">
+          {/* Phone bezel/frame */}
+          <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] bg-black">
+            {/* Notch */}
+            <div className="absolute left-1/2 top-0 z-30 h-7 w-40 -translate-x-1/2 rounded-b-3xl bg-black shadow-lg" />
+            
+            {/* Screen */}
+            <div className="relative h-full w-full overflow-hidden bg-black">
+              <img
+                src="/remopay5.png"
+                alt="Remopay mobile app preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
 
-          <img
-            src="/app-screenshot.png"
-            alt="Remopay mobile app preview"
-            className="h-full w-full object-cover"
-          />
+            {/* Screen reflection effect */}
+            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+
+            {/* Home indicator area */}
+            <div className="absolute bottom-2 left-1/2 z-30 h-1 w-32 -translate-x-1/2 rounded-full bg-white/20" />
+          </div>
+
+          {/* Phone side details */}
+          <div className="absolute left-0 top-32 z-20 h-12 w-1 rounded-r-lg bg-gray-700/60" />
+          <div className="absolute right-0 top-48 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
+          <div className="absolute right-0 top-80 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
         </div>
 
-        <div className="absolute -left-8 top-24 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
+        {/* Floating stat cards */}
+        <div className="absolute -left-10 top-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
           <p className="text-xs font-bold text-white/50">Wallet Balance</p>
           <p className="mt-1 text-2xl font-black text-white">₦25,680.50</p>
         </div>
 
-        <div className="absolute -right-8 bottom-24 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
+        <div className="absolute -right-10 bottom-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
           <p className="text-xs font-bold text-white/50">Reward Wallet</p>
           <p className="mt-1 text-2xl font-black text-[#ff737b]">₦200</p>
         </div>
@@ -563,16 +602,16 @@ export default function RemopayLandingPage() {
           </div>
 
           {[
-            ['Company', ['About Us', 'Careers', 'Blog', 'Contact Us']],
-            ['Help', ['FAQs', 'Support Center', 'Terms of Service', 'Privacy Policy']],
-            ['Services', ['Airtime', 'Data', 'Electricity', 'TV Subscription', 'More Services']],
+            ['Company', [['About Us', '/about'], ['Careers', '/about'], ['Blog', '/'], ['Contact Us', '/support']]],
+            ['Help', [['FAQs', '/faq'], ['Support Center', '/support'], ['Terms of Service', '/terms'], ['Privacy Policy', '/privacy']]],
+            ['Services', [['Airtime', '/'], ['Data', '/'], ['Electricity', '/'], ['TV Subscription', '/'], ['More Services', '/']]],
           ].map(([title, links]: any) => (
             <div key={title}>
               <h3 className="mb-4 font-black">{title}</h3>
               <ul className="space-y-3 text-sm text-white/60">
-                {links.map((item: string) => (
-                  <li key={item}>
-                    <a href="#" className="hover:text-[#ff737b]">{item}</a>
+                {links.map((item: any) => (
+                  <li key={item[0]}>
+                    <Link href={item[1]} className="hover:text-[#ff737b]">{item[0]}</Link>
                   </li>
                 ))}
               </ul>
