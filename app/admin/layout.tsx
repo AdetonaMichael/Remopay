@@ -15,6 +15,9 @@ import {
   Bell,
   BarChart3,
   FileText,
+  TrendingUp,
+  Award,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,7 +27,12 @@ const adminNavItems = [
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
   { label: 'Services', href: '/admin/services', icon: Smartphone },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
+  { label: 'Rewards', href: '/admin/rewards', icon: Gift },
+  { label: 'Campaigns', href: '/admin/rewards/campaigns', icon: TrendingUp },
+  { label: 'Loyalty Tiers', href: '/admin/loyalty', icon: Award },
+  { label: 'Loyalty Users', href: '/admin/loyalty/users', icon: Users },
   { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
+  { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', href: '/admin/reports', icon: FileText },
@@ -40,6 +48,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // Check if user is admin
     if (!user) {
       router.push('/auth/login');
+      return;
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      console.warn('[AdminLayout] User email not verified, redirecting to verification page');
+      router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
       return;
     }
 

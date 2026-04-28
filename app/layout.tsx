@@ -17,14 +17,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Remopay - Your all-in-one payment solution",
-  description: "",
+  description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
   keywords: "airtime, data bundles, bills payment, top-up, VTU, telecom, Africa, Nigeria, MTN, Airtel, Glo, 9mobile, Virtual, Dollar Card, Dollar",
   authors: [{ name: "Remopay" }],
   creator: "Remopay",
   publisher: "Remopay",
   robots: "index, follow",
+  metadataBase: new URL("https://remopay.vercel.app"),
   alternates: {
-    canonical: "https://api.remopay.remonode.com",
+    canonical: "https://remopay.vercel.app",
   },
   manifest: "/manifest.json",
   icons: {
@@ -60,14 +61,14 @@ export const metadata: Metadata = {
     siteName: "Remopay",
     images: [
       {
-        url: "https://remopay.vercel.app/remopay-banner.png",
+        url: "/remopay-banner.png",
         width: 1200,
         height: 630,
         alt: "Remopay - Your all-in-one payment solution",
         type: "image/png",
       },
       {
-        url: "https://remopay.vercel.app/remopay-banner.png",
+        url: "/remopay-banner.png",
         width: 800,
         height: 420,
         alt: "Remopay - Your all-in-one payment solution",
@@ -80,11 +81,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Remopay - Your all-in-one payment solution",
     description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
-    images: ["https://remopay.vercel.app/remopay-banner.png"],
+    images: ["/remopay-banner.png"],
     creator: "@Remopay",
     site: "@Remopay",
   },
-  metadataBase: new URL("https://remopay.vercel.app"),
   category: "Technology",
   formatDetection: {
     telephone: false,

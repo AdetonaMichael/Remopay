@@ -1,17 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Wifi } from 'lucide-react';
+import {
+  ChevronRight,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  Wifi,
+} from 'lucide-react';
+
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
-import { Spinner } from '@/components/shared/Spinner';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider } from '@/types/vtu.types';
-import Image from 'next/image';
 
 interface DataFormData {
   provider: string;
@@ -25,36 +31,45 @@ interface DataFormData {
 export default function DataPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
+
   const [providers, setProviders] = useState<VTUProvider[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState('');
   const [variations, setVariations] = useState<any[]>([]);
-  const [selectedVariation, setSelectedVariation] = useState<string>('');
+  const [selectedVariation, setSelectedVariation] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingVariations, setLoadingVariations] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch providers on mount
+  const activeProvider = useMemo(
+    () => providers.find((provider) => provider.serviceID === selectedProvider),
+    [providers, selectedProvider]
+  );
+
+  const activeVariation = useMemo(
+    () =>
+      variations.find(
+        (variation) => variation.variation_code === selectedVariation
+      ),
+    [variations, selectedVariation]
+  );
+
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        console.log('[DataPage] Fetching data providers...');
         setLoading(true);
         const data = await vtuService.getDataProviders();
 
-        if (data && Array.isArray(data) && data.length > 0) {
-          console.log('[DataPage] Providers loaded:', data.length);
+        if (Array.isArray(data) && data.length > 0) {
           setProviders(data);
-          // Auto-select first provider
           setSelectedProvider(data[0].serviceID);
         } else {
-          console.warn('[DataPage] No providers returned');
+          setProviders([]);
           addToast({
             message: 'Failed to load data providers',
             type: 'error',
           });
         }
-      } catch (err) {
-        console.error('[DataPage] Error loading providers:', err);
+      } catch {
         addToast({
           message: 'Failed to load data providers. Please try again.',
           type: 'error',
@@ -67,31 +82,27 @@ export default function DataPage() {
     fetchProviders();
   }, [addToast]);
 
-  // Fetch variations when provider changes
   useEffect(() => {
     if (!selectedProvider) return;
 
     const fetchVariations = async () => {
       try {
-        console.log('[DataPage] Fetching variations for provider:', selectedProvider);
         setLoadingVariations(true);
         setVariations([]);
         setSelectedVariation('');
 
         const response = await vtuService.getDataVariations(selectedProvider);
 
-        if (response && response.variations && Array.isArray(response.variations)) {
-          console.log('[DataPage] Variations loaded:', response.variations.length);
+        if (response?.variations && Array.isArray(response.variations)) {
           setVariations(response.variations);
         } else {
-          console.error('[DataPage] Invalid variations response:', response);
+          setVariations([]);
           addToast({
             message: 'Failed to load data plans',
             type: 'error',
           });
         }
-      } catch (err) {
-        console.error('[DataPage] Error loading variations:', err);
+      } catch {
         addToast({
           message: 'Failed to load data plans. Please try again.',
           type: 'error',
@@ -104,54 +115,45 @@ export default function DataPage() {
     fetchVariations();
   }, [selectedProvider, addToast]);
 
-  const handleContinue = async () => {
-    console.log('[DataPage] Continue clicked');
+  const handleContinue = () => {
     const newErrors: Record<string, string> = {};
 
     if (!selectedProvider) {
       newErrors.provider = 'Please select a provider';
     }
+
     if (!selectedVariation) {
       newErrors.variation = 'Please select a data plan';
     }
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length > 0) return;
+
+    const provider = providers.find((item) => item.serviceID === selectedProvider);
+    const variation = variations.find(
+      (item) => item.variation_code === selectedVariation
+    );
+
+    if (!provider || !variation) {
+      addToast({
+        message: 'Invalid selection. Please try again.',
+        type: 'error',
+      });
       return;
     }
 
-    try {
-      const provider = providers.find((p) => p.serviceID === selectedProvider);
-      const variation = variations.find((v) => v.variation_code === selectedVariation);
+    const dataToStore: DataFormData = {
+      provider: selectedProvider,
+      providerName: provider.name,
+      variation: selectedVariation,
+      variationCode: variation.variation_code,
+      variationName: variation.name,
+      variationAmount: variation.variation_amount,
+    };
 
-      if (!provider || !variation) {
-        console.error('[DataPage] Invalid selection:', provider, variation);
-        return;
-      }
-
-      const dataToStore: DataFormData = {
-        provider: selectedProvider,
-        providerName: provider.name,
-        variation: selectedVariation,
-        variationCode: variation.variation_code,
-        variationName: variation.name,
-        variationAmount: variation.variation_amount,
-      };
-
-      console.log('[DataPage] Storing form data:', dataToStore);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('dataFormData', JSON.stringify(dataToStore));
-      }
-
-      router.push('/dashboard/data/review');
-    } catch (err) {
-      console.error('[DataPage] Error during continue:', err);
-      addToast({
-        message: 'An error occurred. Please try again.',
-        type: 'error',
-      });
-    }
+    sessionStorage.setItem('dataFormData', JSON.stringify(dataToStore));
+    router.push('/dashboard/data/review');
   };
 
   if (loading) {
@@ -159,186 +161,216 @@ export default function DataPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="space-y-8">
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        * {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
       `}</style>
 
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-8">
-          {/* Step 1: Select Provider */}
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#4a5ff7] bg-white text-sm font-bold text-[#4a5ff7]">
+
+
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71927] text-sm font-extrabold text-white">
                 1
               </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Select Network Provider
-              </span>
+              <div>
+                <p className="text-sm font-bold text-gray-900">
+                  Select Provider & Plan
+                </p>
+                <p className="text-xs text-gray-600">
+                  Choose network and data bundle.
+                </p>
+              </div>
             </div>
 
-            <h2 className="text-xl font-bold tracking-tight text-[#111827] mb-6">
-              Which network would you like to buy data from?
-            </h2>
+            <div className="hidden h-[2px] flex-1 bg-gray-200 sm:block" />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {providers.map((provider) => (
-                <button
-                  key={provider.serviceID}
-                  onClick={() => {
-                    setSelectedProvider(provider.serviceID);
-                    setErrors({});
-                  }}
-                  className={`relative group rounded-[20px] border-2 p-4 transition-all ${
-                    selectedProvider === provider.serviceID
-                      ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                      : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                  }`}
-                >
-                  {/* Provider Image */}
-                  <div className="mb-3 h-[60px] flex items-center justify-center">
-                    {provider.image ? (
-                      <Image
-                        src={provider.image}
-                        alt={provider.name}
-                        width={60}
-                        height={60}
-                        className="max-h-[60px] max-w-[60px] object-contain"
-                      />
-                    ) : (
-                      <Wifi className="text-[#4a5ff7]" size={32} />
-                    )}
-                  </div>
-
-                  {/* Provider Name */}
-                  <p className="text-sm font-bold text-[#111827]">{provider.name}</p>
-
-                  {/* Selection Indicator */}
-                  {selectedProvider === provider.serviceID && (
-                    <div className="absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#4a5ff7] text-white">
-                      <div className="h-2 w-2 rounded-full bg-white" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {errors.provider && (
-              <p className="mt-4 text-sm text-red-600">{errors.provider}</p>
-            )}
-          </Card>
-
-          {/* Step 2: Select Data Plan */}
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
+            <div className="flex items-center gap-3 opacity-60">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white text-sm font-extrabold text-gray-500">
                 2
               </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Select Data Plan
-              </span>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Confirm & Pay</p>
+                <p className="text-xs text-gray-600">
+                  Review and authorize transaction.
+                </p>
+              </div>
             </div>
-
-            <h2 className="text-xl font-bold tracking-tight text-[#111827] mb-6">
-              Choose your preferred data plan
-            </h2>
-
-            {loadingVariations ? (
-              <div className="flex justify-center py-8">
-                <div className="text-center">
-                  <Spinner className="mx-auto mb-2" />
-                  <p className="text-sm text-[#6b7280]">Loading available plans...</p>
-                </div>
-              </div>
-            ) : variations.length > 0 ? (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                {variations.map((variation) => (
-                  <button
-                    key={variation.variation_code}
-                    onClick={() => {
-                      setSelectedVariation(variation.variation_code);
-                      setErrors({});
-                    }}
-                    className={`w-full rounded-[18px] border-2 p-4 text-left transition-all ${
-                      selectedVariation === variation.variation_code
-                        ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                        : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-[#111827]">
-                          {variation.name}
-                        </p>
-                        <p className="mt-1 text-xs text-[#6b7280]">
-                          {variation.variation_code}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-[#4a5ff7]">
-                          ₦{parseFloat(variation.variation_amount).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-[18px] border-2 border-dashed border-[#e5e7eb] p-8 text-center">
-                <p className="text-sm text-[#6b7280]">No plans available for this provider</p>
-              </div>
-            )}
-
-            {errors.variation && (
-              <p className="mt-4 text-sm text-red-600">{errors.variation}</p>
-            )}
-          </Card>
+          </div>
         </div>
 
-        {/* Sidebar Summary */}
-        <div>
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] xl:sticky xl:top-8">
-            <h3 className="text-lg font-bold tracking-tight text-[#111827]">
-              Summary
-            </h3>
+        <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_360px]">
+          <div className="space-y-8">
+            <div>
+              <label className="mb-4 block text-sm font-bold text-gray-900">
+                Select Network Provider
+              </label>
 
-            <div className="mt-6 space-y-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Provider
-                </p>
-                {selectedProvider ? (
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {providers.find((p) => p.serviceID === selectedProvider)?.name}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                {providers.map((provider) => {
+                  const active = selectedProvider === provider.serviceID;
+
+                  return (
+                    <button
+                      key={provider.serviceID}
+                      type="button"
+                      onClick={() => {
+                        setSelectedProvider(provider.serviceID);
+                        setErrors({});
+                      }}
+                      className={`group relative rounded-2xl border p-4 text-center transition-all ${
+                        active
+                          ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
+                        {provider.image ? (
+                          <Image
+                            src={provider.image}
+                            alt={provider.name}
+                            width={42}
+                            height={42}
+                            className="object-contain"
+                          />
+                        ) : (
+                          <Wifi className="text-[#d71927]" size={22} />
+                        )}
+                      </div>
+
+                      <p className="text-sm font-extrabold text-gray-900">
+                        {provider.name}
+                      </p>
+
+                      <div
+                        className={`mx-auto mt-3 h-1.5 w-8 rounded-full transition ${
+                          active ? 'bg-[#d71927]' : 'bg-transparent'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="border-t border-[#e5e7eb] pt-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Data Plan
+              {errors.provider && (
+                <p className="mt-3 text-sm font-medium text-red-600">
+                  {errors.provider}
                 </p>
-                {selectedVariation ? (
-                  <div className="mt-1 space-y-2">
-                    <p className="text-sm font-semibold text-[#111827]">
-                      {variations.find((v) => v.variation_code === selectedVariation)?.name}
-                    </p>
-                    <p className="text-lg font-bold text-[#4a5ff7]">
-                      ₦
-                      {parseFloat(
-                        variations.find((v) => v.variation_code === selectedVariation)
-                          ?.variation_amount || '0'
-                      ).toLocaleString()}
+              )}
+            </div>
+
+            <div>
+              <label className="mb-4 block text-sm font-bold text-gray-900">
+                Select Data Plan
+              </label>
+
+              {loadingVariations ? (
+                <div className="flex items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10">
+                  <div className="text-center">
+                    <Loader2
+                      className="mx-auto animate-spin text-[#d71927]"
+                      size={26}
+                    />
+                    <p className="mt-3 text-sm font-semibold text-gray-600">
+                      Loading available data plans...
                     </p>
                   </div>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
+                </div>
+              ) : variations.length > 0 ? (
+                <div className="grid max-h-[460px] gap-3 overflow-y-auto pr-1">
+                  {variations.map((variation) => {
+                    const active =
+                      selectedVariation === variation.variation_code;
+
+                    return (
+                      <button
+                        key={variation.variation_code}
+                        type="button"
+                        onClick={() => {
+                          setSelectedVariation(variation.variation_code);
+                          setErrors({});
+                        }}
+                        className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                          active
+                            ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-extrabold text-gray-900">
+                              {variation.name}
+                            </p>
+                            <p className="mt-1 text-xs font-medium text-gray-500">
+                              Code: {variation.variation_code}
+                            </p>
+                          </div>
+
+                          <p className="shrink-0 text-lg font-extrabold text-[#d71927]">
+                            ₦
+                            {Number(
+                              variation.variation_amount || 0
+                            ).toLocaleString()}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center">
+                  <Wifi className="mx-auto text-gray-400" size={28} />
+                  <p className="mt-3 text-sm font-semibold text-gray-600">
+                    No plans available for this provider.
+                  </p>
+                </div>
+              )}
+
+              {errors.variation && (
+                <p className="mt-3 text-sm font-medium text-red-600">
+                  {errors.variation}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <aside className="rounded-2xl border border-gray-200 bg-white p-5">
+            <p className="text-sm font-bold text-gray-900">Data Summary</p>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Provider
+                </p>
+                <p className="mt-2 text-sm font-bold text-gray-900">
+                  {activeProvider?.name || 'Not selected'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Selected Plan
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-gray-900">
+                  {activeVariation?.name || 'Not selected'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Amount
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#d71927]">
+                  ₦
+                  {Number(
+                    activeVariation?.variation_amount || 0
+                  ).toLocaleString()}
+                </p>
               </div>
             </div>
 
@@ -346,22 +378,23 @@ export default function DataPage() {
               fullWidth
               onClick={handleContinue}
               disabled={!selectedProvider || !selectedVariation}
-              className={`mt-8 h-12 rounded-xl text-base font-semibold ${
-                !selectedProvider || !selectedVariation
-                  ? 'opacity-50 cursor-not-allowed'
-                  : ''
-              }`}
+              className="mt-6 h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b81420] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Continue to Review
-              <ChevronRight className="ml-2" size={18} />
+              <span>Continue to Review</span>
+              <ChevronRight className="ml-2" size={20} />
             </Button>
 
-            <p className="mt-4 text-center text-xs text-[#6b7280]">
-              Step 1 of 3
-            </p>
-          </Card>
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
+                Delivery
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Your data purchase will be processed after PIN authorization.
+              </p>
+            </div>
+          </aside>
         </div>
-      </div>
+      </Card>
 
       <Toast />
     </div>

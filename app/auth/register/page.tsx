@@ -21,6 +21,7 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
 import { AuthProtected } from '@/components/AuthProtected';
+import { AuthProtectedRoute } from '@/components/AuthProtectedRoute';
 import { registerSchema, type RegisterSchema } from '@/utils/validation.utils';
 
 const STEPS = [
@@ -33,7 +34,7 @@ const STEPS = [
   {
     id: 2,
     label: 'Contact',
-    fields: ['phone'] as const,
+    fields: ['phone_number'] as const,
     description: 'How can we reach you',
   },
   {
@@ -166,7 +167,7 @@ function RegisterPageContent() {
 
   const stepFields: Record<number, (keyof RegisterSchema)[]> = {
     1: ['first_name', 'last_name', 'email'],
-    2: ['phone'],
+    2: ['phone_number'],
     3: ['password', 'password_confirmation'],
   };
 
@@ -265,12 +266,12 @@ function RegisterPageContent() {
                   <FieldWrapper
                     label="Phone Number"
                     icon={<Phone size={16} />}
-                    error={errors.phone?.message}
+                    error={errors.phone_number?.message}
                   >
                     <input
-                      {...register('phone')}
+                      {...register('phone_number')}
                       type="tel"
-                      placeholder="+2348012345678"
+                      placeholder="08102300935"
                       className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
                   </FieldWrapper>
@@ -377,8 +378,8 @@ function RegisterPageContent() {
 
 export default function RegisterPage() {
   return (
-    <AuthProtected requireAuth={false}>
+    <AuthProtectedRoute requireUnauthenticated={true} redirectTo="/dashboard">
       <RegisterPageContent />
-    </AuthProtected>
+    </AuthProtectedRoute>
   );
 }

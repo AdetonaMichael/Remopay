@@ -1,18 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Tv } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  Tv,
+} from 'lucide-react';
+
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
-import { Spinner } from '@/components/shared/Spinner';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider, VTUVariation } from '@/types/vtu.types';
-import Image from 'next/image';
 
 interface TVFormData {
   provider: string;
@@ -24,43 +31,51 @@ interface TVFormData {
   smartcard?: string;
 }
 
+type TVStep = 'select' | 'plan' | 'verify';
+
 export default function TVPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
+
   const [providers, setProviders] = useState<VTUProvider[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState('');
   const [variations, setVariations] = useState<VTUVariation[]>([]);
-  const [selectedVariation, setSelectedVariation] = useState<string>('');
-  const [smartcard, setSmartcard] = useState<string>('');
+  const [selectedVariation, setSelectedVariation] = useState('');
+  const [smartcard, setSmartcard] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingVariations, setLoadingVariations] = useState(false);
-  const [step, setStep] = useState<'select' | 'plan' | 'verify'>(
-    'select'
-  );
+  const [step, setStep] = useState<TVStep>('select');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch providers on mount
+  const activeProvider = useMemo(
+    () => providers.find((provider) => provider.serviceID === selectedProvider),
+    [providers, selectedProvider]
+  );
+
+  const activeVariation = useMemo(
+    () =>
+      variations.find(
+        (variation) => variation.variation_code === selectedVariation
+      ),
+    [variations, selectedVariation]
+  );
+
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        console.log('[TVPage] Fetching TV providers...');
         setLoading(true);
         const data = await vtuService.getTVProviders();
 
-        if (data && Array.isArray(data) && data.length > 0) {
-          console.log('[TVPage] Providers loaded:', data.length);
+        if (Array.isArray(data) && data.length > 0) {
           setProviders(data);
-          // Auto-select first provider
           setSelectedProvider(data[0].serviceID);
         } else {
-          console.warn('[TVPage] No providers returned');
           addToast({
             message: 'Failed to load TV providers',
             type: 'error',
           });
         }
-      } catch (err) {
-        console.error('[TVPage] Error loading providers:', err);
+      } catch {
         addToast({
           message: 'Failed to load TV providers. Please try again.',
           type: 'error',
@@ -73,13 +88,11 @@ export default function TVPage() {
     fetchProviders();
   }, [addToast]);
 
-  // Fetch variations when provider changes
   useEffect(() => {
     if (!selectedProvider) return;
 
     const fetchVariations = async () => {
       try {
-        console.log('[TVPage] Fetching variations for provider:', selectedProvider);
         setLoadingVariations(true);
         setVariations([]);
         setSelectedVariation('');
@@ -87,18 +100,15 @@ export default function TVPage() {
 
         const response = await vtuService.getTVVariations(selectedProvider);
 
-        if (response && response.variations && Array.isArray(response.variations)) {
-          console.log('[TVPage] Variations loaded:', response.variations.length);
+        if (response?.variations && Array.isArray(response.variations)) {
           setVariations(response.variations);
         } else {
-          console.error('[TVPage] Invalid variations response:', response);
           addToast({
             message: 'Failed to load TV plans',
             type: 'error',
           });
         }
-      } catch (err) {
-        console.error('[TVPage] Error loading variations:', err);
+      } catch {
         addToast({
           message: 'Failed to load TV plans. Please try again.',
           type: 'error',
@@ -112,12 +122,11 @@ export default function TVPage() {
   }, [selectedProvider, addToast]);
 
   const validateSmartcard = (value: string): boolean => {
-    // Smartcard numbers are typically 10-20 digits
     const cleaned = value.replace(/\D/g, '');
     return cleaned.length >= 10 && cleaned.length <= 30;
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     setErrors({});
 
     if (step === 'select') {
@@ -125,71 +134,69 @@ export default function TVPage() {
         setErrors({ provider: 'Please select a TV provider' });
         return;
       }
+
       setStep('plan');
-    } else if (step === 'plan') {
+      return;
+    }
+
+    if (step === 'plan') {
       if (!selectedVariation) {
         setErrors({ variation: 'Please select a subscription plan' });
         return;
       }
+
       setStep('verify');
-    } else if (step === 'verify') {
-      if (!smartcard.trim()) {
-        setErrors({ smartcard: 'Smartcard number is required' });
-        return;
-      }
-      if (!validateSmartcard(smartcard)) {
-        setErrors({
-          smartcard: 'Please enter a valid smartcard number (10-30 digits)',
-        });
-        return;
-      }
-
-      // Store form data and proceed to review
-      try {
-        const selectedPlan = variations.find(
-          (v) => v.variation_code === selectedVariation
-        );
-        const selectedProviderData = providers.find(
-          (p) => p.serviceID === selectedProvider
-        );
-
-        const dataToStore: TVFormData = {
-          provider: selectedProvider,
-          providerName: selectedProviderData?.name || '',
-          variation: selectedVariation,
-          variationCode: selectedVariation,
-          variationName: selectedPlan?.name,
-          variationAmount: selectedPlan?.variation_amount,
-          smartcard,
-        };
-
-        console.log('[TVPage] Storing form data to session:', dataToStore);
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('tvFormData', JSON.stringify(dataToStore));
-        }
-
-        router.push('/dashboard/tv/review');
-      } catch (err) {
-        console.error('[TVPage] Error during continue:', err);
-        addToast({
-          message: 'An error occurred. Please try again.',
-          type: 'error',
-        });
-      }
+      return;
     }
+
+    if (!smartcard.trim()) {
+      setErrors({ smartcard: 'Smartcard or IUC number is required' });
+      return;
+    }
+
+    if (!validateSmartcard(smartcard)) {
+      setErrors({
+        smartcard: 'Please enter a valid smartcard or IUC number',
+      });
+      return;
+    }
+
+    if (!activeProvider || !activeVariation) {
+      addToast({
+        message: 'Invalid selection. Please try again.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const dataToStore: TVFormData = {
+      provider: selectedProvider,
+      providerName: activeProvider.name,
+      variation: selectedVariation,
+      variationCode: activeVariation.variation_code,
+      variationName: activeVariation.name,
+      variationAmount: activeVariation.variation_amount,
+      smartcard: smartcard.replace(/\D/g, ''),
+    };
+
+    sessionStorage.setItem('tvFormData', JSON.stringify(dataToStore));
+    router.push('/dashboard/tv/review');
   };
 
   const handleBack = () => {
+    setErrors({});
+
+    if (step === 'verify') {
+      setStep('plan');
+      return;
+    }
+
     if (step === 'plan') {
       setStep('select');
-      setSelectedVariation('');
-      setSmartcard('');
-      setErrors({});
-    } else if (step === 'verify') {
-      setStep('plan');
-      setSmartcard('');
-      setErrors({});
+      return;
     }
+
+    router.push('/dashboard');
   };
 
   if (loading) {
@@ -197,385 +204,307 @@ export default function TVPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900">TV Subscription</h1>
-        <p className="text-gray-600 mt-2">Subscribe to your favorite TV services</p>
-      </div>
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
 
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-8">
-          <Card className="p-6 sm:p-8 border-[#e5e7eb] shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="space-y-8">
-          {/* Step Indicator */}
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2">
-            {/* Step 1 */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all ${
-                  step === 'select' || step === 'plan' || step === 'verify'
-                    ? 'bg-[#a9b7ff] text-white'
-                    : 'border-2 border-gray-300 text-gray-500'
-                }`}
-              >
-                1
-              </div>
-              <div
-                className={`text-sm font-semibold hidden sm:block ${
-                  step === 'select' || step === 'plan' || step === 'verify'
-                    ? 'text-gray-900'
-                    : 'text-gray-500'
-                }`}
-              >
-                Provider
-              </div>
-            </div>
 
-            <div className="h-1.5 flex-1 bg-gray-300 rounded-full min-w-8"></div>
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+            {[
+              ['select', '1', 'Provider', 'Choose TV provider'],
+              ['plan', '2', 'Plan', 'Select subscription'],
+              ['verify', '3', 'Smartcard', 'Enter IUC number'],
+              ['pay', '4', 'Pay', 'Confirm payment'],
+            ].map(([key, number, title, subtitle], index) => {
+              const active =
+                key === step ||
+                (step === 'plan' && key === 'select') ||
+                (step === 'verify' && ['select', 'plan', 'verify'].includes(key));
 
-            {/* Step 2 */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all ${
-                  step === 'plan' || step === 'verify'
-                    ? 'bg-[#a9b7ff] text-white'
-                    : 'border-2 border-gray-300 text-gray-500'
-                }`}
-              >
-                2
-              </div>
-              <div
-                className={`text-sm font-semibold hidden sm:block ${
-                  step === 'plan' || step === 'verify'
-                    ? 'text-gray-900'
-                    : 'text-gray-500'
-                }`}
-              >
-                Plan
-              </div>
-            </div>
-
-            <div className="h-1.5 flex-1 bg-gray-300 rounded-full min-w-8"></div>
-
-            {/* Step 3 */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all ${
-                  step === 'verify'
-                    ? 'bg-[#a9b7ff] text-white'
-                    : 'border-2 border-gray-300 text-gray-500'
-                }`}
-              >
-                3
-              </div>
-              <div
-                className={`text-sm font-semibold hidden sm:block ${
-                  step === 'verify' ? 'text-gray-900' : 'text-gray-500'
-                }`}
-              >
-                Verify
-              </div>
-            </div>
-
-            <div className="h-1.5 flex-1 bg-gray-300 rounded-full min-w-8"></div>
-
-            {/* Step 4 */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-max">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-gray-300 text-gray-500 font-bold text-sm">
-                4
-              </div>
-              <div className="text-sm font-semibold hidden sm:block text-gray-500">
-                Pay
-              </div>
-            </div>
-          </div>
-
-          {/* Step 1: Provider Selection */}
-          {step === 'select' && (
-            <div className="space-y-6 pt-2">
-              <label className="block text-sm font-semibold text-gray-900">
-                Select TV Provider
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-                {providers.map((provider) => (
-                  <button
-                    key={provider.serviceID}
-                    onClick={() => {
-                      setSelectedProvider(provider.serviceID);
-                      setErrors((prev) => ({
-                        ...prev,
-                        provider: '',
-                      }));
-                    }}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      selectedProvider === provider.serviceID
-                        ? 'border-[#a9b7ff] bg-[#f7f8ff] shadow-md'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+              return (
+                <div key={key} className="flex flex-1 items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
+                      active
+                        ? 'bg-[#d71927] text-white'
+                        : 'border border-gray-300 bg-white text-gray-600'
                     }`}
                   >
-                    <div className="text-center space-y-2">
-                      {provider.image && (
-                        <div className="h-16 w-full flex items-center justify-center">
-                          <Image
-                            src={provider.image}
-                            alt={provider.name}
-                            width={60}
-                            height={60}
-                            className="object-contain"
-                          />
-                        </div>
-                      )}
-                      <p className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2">
-                        {provider.name}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {errors.provider && (
-                <p className="text-sm text-red-600">{errors.provider}</p>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: Plan Selection */}
-          {step === 'plan' && (
-            <div className="space-y-6 pt-2">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Selected Provider
-                </label>
-                <div className="p-4 bg-[#f7f8ff] border border-[#e5e7eb] rounded-lg">
-                  <p className="text-sm font-medium text-gray-900">
-                    {
-                      providers.find((p) => p.serviceID === selectedProvider)
-                        ?.name
-                    }
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-4">
-                  Select Subscription Plan
-                </label>
-                {loadingVariations ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Spinner className="text-[#a9b7ff]" />
+                    {number}
                   </div>
-                ) : variations.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">
-                    No plans available for this provider
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {variations.map((plan) => (
+
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-bold text-gray-900">{title}</p>
+                    <p className="text-xs text-gray-600">{subtitle}</p>
+                  </div>
+
+                  {index < 3 && (
+                    <div className="hidden h-[2px] flex-1 bg-gray-200 lg:block" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_360px]">
+          <div className="space-y-8">
+            {step === 'select' && (
+              <div>
+                <label className="mb-4 block text-sm font-bold text-gray-900">
+                  Select TV Provider
+                </label>
+
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                  {providers.map((provider) => {
+                    const active = selectedProvider === provider.serviceID;
+
+                    return (
                       <button
-                        key={plan.variation_code}
+                        key={provider.serviceID}
+                        type="button"
                         onClick={() => {
-                          setSelectedVariation(plan.variation_code);
-                          setErrors((prev) => ({
-                            ...prev,
-                            variation: '',
-                          }));
+                          setSelectedProvider(provider.serviceID);
+                          setErrors({});
                         }}
-                        className={`w-full p-4 rounded-lg border-2 transition-all text-left ${
-                          selectedVariation === plan.variation_code
-                            ? 'border-[#a9b7ff] bg-[#f7f8ff] shadow-md'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        className={`rounded-2xl border p-4 text-center transition-all ${
+                          active
+                            ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                              {plan.name}
-                            </p>
-                            {plan.fixedPrice === 'Yes' && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                Fixed price
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-right ml-4">
-                            <p className="text-sm font-bold text-[#a9b7ff]">
-                              ₦{parseFloat(plan.variation_amount).toLocaleString()}
-                            </p>
-                          </div>
+                        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+                          {provider.image ? (
+                            <Image
+                              src={provider.image}
+                              alt={provider.name}
+                              width={48}
+                              height={48}
+                              className="object-contain"
+                            />
+                          ) : (
+                            <Tv className="text-[#d71927]" size={26} />
+                          )}
                         </div>
+
+                        <p className="text-sm font-extrabold text-gray-900">
+                          {provider.name}
+                        </p>
+
+                        <div
+                          className={`mx-auto mt-3 h-1.5 w-8 rounded-full transition ${
+                            active ? 'bg-[#d71927]' : 'bg-transparent'
+                          }`}
+                        />
                       </button>
-                    ))}
-                  </div>
+                    );
+                  })}
+                </div>
+
+                {errors.provider && (
+                  <p className="mt-3 text-sm font-medium text-red-600">
+                    {errors.provider}
+                  </p>
                 )}
               </div>
-              {errors.variation && (
-                <p className="text-sm text-red-600">{errors.variation}</p>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Step 3: Smartcard Verification */}
-          {step === 'verify' && (
-            <div className="space-y-6 pt-2">
+            {step === 'plan' && (
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Selected Plan
+                <label className="mb-4 block text-sm font-bold text-gray-900">
+                  Select Subscription Plan
                 </label>
-                <div className="p-4 bg-[#f7f8ff] border border-[#e5e7eb] rounded-lg space-y-2">
-                  <p className="text-sm font-medium text-gray-900">
-                    {variations.find((v) => v.variation_code === selectedVariation)
-                      ?.name}
-                  </p>
-                  <p className="text-lg font-bold text-[#a9b7ff]">
-                    ₦
-                    {parseFloat(
-                      variations.find((v) => v.variation_code === selectedVariation)
-                        ?.variation_amount || '0'
-                    ).toLocaleString()}
-                  </p>
-                </div>
-              </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex gap-3">
-                  <Tv className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Enter Your Smartcard Number</p>
-                    <p className="text-xs opacity-90">
-                      Find your smartcard/decoder number on your device or bill
+                {loadingVariations ? (
+                  <div className="flex items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10">
+                    <div className="text-center">
+                      <Loader2
+                        className="mx-auto animate-spin text-[#d71927]"
+                        size={26}
+                      />
+                      <p className="mt-3 text-sm font-semibold text-gray-600">
+                        Loading subscription plans...
+                      </p>
+                    </div>
+                  </div>
+                ) : variations.length > 0 ? (
+                  <div className="grid max-h-[520px] gap-3 overflow-y-auto pr-1">
+                    {variations.map((variation) => {
+                      const active =
+                        selectedVariation === variation.variation_code;
+
+                      return (
+                        <button
+                          key={variation.variation_code}
+                          type="button"
+                          onClick={() => {
+                            setSelectedVariation(variation.variation_code);
+                            setErrors({});
+                          }}
+                          className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                            active
+                              ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-extrabold text-gray-900">
+                                {variation.name}
+                              </p>
+                              <p className="mt-1 text-xs font-medium text-gray-500">
+                                Code: {variation.variation_code}
+                              </p>
+                            </div>
+
+                            <p className="shrink-0 text-lg font-extrabold text-[#d71927]">
+                              ₦
+                              {Number(
+                                variation.variation_amount || 0
+                              ).toLocaleString()}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center">
+                    <Tv className="mx-auto text-gray-400" size={28} />
+                    <p className="mt-3 text-sm font-semibold text-gray-600">
+                      No plans available for this provider.
                     </p>
                   </div>
+                )}
+
+                {errors.variation && (
+                  <p className="mt-3 text-sm font-medium text-red-600">
+                    {errors.variation}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {step === 'verify' && (
+              <div>
+                <label className="mb-4 block text-sm font-bold text-gray-900">
+                  Smartcard / IUC Number
+                </label>
+
+                <Input
+                  type="text"
+                  placeholder="Enter smartcard or IUC number"
+                  value={smartcard}
+                  onChange={(event) => {
+                    setSmartcard(event.target.value.replace(/\D/g, ''));
+                    setErrors({});
+                  }}
+                  className="h-13 rounded-2xl border-gray-200 bg-white text-base focus:border-[#d71927]"
+                />
+
+                {errors.smartcard && (
+                  <p className="mt-3 text-sm font-medium text-red-600">
+                    {errors.smartcard}
+                  </p>
+                )}
+
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
+                    Verification
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    Your smartcard will be verified on the review page before
+                    payment is authorized.
+                  </p>
                 </div>
               </div>
+            )}
 
-              <Input
-                label="Smartcard/Decoder Number"
-                type="text"
-                placeholder="Enter your smartcard number"
-                value={smartcard}
-                onChange={(e) => {
-                  setSmartcard(e.target.value.replace(/\D/g, ''));
-                  if (errors.smartcard) {
-                    setErrors((prev) => ({
-                      ...prev,
-                      smartcard: '',
-                    }));
-                  }
-                }}
-                error={errors.smartcard}
-                maxLength={30}
-              />
-
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>• DSTV: Look for the 10-11 digit number after "Decoder No."</p>
-                <p>• GoTV: Look for the smartcard number on your device</p>
-                <p>• Startimes: Find the smartcard number on your decoder</p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            {step !== 'select' && (
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={handleBack}
-                className="flex-1 sm:flex-none"
+                className="h-13 rounded-2xl font-bold sm:w-[160px]"
               >
+                <ChevronLeft className="mr-2" size={18} />
                 Back
               </Button>
-            )}
-            <Button
-              onClick={handleContinue}
-              className="flex-1 sm:flex-none bg-[#a9b7ff] hover:bg-[#9aa5ff] text-white"
-            >
-              <div className="flex items-center gap-2">
-                <span>
-                  {step === 'verify' ? 'Continue to Payment' : 'Continue'}
-                </span>
-                <ChevronRight size={18} />
-              </div>
-            </Button>
-          </div>
+
+              <Button
+                fullWidth
+                onClick={handleContinue}
+                className="h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b81420]"
+              >
+                {step === 'verify' ? 'Continue to Review' : 'Continue'}
+                <ChevronRight className="ml-2" size={20} />
+              </Button>
             </div>
-          </Card>
-        </div>
+          </div>
 
-        {/* Sidebar Summary */}
-        <div>
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] xl:sticky xl:top-8">
-            <h3 className="text-lg font-bold tracking-tight text-[#111827]">
-              Summary
-            </h3>
+          <aside className="rounded-2xl border border-gray-200 bg-white p-5">
+            <p className="text-sm font-bold text-gray-900">TV Summary</p>
 
-            <div className="mt-6 space-y-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
                   Provider
                 </p>
-                {selectedProvider ? (
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {providers.find((p) => p.serviceID === selectedProvider)?.name}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
-              </div>
-
-              <div className="border-t border-[#e5e7eb] pt-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Subscription Plan
+                <p className="mt-2 text-sm font-bold text-gray-900">
+                  {activeProvider?.name || 'Not selected'}
                 </p>
-                {selectedVariation ? (
-                  <div className="mt-1 space-y-2">
-                    <p className="text-sm font-semibold text-[#111827]">
-                      {variations.find((v) => v.variation_code === selectedVariation)?.name}
-                    </p>
-                    <p className="text-lg font-bold text-[#4a5ff7]">
-                      ₦
-                      {parseFloat(
-                        variations.find((v) => v.variation_code === selectedVariation)
-                          ?.variation_amount || '0'
-                      ).toLocaleString()}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
               </div>
 
-              {smartcard && (
-                <div className="border-t border-[#e5e7eb] pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Smartcard Number
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {smartcard}
-                  </p>
-                </div>
-              )}
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Plan
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-gray-900">
+                  {activeVariation?.name || 'Not selected'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Smartcard / IUC
+                </p>
+                <p className="mt-2 text-sm font-bold text-gray-900">
+                  {smartcard || 'Not entered'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                  Amount
+                </p>
+                <p className="mt-2 text-2xl font-extrabold text-[#d71927]">
+                  ₦
+                  {Number(
+                    activeVariation?.variation_amount || 0
+                  ).toLocaleString()}
+                </p>
+              </div>
             </div>
 
-            <Button
-              fullWidth
-              onClick={handleContinue}
-              disabled={
-                (step === 'select' && !selectedProvider) ||
-                (step === 'plan' && !selectedVariation) ||
-                (step === 'verify' && !smartcard.trim())
-              }
-              className="mt-8 h-12 rounded-xl text-base font-semibold"
-            >
-              Continue
-              <ChevronRight className="ml-2" size={18} />
-            </Button>
-
-            <p className="mt-4 text-center text-xs text-[#6b7280]">
-              Step {step === 'select' ? 1 : step === 'plan' ? 2 : 3} of 3
-            </p>
-          </Card>
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
+                Secure Flow
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Provider, subscription plan and smartcard verification are
+                checked before final payment.
+              </p>
+            </div>
+          </aside>
         </div>
-      </div>
+      </Card>
+
+      <Toast />
     </div>
   );
 }

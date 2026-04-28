@@ -17,6 +17,8 @@ interface AuthStore {
   error: string | null;
   pinStatus: PINStatus | null;
   activeRole: string | null;
+  isEmailVerified: boolean;
+  emailVerificationCooldown: number;
   
   setUser: (user: User | null) => void;
   setAuthToken: (token: string) => void;
@@ -24,6 +26,7 @@ interface AuthStore {
   setError: (error: string | null) => void;
   setPinStatus: (status: PINStatus | null) => void;
   setActiveRole: (role: string) => void;
+  setEmailVerificationCooldown: (seconds: number) => void;
   getPrimaryRole: (roles?: string[]) => string | null;
   logout: () => void;
   reset: () => void;
@@ -42,7 +45,6 @@ const getStorage = () => {
         const value = safeGetItem(key);
         return value;
       } catch (e) {
-        console.error('[AuthStore Storage] Error getting item:', e);
         return null;
       }
     },
@@ -50,14 +52,14 @@ const getStorage = () => {
       try {
         safeSetItem(key, value);
       } catch (e) {
-        console.error('[AuthStore Storage] Error setting item:', e);
+        // Silent fail
       }
     },
     removeItem: (key: string) => {
       try {
         safeRemoveItem(key);
       } catch (e) {
-        console.error('[AuthStore Storage] Error removing item:', e);
+        // Silent fail
       }
     },
   }));
@@ -72,6 +74,8 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
       pinStatus: null,
       activeRole: null,
+      isEmailVerified: false,
+      emailVerificationCooldown: 0,
 
       setUser: (user) => {
         // Determine primary role for activeRole
@@ -90,6 +94,7 @@ export const useAuthStore = create<AuthStore>()(
           user,
           isAuthenticated: !!user,
           error: null,
+          isEmailVerified: user?.isEmailVerified || false,
           // Set activeRole to primary role (admin > agent > customer/user)
           activeRole: primaryRole,
         });
@@ -108,6 +113,8 @@ export const useAuthStore = create<AuthStore>()(
       setPinStatus: (status) => set({ pinStatus: status }),
 
       setActiveRole: (role) => set({ activeRole: role }),
+
+      setEmailVerificationCooldown: (seconds) => set({ emailVerificationCooldown: seconds }),
 
       getPrimaryRole: (roles?: string[]) => {
         const rolesToCheck = roles || [];
@@ -129,6 +136,8 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           pinStatus: null,
           activeRole: null,
+          isEmailVerified: false,
+          emailVerificationCooldown: 0,
         });
       },
 
@@ -140,6 +149,8 @@ export const useAuthStore = create<AuthStore>()(
           error: null,
           pinStatus: null,
           activeRole: null,
+          isEmailVerified: false,
+          emailVerificationCooldown: 0,
         });
       },
     }),

@@ -32,7 +32,11 @@ class AuthService {
   }
 
   async verifyEmail(data: VerifyEmailRequest): Promise<ApiResponse<{ user: User }>> {
-    return apiClient.post('/auth/verify-email', data);
+    return apiClient.post('/auth/verify-email-with-otp', data);
+  }
+
+  async resendEmailVerificationOTP(email: string): Promise<ApiResponse<void>> {
+    return apiClient.post('/auth/resend-email-verification-otp', { email });
   }
 
   async forgotPassword(data: ForgotPasswordRequest): Promise<ApiResponse<{ email: string }>> {

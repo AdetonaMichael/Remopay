@@ -1,5 +1,5 @@
-// Phone number validation regex (E.164 format)
-export const E164_PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
+// Phone number validation regex (E.164 format or local format like 08XXXXXXXXX)
+export const E164_PHONE_REGEX = /^(\+[1-9]\d{1,14}|0[0-9]{10})$/;
 
 // Currency formatting
 export const CURRENCY_SYMBOL: Record<string, string> = {

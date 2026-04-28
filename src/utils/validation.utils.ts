@@ -7,9 +7,9 @@ export const registerSchema = z
     first_name: z.string().min(2, 'First name must be at least 2 characters').max(255),
     last_name: z.string().min(2, 'Last name must be at least 2 characters').max(255),
     email: z.string().email('Invalid email address'),
-    phone: z
+    phone_number: z
       .string()
-      .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format (e.g., +234XXXXXXXXXX)'),
+      .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format (e.g., +234XXXXXXXXXX) or local format (e.g., 08XXXXXXXXXX)'),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -33,7 +33,11 @@ export const loginSchema = z.object({
 
 export const verifyEmailSchema = z.object({
   email: z.string().email('Invalid email address'),
-  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d+$/, 'Code must be numeric'),
+  otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must be numeric'),
+});
+
+export const resendOTPSchema = z.object({
+  email: z.string().email('Invalid email address'),
 });
 
 export const changePasswordSchema = z
@@ -58,7 +62,7 @@ export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(255).optional(),
   phone: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format')
+    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)')
     .optional(),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
@@ -75,7 +79,7 @@ export const purchaseAirtimeSchema = z.object({
   provider: z.string().min(1, 'Provider is required'),
   phone_number: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format'),
+    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)'),
   amount: z.number().positive('Amount must be positive'),
   payment_method: z.enum(['wallet', 'card', 'mobile_money']),
   recipient_name: z.string().optional(),
@@ -85,7 +89,7 @@ export const purchaseDataSchema = z.object({
   provider: z.string().min(1, 'Provider is required'),
   phone_number: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format'),
+    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)'),
   plan_id: z.string().min(1, 'Plan is required'),
   amount: z.number().positive('Amount must be positive'),
   payment_method: z.enum(['wallet', 'card', 'mobile_money']),
@@ -104,6 +108,7 @@ export const payBillsSchema = z.object({
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;
 export type VerifyEmailSchema = z.infer<typeof verifyEmailSchema>;
+export type ResendOTPSchema = z.infer<typeof resendOTPSchema>;
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>;
 export type UpdateProfileSchema = z.infer<typeof updateProfileSchema>;
 export type PurchaseAirtimeSchema = z.infer<typeof purchaseAirtimeSchema>;

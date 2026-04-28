@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { Toast } from '@/components/shared/Toast';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
+import { Error403Modal } from '@/components/Error403Modal';
 import { initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
 
@@ -25,10 +27,13 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
   return (
     <ErrorBoundary>
       <AuthInitializer>
-        <>
-          {children}
-          <Toast />
-        </>
+        <EmailVerificationEnforcer>
+          <>
+            {children}
+            <Toast />
+            <Error403Modal />
+          </>
+        </EmailVerificationEnforcer>
       </AuthInitializer>
     </ErrorBoundary>
   );

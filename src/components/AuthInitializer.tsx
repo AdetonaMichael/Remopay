@@ -17,10 +17,12 @@ import { safeGetItem } from '@/utils/safe-storage.utils';
  * 
  * Security: Token is stored in localStorage (accessible via browser dev tools)
  * For highly sensitive applications, consider HTTP-only cookies via server.
+ * 
+ * NOTE: Removed full-page loading render block. Children render during initialization
+ * while loading state is tracked. Button loading states and skeleton loaders will display.
  */
 export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setIsLoading } = useAuthStore();
-  const [isInitialized, setIsInitialized] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Ensure component only initializes on client after hydration
@@ -60,17 +62,13 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       } finally {
         console.log('[AuthInitializer] Auth initialization complete');
         setIsLoading(false);
-        setIsInitialized(true);
       }
     };
 
     initializeAuth();
   }, [isMounted, setIsLoading]);
 
-  // Prevent rendering until hydration is complete and auth is initialized
-  if (!isMounted || !isInitialized) {
-    return <div className="min-h-screen bg-white" />;
-  }
-
+  // Render children immediately - no blocking render during initialization
+  // Button loading states and skeleton loaders will show instead
   return <>{children}</>;
 };

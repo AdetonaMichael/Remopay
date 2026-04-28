@@ -14,10 +14,10 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
-import { AuthProtected } from '@/components/AuthProtected';
+import { AuthProtectedRoute } from '@/components/AuthProtectedRoute';
 import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
 
-export default function LoginPage() {
+  export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -34,7 +34,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthProtected requireAuth={false}>
+    <AuthProtectedRoute requireUnauthenticated={true} redirectTo="/dashboard">
       <div className="relative min-h-screen overflow-hidden text-white">
         
         {/* 🔥 Background Image */}
@@ -173,6 +173,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-    </AuthProtected>
+    </AuthProtectedRoute>
   );
 }

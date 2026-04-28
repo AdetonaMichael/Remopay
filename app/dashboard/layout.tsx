@@ -15,6 +15,10 @@ import {
   Tv,
   Wifi,
   X,
+  TrendingUp,
+  Award,
+  Flame,
+  Users,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -36,9 +40,16 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Check email verification and role authorization
   useEffect(() => {
     if (!user) {
       setLoading(true);
+      return;
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
       return;
     }
 
@@ -70,7 +81,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/tv', label: 'TV Subscription', icon: Tv },
     { href: '/dashboard/bills', label: 'Electricity Token', icon: FileText },
     { href: '/dashboard/history', label: 'History', icon: Activity },
-    { href: '/dashboard/referral', label: 'Referral', icon: Gift },
+    { href: '/dashboard/rewards', label: 'Rewards', icon: Gift },
+    { href: '/dashboard/loyalty', label: 'Loyalty Tier', icon: Award },
+    { href: '/dashboard/referral/milestones', label: 'Referrals', icon: Users },
+    { href: '/dashboard/streaks', label: 'Streaks', icon: Flame },
+    { href: '/dashboard/phone-verification', label: 'Verify Phone', icon: Phone },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -184,17 +199,75 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
               mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
             )}
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+            <div className="border-b border-white/10 px-5 py-5 flex items-center justify-between">
+              <Link href="/dashboard" className="flex items-center gap-3">
+                <Image src="/icon.png" alt="Remopay" width={42} height={42} />
+                <div>
+                  <p className="text-xl font-black tracking-tight text-white">
+                    Remopay
+                  </p>
+                  <p className="text-xs font-semibold text-white/45">
+                    Payment Wallet
+                  </p>
+                </div>
+              </Link>
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white ml-auto"
+                className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white flex-shrink-0"
                 aria-label="Close menu"
               >
                 <X size={22} />
               </button>
             </div>
 
-            <SidebarContent mobile />
+            <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-6">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={clsx(
+                      'group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-bold transition-all',
+                      active
+                        ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/25'
+                        : 'text-white/60 hover:bg-white/10 hover:text-white'
+                    )}
+                  >
+                    <Icon
+                      size={20}
+                      className={clsx(
+                        active ? 'text-white' : 'text-white/50 group-hover:text-white'
+                      )}
+                    />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="border-t border-white/10 p-3">
+              <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                <p className="text-xs font-semibold text-white/45">Signed in as</p>
+                <p className="mt-1 truncate text-sm font-black text-white">
+                  {user?.first_name || 'Remopay User'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  logout();
+                  setMobileMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/10 hover:text-white"
+              >
+                <LogOut size={20} />
+                <span>Logout</span>
+              </button>
+            </div>
           </aside>
 
           <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-[#111] sm:px-6 lg:px-8">

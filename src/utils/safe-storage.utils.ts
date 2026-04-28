@@ -35,15 +35,12 @@ const isPrivateMode = (): boolean => {
 export const safeGetItem = (key: string): string | null => {
   try {
     if (typeof window === 'undefined') {
-      console.warn(`[SafeStorage] getItem("${key}") - window is undefined`);
       return null;
     }
     if (isPrivateMode()) {
-      console.warn(`[SafeStorage] Browser in private mode, cannot access localStorage for "${key}"`);
       return null;
     }
     const value = localStorage.getItem(key);
-    console.log(`[SafeStorage] Retrieved from localStorage - key: "${key}", found: ${value !== null}, value length: ${value?.length || 0}`);
     return value;
   } catch (error: any) {
     console.warn(`[SafeStorage] Failed to get item "${key}":`, error);
@@ -58,19 +55,13 @@ export const safeGetItem = (key: string): string | null => {
 export const safeSetItem = (key: string, value: string): boolean => {
   try {
     if (typeof window === 'undefined') {
-      console.warn(`[SafeStorage] setItem("${key}") - window is undefined`);
       return false;
     }
     if (isPrivateMode()) {
-      console.warn(`[SafeStorage] Browser in private mode, cannot write to localStorage for "${key}"`);
       return false;
     }
-    console.log(`[SafeStorage] Writing to localStorage - key: "${key}", value length: ${value?.length || 0}`);
     localStorage.setItem(key, value);
-    const verify = localStorage.getItem(key);
-    const isStored = verify === value;
-    console.log(`[SafeStorage] Verification - stored: ${isStored}, retrieved value length: ${verify?.length || 0}`);
-    return isStored;
+    return true;
   } catch (error: any) {
     console.warn(`[SafeStorage] Failed to set item "${key}":`, error);
     trackStorageError('set', key, error);

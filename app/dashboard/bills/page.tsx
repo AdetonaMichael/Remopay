@@ -1,68 +1,81 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import {
+  Bolt,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  ReceiptText,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
+
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
+import { Toast } from '@/components/shared/Toast';
+import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
 import { vtuService } from '@/services/vtu.service';
-import { Spinner } from '@/components/shared/Spinner';
-import { ChevronRight, Check, Zap, AlertCircle } from 'lucide-react';
-import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
-import { paymentService } from '@/services/payment.service';
-import { generateIdempotencyKey } from '@/utils/idempotency.utils';
-import { formatCurrency } from '@/utils/format.utils';
-import { useAuth } from '@/hooks/useAuth';
 import { VTUProvider } from '@/types/vtu.types';
 
-type FormStep = 'provider' | 'payment-type' | 'meter' | 'payment';
+type FormStep = 'provider' | 'payment-type' | 'meter';
+
+interface ElectricityFormData {
+  serviceID: string;
+  billersCode: string;
+  provider: string;
+  providerID: string;
+  meterNumber: string;
+  customerName: string;
+  paymentType: string;
+  variationCode: string;
+}
 
 export default function BillsPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const { success, error: alertError } = useAlert();
   const { execute } = useApi();
 
   const [step, setStep] = useState<FormStep>('provider');
   const [providers, setProviders] = useState<VTUProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<VTUProvider | null>(
+    null
+  );
+  const [paymentType, setPaymentType] = useState<'Prepaid' | 'Postpaid'>(
+    'Prepaid'
+  );
+  const [meterNumber, setMeterNumber] = useState('');
+  const [meterError, setMeterError] = useState('');
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [verifyingMeter, setVerifyingMeter] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
-  const [showPINModal, setShowPINModal] = useState(false);
-  const [lastVerifyTime, setLastVerifyTime] = useState<number>(0);
+  const [lastVerifyTime, setLastVerifyTime] = useState(0);
 
-  // Form state
-  const [selectedProvider, setSelectedProvider] = useState<VTUProvider | null>(null);
-  const [meterNumber, setMeterNumber] = useState('');
-  const [paymentType, setPaymentType] = useState<'Prepaid' | 'Postpaid'>('Prepaid');
-  const [verifiedCustomer, setVerifiedCustomer] = useState<any>(null);
-  const [meterError, setMeterError] = useState('');
+  const billersCode = useMemo(() => {
+    if (!selectedProvider) return '';
+    const provider = selectedProvider as any;
+    return provider.biller_code || provider.biller_id || provider.serviceID;
+  }, [selectedProvider]);
 
-  // Payment form state
-  const [amount, setAmount] = useState('');
-  const [phone, setPhone] = useState(user?.phone_number || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [insufficientBalance, setInsufficientBalance] = useState(false);
-  const [balanceInfo, setBalanceInfo] = useState<any>(null);
-
-  // Load electricity providers on mount
   useEffect(() => {
     const loadProviders = async () => {
       try {
+        setLoadingProviders(true);
         const result = await vtuService.getElectricityProviders();
-        if (result && result.length > 0) {
+
+        if (Array.isArray(result) && result.length > 0) {
           setProviders(result);
           setSelectedProvider(result[0]);
         } else {
           alertError('Failed to load electricity providers');
         }
-      } catch (err) {
-        console.error('Error loading providers:', err);
-        alertError('Error loading providers');
+      } catch {
+        alertError('Error loading electricity providers');
       } finally {
         setLoadingProviders(false);
       }
@@ -71,15 +84,45 @@ export default function BillsPage() {
     loadProviders();
   }, [alertError]);
 
-  // Handle meter verification
-  const handleVerifyMeter = async () => {
-    // Prevent multiple simultaneous requests
-    if (verifyingMeter) {
+  const handleBack = () => {
+    setMeterError('');
+
+    if (step === 'meter') {
+      setStep('payment-type');
       return;
     }
 
+    if (step === 'payment-type') {
+      setStep('provider');
+      return;
+    }
+
+    router.push('/dashboard');
+  };
+
+  const handleContinue = () => {
+    setMeterError('');
+
+    if (step === 'provider') {
+      if (!selectedProvider) {
+        setMeterError('Please select an electricity provider');
+        return;
+      }
+
+      setStep('payment-type');
+      return;
+    }
+
+    if (step === 'payment-type') {
+      setStep('meter');
+    }
+  };
+
+  const handleVerifyMeter = async () => {
+    if (verifyingMeter) return;
+
     if (!meterNumber.trim()) {
-      setMeterError('Please enter a meter number');
+      setMeterError('Please enter your meter number');
       return;
     }
 
@@ -88,8 +131,8 @@ export default function BillsPage() {
       return;
     }
 
-    // Prevent duplicate requests within 3 seconds
     const now = Date.now();
+
     if (now - lastVerifyTime < 3000) {
       setMeterError('Please wait a moment before trying again');
       return;
@@ -100,704 +143,347 @@ export default function BillsPage() {
     setLastVerifyTime(now);
 
     try {
-        const billersCode = selectedProvider.biller_code || selectedProvider.biller_id || selectedProvider.serviceID;
-      
-      console.log('[MeterVerification] Starting verification:', {
-        meterNumber,
-        billersCode,
-        serviceID: 'electricity-bill',
-      });
-
       const response = await execute(
-        vtuService.verifyMeterNumber(billersCode, meterNumber, 'electricity-bill')
+        vtuService.verifyMeterNumber(
+          billersCode,
+          meterNumber.trim(),
+          'electricity-bill'
+        )
       );
 
-      console.log('[MeterVerification] Full response:', response);
-      console.log('[MeterVerification] Response code:', response?.code);
-      console.log('[MeterVerification] Response content:', response?.content);
-      console.log('[MeterVerification] Customer name:', response?.content?.Customer_Name);
-
       if (response && response.code === '000' && response.content) {
-        setVerifiedCustomer({
-          meterNumber,
-          customerName: response.content?.Customer_Name || 'Verified Customer',
+        const customerName =
+          response.content?.Customer_Name || 'Verified Customer';
+
+        const dataToStore: ElectricityFormData = {
+          serviceID: 'electricity-bill',
+          billersCode,
           provider: selectedProvider.name,
-        });
+          providerID: selectedProvider.serviceID,
+          meterNumber: meterNumber.trim(),
+          customerName,
+          paymentType,
+          variationCode: paymentType.toLowerCase(),
+        };
+
+        sessionStorage.setItem(
+          'electricityFormData',
+          JSON.stringify(dataToStore)
+        );
+
         success('Meter verified successfully!');
-        setStep('payment');
-      } else if (response?.code === '012') {
-        setMeterError('Verification already in progress. Please wait a moment and try again.');
-      } else if (response?.code === '015') {
-        setMeterError('Invalid meter number for this provider');
-      } else {
-        setMeterError(response?.response_description || response?.content?.errors || 'Meter verification failed');
+        router.push('/dashboard/bills/review');
+        return;
       }
+
+      if (response?.code === '012') {
+        setMeterError(
+          'Verification already in progress. Please wait a moment and try again.'
+        );
+        return;
+      }
+
+      if (response?.code === '015') {
+        setMeterError('Invalid meter number for this provider');
+        return;
+      }
+
+      setMeterError(
+        response?.response_description ||
+          response?.content?.errors ||
+          'Meter verification failed'
+      );
     } catch (err: any) {
-      console.error('[MeterVerification] Error verifying meter:', err);
-      console.error('[MeterVerification] Error message:', err?.message);
-      console.error('[MeterVerification] Error response:', err?.response);
-      console.error('[MeterVerification] Error response data:', err?.response?.data);
-      console.error('[MeterVerification] Error response status:', err?.response?.status);
       setMeterError(err?.message || 'Failed to verify meter number');
     } finally {
       setVerifyingMeter(false);
     }
   };
 
-  // Handle payment submission
-  const handlePayment = async () => {
-    if (!amount.trim()) {
-      alertError('Please enter an amount');
-      return;
-    }
-
-    if (!/^08\d{8}$/.test(phone)) {
-      alertError('Phone number must be in format 08xxxxxxxxx');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      alertError('Please enter a valid email address');
-      return;
-    }
-
-    setShowPINModal(true);
-  };
-
-  // Handle PIN confirmation for payment
-  const handlePINConfirm = async (pin: string) => {
-    if (!selectedProvider || !user) {
-      alertError('Provider or user information missing');
-      setShowPINModal(false);
-      return;
-    }
-
-    setProcessingPayment(true);
-    setInsufficientBalance(false);
-
-    try {
-      const billersCode = selectedProvider.biller_code || selectedProvider.biller_id || selectedProvider.serviceID;
-      const requestId = generateIdempotencyKey();
-
-      const paymentPayload = {
-        serviceID: 'electricity-bill',
-        phone,
-        amount: parseInt(amount),
-        billersCode,
-        variation_code: paymentType.toLowerCase(),
-        user_id: user.id,
-        user_email: email,
-        payment_method: paymentMethod,
-        request_id: requestId,
-      };
-
-      const paymentResult = await execute(
-        paymentService.purchaseElectricity(paymentPayload)
-      );
-
-      if (!paymentResult?.success) {
-        const errorCode = (paymentResult as any)?.code || paymentResult?.error_code;
-        if (errorCode === 'INSUFFICIENT_USER_BALANCE') {
-          const required = parseInt(amount);
-          const current = (paymentResult as any)?.current_balance || 0;
-          const shortfall = required - current;
-
-          setInsufficientBalance(true);
-          setBalanceInfo({
-            requiredAmount: required,
-            currentBalance: current,
-            shortfall: Math.max(0, shortfall),
-          });
-          setShowPINModal(false);
-          return;
-        }
-
-        alertError(paymentResult?.message || 'Payment failed');
-        setShowPINModal(false);
-        return;
-      }
-
-      // Confirm payment with PIN
-      const confirmResult = await execute(
-        paymentService.confirmPayment({
-          request_id: requestId,
-          pin,
-          user_id: user.id,
-        })
-      );
-
-      if (confirmResult?.success) {
-        success('Electricity bill payment successful!');
-        router.push('/dashboard/history');
-      } else {
-        alertError(confirmResult?.message || 'Payment confirmation failed');
-        setShowPINModal(false);
-      }
-    } catch (err: any) {
-      console.error('Payment error:', err);
-      alertError(err?.message || 'Payment processing failed');
-      setShowPINModal(false);
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
-
-  // Step indicators
-  const steps = ['Select Provider', 'Meter Details', 'Verify Meter', 'Payment'];
-  const stepIndex = step === 'provider' ? 0 : step === 'payment-type' ? 1 : step === 'meter' ? 2 : 3;
-
   if (loadingProviders) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eef2ff]">
-            <Spinner />
-          </div>
-          <p className="text-sm font-medium text-[#6b7280]">Loading electricity providers...</p>
-        </div>
-      </div>
-    );
+    return <CardSkeleton count={3} />;
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="space-y-8">
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        * {
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
       `}</style>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-8">
-        {/* Step 1: Select Provider */}
-        {step === 'provider' && (
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#4a5ff7] bg-white text-sm font-bold text-[#4a5ff7]">
-                1
-              </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Select Electricity Provider
-              </span>
-            </div>
+      <Card className="overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+        <div className="border-b border-[#EEF2F7] bg-white px-6 py-5 sm:px-8">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+            {[
+              ['provider', '1', 'Provider', 'Choose electricity company'],
+              ['payment-type', '2', 'Type', 'Select prepaid or postpaid'],
+              ['meter', '3', 'Meter', 'Verify meter number'],
+              ['review', '4', 'Pay', 'Confirm payment'],
+            ].map(([key, number, title, subtitle], index) => {
+              const active =
+                key === step ||
+                (step === 'payment-type' && key === 'provider') ||
+                (step === 'meter' &&
+                  ['provider', 'payment-type', 'meter'].includes(key));
 
-            <h2 className="text-xl font-bold tracking-tight text-[#111827] mb-6">
-              Which distribution company provides your electricity?
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {providers.map((provider) => (
-                <button
-                  key={provider.serviceID}
-                  onClick={() => setSelectedProvider(provider)}
-                  className={`relative group rounded-[20px] border-2 p-4 transition-all ${
-                    selectedProvider?.serviceID === provider.serviceID
-                      ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                      : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                  }`}
-                >
-                  {/* Provider Image */}
-                  <div className="mb-3 h-[60px] flex items-center justify-center">
-                    {provider.image ? (
-                      <Image
-                        src={provider.image}
-                        alt={provider.name}
-                        width={60}
-                        height={60}
-                        className="max-h-[60px] max-w-[60px] object-contain"
-                      />
-                    ) : (
-                      <Zap className="text-[#4a5ff7]" size={32} />
-                    )}
+              return (
+                <div key={key} className="flex flex-1 items-center gap-3">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
+                      active
+                        ? 'bg-[#d71927] text-white'
+                        : 'border border-[#CBD5E1] bg-white text-[#667085]'
+                    }`}
+                  >
+                    {number}
                   </div>
 
-                  {/* Provider Name */}
-                  <p className="text-xs font-bold text-[#111827] line-clamp-2">{provider.name}</p>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-bold text-[#111827]">{title}</p>
+                    <p className="text-xs text-[#667085]">{subtitle}</p>
+                  </div>
 
-                  {/* Selection Indicator */}
-                  {selectedProvider?.serviceID === provider.serviceID && (
-                    <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#4a5ff7] text-white">
-                      <Check size={14} />
-                    </div>
+                  {index < 3 && (
+                    <div className="hidden h-[2px] flex-1 bg-[gray-200] lg:block" />
                   )}
-                </button>
-              ))}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 mt-8">
-              <Button
-                fullWidth
-                size="lg"
-                onClick={() => setStep('payment-type')}
-                disabled={!selectedProvider}
-                className="rounded-[16px]"
-              >
-                Continue <ChevronRight size={18} />
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Step 2: Meter Type & Meter Number */}
-        {step === 'payment-type' && (
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
-                2
-              </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Meter Details
-              </span>
-            </div>
-
-            {/* Selected Provider Display */}
-            <div className="mb-8 p-4 rounded-[18px] bg-[#f0f3ff] border border-[#dfe4ff]">
-              <p className="text-xs font-semibold text-[#6b7280] uppercase mb-2">Provider</p>
-              <p className="text-lg font-bold text-[#111827]">{selectedProvider?.name}</p>
-            </div>
-
-            {/* Meter Type */}
-            <h3 className="text-xl font-bold tracking-tight text-[#111827] mb-5">
-              What is your meter type?
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <label
-                className={`flex items-center rounded-[18px] border-2 p-5 transition-all cursor-pointer ${
-                  paymentType === 'Prepaid'
-                    ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                    : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="meterType"
-                  value="Prepaid"
-                  checked={paymentType === 'Prepaid'}
-                  onChange={(e) => setPaymentType(e.target.value as 'Prepaid' | 'Postpaid')}
-                  className="w-4 h-4 accent-[#4a5ff7]"
-                />
-                <span className="ml-3 font-semibold text-[#111827]">Prepaid</span>
-              </label>
-
-              <label
-                className={`flex items-center rounded-[18px] border-2 p-5 transition-all cursor-pointer ${
-                  paymentType === 'Postpaid'
-                    ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                    : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="meterType"
-                  value="Postpaid"
-                  checked={paymentType === 'Postpaid'}
-                  onChange={(e) => setPaymentType(e.target.value as 'Prepaid' | 'Postpaid')}
-                  className="w-4 h-4 accent-[#4a5ff7]"
-                />
-                <span className="ml-3 font-semibold text-[#111827]">Postpaid</span>
-              </label>
-            </div>
-
-            {/* Meter Number */}
-            <h3 className="text-xl font-bold tracking-tight text-[#111827] mb-5">
-              Enter meter number
-            </h3>
-
-            <Input
-              label="Meter Number"
-              type="text"
-              placeholder="e.g., 12345678901"
-              value={meterNumber}
-              onChange={(e) => {
-                setMeterNumber(e.target.value);
-                setMeterError('');
-              }}
-              error={meterError}
-              disabled={verifyingMeter}
-            />
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 mt-8">
-              <Button
-                variant="secondary"
-                fullWidth
-                size="lg"
-                onClick={() => setStep('provider')}
-                className="rounded-[16px]"
-              >
-                Back
-              </Button>
-              <Button
-                fullWidth
-                size="lg"
-                onClick={() => setStep('meter')}
-                disabled={!meterNumber.trim()}
-                className="rounded-[16px] flex items-center justify-center gap-2"
-              >
-                Verify Meter <ChevronRight size={18} />
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Step 3: Verify Meter */}
-        {step === 'meter' && (
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
-                3
-              </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Verify Meter
-              </span>
-            </div>
-
-            {/* Meter Details Summary */}
-            <div className="mb-8 space-y-4 p-5 rounded-[18px] bg-gradient-to-br from-[#f7f8ff] to-[#eef2ff] border border-[#dfe4ff]">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Provider</p>
-                  <p className="text-base font-bold text-[#111827]">{selectedProvider?.name}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Meter Type</p>
-                  <p className="text-base font-bold text-[#111827]">{paymentType}</p>
-                </div>
-              </div>
-              <div className="border-t border-[#cfd8ff] pt-4">
-                <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Meter Number</p>
-                <p className="text-lg font-bold text-[#4a5ff7]">{meterNumber}</p>
-              </div>
-            </div>
+              );
+            })}
+          </div>
+        </div>
 
-            {/* Verification Status */}
-            {!verifiedCustomer ? (
-              <>
-                <p className="mb-6 text-sm text-[#6b7280]">
-                  Click the button below to verify your meter with {selectedProvider?.name}. This helps us fetch your billing information.
-                </p>
+        <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_360px]">
+          <div className="space-y-8">
+            {step === 'provider' && (
+              <div>
+                <label className="mb-4 block text-sm font-bold text-[#111827]">
+                  Select Electricity Provider
+                </label>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {providers.map((provider) => {
+                    const active =
+                      selectedProvider?.serviceID === provider.serviceID;
+
+                    return (
+                      <button
+                        key={provider.serviceID}
+                        type="button"
+                        onClick={() => {
+                          setSelectedProvider(provider);
+                          setMeterError('');
+                        }}
+                        className={`rounded-2xl border p-4 text-center transition-all ${
+                          active
+                            ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.14)]'
+                            : 'border-gray-200 bg-white hover:border-[#A9B7FF] hover:bg-white'
+                        }`}
+                      >
+                        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F8FAFC]">
+                          {provider.image ? (
+                            <Image
+                              src={provider.image}
+                              alt={provider.name}
+                              width={48}
+                              height={48}
+                              className="object-contain"
+                            />
+                          ) : (
+                            <Bolt className="text-[#d71927]" size={26} />
+                          )}
+                        </div>
+
+                        <p className="text-sm font-extrabold text-[#111827]">
+                          {provider.name}
+                        </p>
+
+                        <div
+                          className={`mx-auto mt-3 h-1.5 w-8 rounded-full transition ${
+                            active ? 'bg-[#d71927]' : 'bg-transparent'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
 
                 {meterError && (
-                  <div className="mb-6 flex items-start gap-3 rounded-[18px] border border-[#fca5a5] bg-[#fef2f2] p-4">
-                    <AlertCircle className="text-[#dc2626] flex-shrink-0 mt-0.5" size={20} />
-                    <p className="text-sm font-medium text-[#dc2626]">{meterError}</p>
-                  </div>
+                  <p className="mt-3 text-sm font-medium text-red-600">
+                    {meterError}
+                  </p>
                 )}
-              </>
-            ) : (
-              <div className="mb-6 flex items-start gap-3 rounded-[18px] border border-[#86efac] bg-[#f0fdf4] p-4">
-                <Check className="text-[#16a34a] flex-shrink-0 mt-0.5" size={20} />
-                <div>
-                  <p className="font-semibold text-[#16a34a] mb-1">Meter Verified Successfully</p>
-                  <p className="text-sm text-[#15803d]">
-                    Customer: <span className="font-semibold">{verifiedCustomer.customerName}</span>
+              </div>
+            )}
+
+            {step === 'payment-type' && (
+              <div>
+                <label className="mb-4 block text-sm font-bold text-[#111827]">
+                  Select Meter Type
+                </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {(['Prepaid', 'Postpaid'] as const).map((type) => {
+                    const active = paymentType === type;
+
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setPaymentType(type)}
+                        className={`rounded-[24px] border p-5 text-left transition-all ${
+                          active
+                            ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
+                            : 'border-gray-200 bg-white hover:border-[#A9B7FF]'
+                        }`}
+                      >
+                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-[#d71927]">
+                          <Zap size={22} />
+                        </div>
+
+                        <p className="text-base font-extrabold text-[#111827]">
+                          {type}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-[#667085]">
+                          {type === 'Prepaid'
+                            ? 'Buy electricity token for prepaid meter.'
+                            : 'Pay outstanding electricity bill for postpaid meter.'}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {step === 'meter' && (
+              <div>
+                <label className="mb-4 block text-sm font-bold text-[#111827]">
+                  Meter Number
+                </label>
+
+                <Input
+                  type="text"
+                  placeholder="Enter meter number"
+                  value={meterNumber}
+                  onChange={(event) => {
+                    setMeterNumber(event.target.value.replace(/\D/g, ''));
+                    setMeterError('');
+                  }}
+                  className="h-13 rounded-2xl border-gray-200 bg-white text-base focus:border-[#d71927]"
+                />
+
+                {meterError && (
+                  <p className="mt-3 text-sm font-medium text-red-600">
+                    {meterError}
+                  </p>
+                )}
+
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
+                    Verification Required
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[#667085]">
+                    We will verify the meter details before sending you to the
+                    final payment screen.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 variant="secondary"
-                fullWidth
-                size="lg"
-                onClick={() => setStep('payment-type')}
+                onClick={handleBack}
                 disabled={verifyingMeter}
-                className="rounded-[16px]"
+                className="h-13 rounded-2xl font-bold sm:w-[160px]"
               >
+                <ChevronLeft className="mr-2" size={18} />
                 Back
               </Button>
-              {!verifiedCustomer ? (
+
+              {step === 'meter' ? (
                 <Button
                   fullWidth
-                  size="lg"
                   onClick={handleVerifyMeter}
-                  isLoading={verifyingMeter}
-                  disabled={verifyingMeter}
-                  className="rounded-[16px] flex items-center justify-center gap-2"
+                  disabled={verifyingMeter || !meterNumber.trim()}
+                  className="h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-[0_14px_30px_rgba(215,25,39,0.24)] hover:bg-[#b81420] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {verifyingMeter ? 'Verifying...' : 'Verify Meter'}
+                  {verifyingMeter ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="animate-spin" size={18} />
+                      Verifying Meter...
+                    </span>
+                  ) : (
+                    <>
+                      Verify & Continue
+                      <ChevronRight className="ml-2" size={20} />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button
                   fullWidth
-                  size="lg"
-                  onClick={() => setStep('payment')}
-                  className="rounded-[16px] flex items-center justify-center gap-2"
+                  onClick={handleContinue}
+                  className="h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-[0_14px_30px_rgba(215,25,39,0.24)] hover:bg-[#b81420]"
                 >
-                  Continue to Payment <ChevronRight size={18} />
+                  Continue
+                  <ChevronRight className="ml-2" size={20} />
                 </Button>
               )}
             </div>
-          </Card>
-        )}
+          </div>
 
-        {/* Step 4: Payment */}
-        {step === 'payment' && (
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 sm:p-8">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#4a5ff7] text-sm font-bold text-white">
-                4
-              </div>
-              <span className="text-sm font-semibold text-[#111827]">
-                Confirm Payment
-              </span>
-            </div>
+          <aside className="rounded-[28px] border border-gray-200 bg-white p-5">
+            <p className="text-sm font-bold text-[#111827]">
+              Electricity Summary
+            </p>
 
-            {/* Verified Details */}
-            <div className="mb-8 space-y-4 p-5 rounded-[18px] bg-gradient-to-br from-[#f0fdf4] to-[#dbeafe] border border-[#86efac]">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Provider</p>
-                  <p className="text-sm font-bold text-[#111827]">{selectedProvider?.name}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Meter Type</p>
-                  <p className="text-sm font-bold text-[#111827]">{paymentType}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Meter Number</p>
-                  <p className="text-sm font-bold text-[#111827]">{meterNumber}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-[#6b7280] uppercase mb-1">Customer</p>
-                  <p className="text-sm font-bold text-[#111827]">{verifiedCustomer?.customerName}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Insufficient Balance Alert */}
-            {insufficientBalance && balanceInfo && (
-              <div className="mb-6 flex items-start gap-3 rounded-[18px] border border-[#fca5a5] bg-[#fef2f2] p-4">
-                <AlertCircle className="text-[#dc2626] flex-shrink-0 mt-0.5" size={20} />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-[#dc2626] mb-2">Insufficient Balance</h3>
-                  <p className="text-sm text-[#991b1b] mb-3">
-                    You need {formatCurrency(balanceInfo.requiredAmount)} to complete this payment.
-                  </p>
-                  <div className="space-y-2 text-sm text-[#7f1d1d] bg-[#fee2e2] p-3 rounded-lg mb-4">
-                    <div className="flex justify-between">
-                      <span>Current Balance:</span>
-                      <span className="font-semibold">{formatCurrency(balanceInfo.currentBalance)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold border-t border-[#fecaca] pt-2 mt-2">
-                      <span>Shortfall:</span>
-                      <span>{formatCurrency(balanceInfo.shortfall)}</span>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full rounded-[12px]"
-                    onClick={() => router.push('/dashboard/wallet')}
-                  >
-                    Fund Wallet
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Form */}
-            <div className="space-y-6">
-              {/* Amount */}
-              <div>
-                <h3 className="text-lg font-bold text-[#111827] mb-4">Payment Amount</h3>
-                <Input
-                  label="Amount (₦)"
-                  type="number"
-                  placeholder="Enter amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  error={
-                    amount && parseInt(amount) < 100
-                      ? 'Minimum amount is ₦100'
-                      : ''
-                  }
-                />
-              </div>
-
-              {/* Contact Information */}
-              <div>
-                <h3 className="text-lg font-bold text-[#111827] mb-4">Contact Information</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Phone Number"
-                    type="tel"
-                    placeholder="08xxxxxxxxx"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  <Input
-                    label="Email Address"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <h3 className="text-lg font-bold text-[#111827] mb-4">Payment Method</h3>
-                <div className="space-y-3">
-                  {['wallet', 'card', 'bank_transfer'].map((method) => (
-                    <label
-                      key={method}
-                      className={`flex items-center rounded-[16px] border-2 p-4 transition-all cursor-pointer ${
-                        paymentMethod === method
-                          ? 'border-[#4a5ff7] bg-[#f7f8ff]'
-                          : 'border-[#e5e7eb] bg-white hover:border-[#cfd8ff]'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        value={method}
-                        checked={paymentMethod === method}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-4 h-4 accent-[#4a5ff7]"
-                      />
-                      <span className="ml-3 font-semibold text-[#111827] capitalize">
-                        {method === 'bank_transfer' ? 'Bank Transfer' : method.charAt(0).toUpperCase() + method.slice(1)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="pt-4 rounded-[18px] border border-[#dfe4ff] bg-gradient-to-br from-[#f7f8ff] to-[#eef2ff] p-5">
-                <div className="flex justify-between items-center pb-4 border-b border-[#cfd8ff]">
-                  <span className="text-[#6b7280] font-semibold">Total Amount:</span>
-                  <span className="text-3xl font-extrabold text-[#4a5ff7]">
-                    {amount ? formatCurrency(parseInt(amount)) : '₦0'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm mt-4">
-                  <span className="text-[#6b7280]">Payment Method:</span>
-                  <span className="font-semibold text-[#111827] capitalize">
-                    {paymentMethod === 'bank_transfer' ? 'Bank Transfer' : paymentMethod}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 mt-8">
-              <Button
-                variant="secondary"
-                fullWidth
-                size="lg"
-                onClick={() => setStep('meter')}
-                disabled={processingPayment}
-                className="rounded-[16px]"
-              >
-                Back
-              </Button>
-              <Button
-                fullWidth
-                size="lg"
-                onClick={handlePayment}
-                disabled={!amount.trim() || processingPayment || insufficientBalance}
-                isLoading={processingPayment}
-                className="rounded-[16px]"
-              >
-                {processingPayment ? 'Processing...' : 'Pay Now'}
-              </Button>
-            </div>
-          </Card>
-        )}
-        </div>
-
-        {/* Sidebar Summary */}
-        <div>
-          <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] xl:sticky xl:top-8">
-            <h3 className="text-lg font-bold tracking-tight text-[#111827]">
-              Payment Details
-            </h3>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-white px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
                   Provider
                 </p>
-                {selectedProvider ? (
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {selectedProvider.name}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
+                <p className="mt-2 text-sm font-bold text-[#111827]">
+                  {selectedProvider?.name || 'Not selected'}
+                </p>
               </div>
 
-              <div className="border-t border-[#e5e7eb] pt-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+              <div className="rounded-2xl bg-white px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
                   Meter Type
                 </p>
-                {paymentType ? (
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {paymentType}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-[#9ca3af]">Not selected</p>
-                )}
+                <p className="mt-2 text-sm font-bold text-[#111827]">
+                  {paymentType}
+                </p>
               </div>
 
-              {meterNumber && (
-                <div className="border-t border-[#e5e7eb] pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Meter Number
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[#111827]">
-                    {meterNumber}
-                  </p>
-                </div>
-              )}
-
-              {amount && (
-                <div className="border-t border-[#e5e7eb] pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Amount
-                  </p>
-                  <p className="mt-1 text-lg font-bold text-[#4a5ff7]">
-                    ₦{parseInt(amount).toLocaleString()}
-                  </p>
-                </div>
-              )}
+              <div className="rounded-2xl bg-white px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
+                  Meter Number
+                </p>
+                <p className="mt-2 text-sm font-bold text-[#111827]">
+                  {meterNumber || 'Not entered'}
+                </p>
+              </div>
             </div>
 
-            <Button
-              fullWidth
-              disabled={!selectedProvider || step === 'payment' && (!amount.trim() || !phone.trim() || !email.trim())}
-              className="mt-8 h-12 rounded-xl text-base font-semibold"
-              onClick={() => {
-                if (step === 'provider' && selectedProvider) setStep('payment-type');
-                else if (step === 'payment-type' && meterNumber) setStep('meter');
-                else if (step === 'meter' && verifiedCustomer) setStep('payment');
-              }}
-            >
-              Continue
-              <ChevronRight className="ml-2" size={18} />
-            </Button>
-
-            <p className="mt-4 text-center text-xs text-[#6b7280]">
-              Step {step === 'provider' ? 1 : step === 'payment-type' ? 2 : step === 'meter' ? 3 : 4} of 4
-            </p>
-          </Card>
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
+                Secure Bills Flow
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[#667085]">
+                Provider, meter type, and customer verification are checked
+                before final payment.
+              </p>
+            </div>
+          </aside>
         </div>
-      </div>
+      </Card>
 
-      {/* PIN Verification Modal */}
-      <PINVerificationModal
-        isOpen={showPINModal}
-        onClose={() => setShowPINModal(false)}
-        onVerify={handlePINConfirm}
-        isLoading={processingPayment}
-      />
+      <Toast />
     </div>
   );
 }
+

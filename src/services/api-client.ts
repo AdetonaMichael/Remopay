@@ -213,14 +213,37 @@ class ApiClient {
           return this.axiosInstance(config);
         }
 
-        // Handle 401 - Redirect to login
+        // Handle 401 - Unauthorized (session expired or invalid token)
         if (error.response?.status === 401) {
-          console.log('[ApiClient] Got 401 - session expired, redirecting to login');
+          console.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
           if (typeof window !== 'undefined') {
+            // Clear token and auth store immediately
             this.clearToken();
-            window.location.href = '/auth/login';
+            try {
+              sessionStorage.removeItem('auth-store');
+              localStorage.removeItem('auth-store');
+            } catch (e) {
+              console.warn('[ApiClient] Error clearing auth store:', e);
+            }
+            // Redirect to landing page
+            window.location.href = '/';
           }
           return Promise.reject('Session expired - please login again');
+        }
+
+        // Handle 403 - Forbidden access
+        if (error.response?.status === 403) {
+          console.error('[ApiClient] Got 403 - access forbidden');
+          const formattedError = this.formatError(error);
+          // Store 403 error in session for error modal to display
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('error_403', JSON.stringify({
+              message: formattedError.message,
+              endpoint: error.config?.url,
+              timestamp: new Date().toISOString(),
+            }));
+          }
+          return Promise.reject(formattedError);
         }
 
         console.error('[ApiClient] Request failed - no retry', error);
@@ -298,4 +321,5 @@ class ApiClient {
   }
 }
 
+export { ApiClient };
 export const apiClient = new ApiClient();

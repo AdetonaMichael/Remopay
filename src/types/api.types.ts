@@ -76,7 +76,7 @@ export interface RegisterRequest {
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
+  phone_number: string;
   password: string;
   password_confirmation: string;
   referral_code?: string;
@@ -90,7 +90,16 @@ export interface LoginRequest {
 
 export interface VerifyEmailRequest {
   email: string;
-  code: string;
+  otp: string;
+}
+
+export interface ResendEmailVerificationOTPRequest {
+  email: string;
+}
+
+export interface VerifyEmailWithOTPRequest {
+  email: string;
+  otp: string;
 }
 
 export interface VerifyPhoneRequest {

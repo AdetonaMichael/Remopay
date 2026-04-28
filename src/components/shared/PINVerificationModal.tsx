@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Lock, X } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { Button } from './Button';
-import Image from 'next/image';
 
 interface PINVerificationModalProps {
   isOpen: boolean;
@@ -86,29 +85,17 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-              <Image src="/icon.png" alt="AFRIDataNG Logo" width={32} height={32}/>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600 disabled:opacity-50 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <X size={24} />
-          </button>
-        </div>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-8">
+      
+
+        {/* Title */}
+        <h2 className="text-2xl font-extrabold text-center text-gray-900 mb-3">{title}</h2>
 
         {/* Description */}
-        <p className="text-gray-600 text-base mb-10">{description}</p>
+        <p className="text-gray-600 text-center text-sm mb-8">{description}</p>
 
         {/* PIN Input Fields */}
-        <div className="flex gap-4 mb-10 justify-center">
+        <div className="flex gap-3 mb-8 justify-center">
           {pin.map((digit, index) => (
             <input
               key={index}
@@ -123,29 +110,30 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
               onKeyDown={(e) => handleKeyDown(index, e)}
               onKeyPress={handleKeyPress}
               disabled={isLoading}
-              className={`w-20 h-20 text-center text-4xl font-bold rounded-2xl border-2 transition-all duration-200 ${
+              className={`w-16 h-16 text-center text-3xl font-bold rounded-xl border-2 transition-all duration-200 ${
                 digit
-                  ? 'border-[#a9b7ff] bg-gradient-to-br from-[#f7f8ff] to-[#e8ecff] text-[#2d3748] shadow-md'
-                  : 'border-gray-300 bg-white hover:border-gray-400'
-              } focus:outline-none focus:border-[#6b7bd6] focus:ring-2 focus:ring-[#a9b7ff]/30 focus:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
+                  ? 'border-[#d71927] bg-red-50 text-gray-900 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              } focus:outline-none focus:border-[#d71927] focus:ring-2 focus:ring-red-200 focus:shadow-md disabled:opacity-50 disabled:cursor-not-allowed`}
             />
           ))}
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-8">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-6">
             <p className="text-red-700 text-sm font-medium text-center">{error}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex gap-3 mb-5">
           <Button
             variant="secondary"
             fullWidth
             onClick={onClose}
             disabled={isLoading}
+            className="rounded-xl h-12 font-semibold"
           >
             Cancel
           </Button>
@@ -153,7 +141,7 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
             fullWidth
             onClick={handleVerify}
             disabled={!pinComplete || isLoading}
-            className={!pinComplete || isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+            className={`rounded-xl text-white h-12 font-semibold bg-[#d71927] hover:bg-[#b81420] ${!pinComplete || isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {isLoading ? 'Verifying...' : 'Confirm'}
           </Button>
@@ -161,7 +149,7 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
 
         {/* Helper Text */}
         <p className="text-xs text-gray-500 text-center">
-          Your PIN is required for security
+          Secured transaction • Your PIN is never stored or shared
         </p>
       </div>
     </div>

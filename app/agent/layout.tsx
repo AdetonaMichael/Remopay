@@ -29,6 +29,13 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
       return;
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      console.warn('[AgentLayout] User email not verified, redirecting to verification page');
+      router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
+      return;
+    }
+
     const isAgent = user.roles?.some((r) => r === 'agent');
     if (!isAgent) {
       router.push('/dashboard');

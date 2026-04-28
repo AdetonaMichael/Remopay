@@ -25,6 +25,7 @@ import {
   Wifi,
   Zap,
 } from 'lucide-react';
+import { LandingTopbar } from '@/components/LandingTopbar';
 
 const heroSlides = [
   {
@@ -171,40 +172,7 @@ export default function RemopayLandingPage() {
 
   return (
     <main className="min-h-screen bg-[#100303] text-white">
-      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-black/35 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/icon.png" alt="Remopay Logo" width={48} height={48} />
-            <span className="text-2xl font-black tracking-tight">Remopay</span>
-          </Link>
-
-          <div className="hidden items-center gap-8 text-sm font-semibold text-white/85 lg:flex">
-            <a href="#services" className="flex items-center gap-1 hover:text-[#ff4b55]">
-              Services <ChevronDown size={14} />
-            </a>
-            <a href="#rewards" className="hover:text-[#ff4b55]">Rewards</a>
-            <a href="#how" className="hover:text-[#ff4b55]">How It Works</a>
-            <a href="#security" className="hover:text-[#ff4b55]">Security</a>
-            <a href="#about" className="hover:text-[#ff4b55]">About Us</a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="hidden rounded-xl border border-[#ff4b55]/50 px-7 py-3 text-sm font-bold text-white transition hover:bg-white/10 sm:inline-flex"
-            >
-              Login
-            </Link>
-
-            <Link
-              href="/auth/register"
-              className="rounded-xl bg-[#c91522] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#c91522]/30 transition hover:bg-[#a9111b]"
-            >
-              Create Account
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingTopbar />
 
       <section className="relative min-h-[760px] overflow-hidden pt-20">
         {heroSlides.map((slide, index) => (
