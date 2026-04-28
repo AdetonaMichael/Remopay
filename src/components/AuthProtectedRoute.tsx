@@ -22,11 +22,9 @@ export function AuthProtectedRoute({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   
   useEffect(() => {
-    if (isLoading) return;
-
     // If page requires unauthenticated user (auth pages) and user is authenticated
     if (requireUnauthenticated && isAuthenticated && user) {
       router.replace(redirectTo);
@@ -38,11 +36,8 @@ export function AuthProtectedRoute({
       router.replace(redirectTo);
       return;
     }
-  }, [isAuthenticated, user, isLoading, pathname, router, requireUnauthenticated, redirectTo]);
+  }, [isAuthenticated, user, pathname, router, requireUnauthenticated, redirectTo]);
 
-  if (isLoading) {
-    return null;
-  }
-
+  // Always render children - loading states handled by button indicators
   return <>{children}</>;
 }

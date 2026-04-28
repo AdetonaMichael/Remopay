@@ -31,27 +31,27 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon.png",
+        url: "/icon.png?v=2",
         sizes: "any",
         type: "image/png",
       },
       {
-        url: "/icon.png",
+        url: "/icon.png?v=2",
         sizes: "192x192",
         type: "image/png",
       },
       {
-        url: "/icon.png",
+        url: "/icon.png?v=2",
         sizes: "180x180",
         type: "image/png",
       },
     ],
     apple: {
-      url: "/icon.png",
+      url: "/icon.png?v=2",
       sizes: "180x180",
       type: "image/png",
     },
-    shortcut: "/icon.png",
+    shortcut: "/icon.png?v=2",
   },
   openGraph: {
     type: "website",
