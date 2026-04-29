@@ -44,64 +44,68 @@ export default function StreaksPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="space-y-8">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
+
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Transaction Streaks</h1>
-        <p className="mt-2 text-gray-600">Build streaks for bonus rewards</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#111827]">Transaction Streaks</h1>
+        <p className="mt-2 text-[#667085]">Build streaks for bonus rewards</p>
       </div>
 
       {/* Daily Streak */}
       {daily && (
-        <Card>
-          <div className="flex items-start justify-between mb-6">
+        <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-8 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+          <div className="flex items-start justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Flame className="h-6 w-6 text-orange-500" />
+              <h2 className="text-2xl font-extrabold text-[#111827] flex items-center gap-3">
+                <Flame className="h-7 w-7 text-orange-500" />
                 Daily Streak
               </h2>
-              <p className="text-sm text-gray-600 mt-1">Transact daily to maintain streak</p>
+              <p className="text-[#667085] mt-2">Transact daily to maintain streak</p>
             </div>
-            <Badge variant={daily.current_count > 0 ? 'success' : 'default'}>
+            <Badge className={daily.current_count > 0 ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}>
               {daily.current_count > 0 ? 'Active' : 'Not Active'}
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Current Streak</p>
-              <h3 className="text-3xl font-bold text-orange-600 mt-2">{daily.current_count}</h3>
-              <p className="text-xs text-gray-600 mt-1">days</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF] p-5">
+              <p className="text-xs font-semibold text-[#667085]">Current Streak</p>
+              <h3 className="text-4xl font-extrabold text-[#4A5FF7] mt-3">{daily.current_count}</h3>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">days</p>
             </div>
 
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Best Streak</p>
-              <h3 className="text-3xl font-bold text-yellow-600 mt-2">{daily.best_count}</h3>
-              <p className="text-xs text-gray-600 mt-1">days</p>
+            <div className="rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF] p-5">
+              <p className="text-xs font-semibold text-[#667085]">Best Streak</p>
+              <h3 className="text-4xl font-extrabold text-[#4A5FF7] mt-3">{daily.best_count}</h3>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">days</p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Started</p>
-              <h3 className="text-lg font-bold text-blue-600 mt-2 truncate">
+            <div className="rounded-[24px] border border-[#E6E9F5] bg-white p-5">
+              <p className="text-xs font-semibold text-[#667085]">Started</p>
+              <h3 className="text-lg font-extrabold text-[#111827] mt-3 truncate">
                 {new Date(daily.started_at).toLocaleDateString()}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">{getDaysAgo(daily.started_at)}</p>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">{getDaysAgo(daily.started_at)}</p>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Last Transaction</p>
-              <h3 className="text-lg font-bold text-green-600 mt-2 truncate">
+            <div className="rounded-[24px] border border-[#E6E9F5] bg-white p-5">
+              <p className="text-xs font-semibold text-[#667085]">Last Transaction</p>
+              <h3 className="text-lg font-extrabold text-[#111827] mt-3 truncate">
                 {new Date(daily.last_transaction_at).toLocaleDateString()}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">{getDaysAgo(daily.last_transaction_at)}</p>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">{getDaysAgo(daily.last_transaction_at)}</p>
             </div>
           </div>
 
           {daily.current_count === 0 && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-5 rounded-[24px] bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-yellow-900">Streak Broken</p>
-                <p className="text-sm text-yellow-800 mt-1">
+                <p className="font-extrabold text-amber-900">Streak Broken</p>
+                <p className="text-sm text-amber-800 mt-1">
                   Your daily streak was broken. Complete a transaction today to start a new streak!
                 </p>
               </div>
@@ -109,11 +113,11 @@ export default function StreaksPage() {
           )}
 
           {daily.current_count > 0 && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
-              <TrendingUp className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-5 rounded-[24px] bg-[#F7F8FF] border border-[#DCE3FF]">
+              <TrendingUp className="h-5 w-5 text-[#4A5FF7] flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-blue-900">Keep it Going!</p>
-                <p className="text-sm text-blue-800 mt-1">
+                <p className="font-extrabold text-[#111827]">Keep it Going!</p>
+                <p className="text-sm text-[#667085] mt-1">
                   You're on a {daily.current_count}-day streak. Complete a transaction daily to earn streak bonuses!
                 </p>
               </div>
@@ -124,56 +128,56 @@ export default function StreaksPage() {
 
       {/* Weekly Streak */}
       {weekly && (
-        <Card>
-          <div className="flex items-start justify-between mb-6">
+        <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-8 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+          <div className="flex items-start justify-between mb-8">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Flame className="h-6 w-6 text-red-500" />
+              <h2 className="text-2xl font-extrabold text-[#111827] flex items-center gap-3">
+                <Flame className="h-7 w-7 text-red-500" />
                 Weekly Streak
               </h2>
-              <p className="text-sm text-gray-600 mt-1">Complete transactions weekly to maintain streak</p>
+              <p className="text-[#667085] mt-2">Complete transactions weekly to maintain streak</p>
             </div>
-            <Badge variant={weekly.current_count > 0 ? 'success' : 'default'}>
+            <Badge className={weekly.current_count > 0 ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200'}>
               {weekly.current_count > 0 ? 'Active' : 'Not Active'}
             </Badge>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Current Streak</p>
-              <h3 className="text-3xl font-bold text-red-600 mt-2">{weekly.current_count}</h3>
-              <p className="text-xs text-gray-600 mt-1">weeks</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF] p-5">
+              <p className="text-xs font-semibold text-[#667085]">Current Streak</p>
+              <h3 className="text-4xl font-extrabold text-[#4A5FF7] mt-3">{weekly.current_count}</h3>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">weeks</p>
             </div>
 
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Best Streak</p>
-              <h3 className="text-3xl font-bold text-pink-600 mt-2">{weekly.best_count}</h3>
-              <p className="text-xs text-gray-600 mt-1">weeks</p>
+            <div className="rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF] p-5">
+              <p className="text-xs font-semibold text-[#667085]">Best Streak</p>
+              <h3 className="text-4xl font-extrabold text-[#4A5FF7] mt-3">{weekly.best_count}</h3>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">weeks</p>
             </div>
 
-            <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Started</p>
-              <h3 className="text-lg font-bold text-violet-600 mt-2 truncate">
+            <div className="rounded-[24px] border border-[#E6E9F5] bg-white p-5">
+              <p className="text-xs font-semibold text-[#667085]">Started</p>
+              <h3 className="text-lg font-extrabold text-[#111827] mt-3 truncate">
                 {new Date(weekly.started_at).toLocaleDateString()}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">{getDaysAgo(weekly.started_at)}</p>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">{getDaysAgo(weekly.started_at)}</p>
             </div>
 
-            <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4">
-              <p className="text-gray-600 text-sm">Last Transaction</p>
-              <h3 className="text-lg font-bold text-cyan-600 mt-2 truncate">
+            <div className="rounded-[24px] border border-[#E6E9F5] bg-white p-5">
+              <p className="text-xs font-semibold text-[#667085]">Last Transaction</p>
+              <h3 className="text-lg font-extrabold text-[#111827] mt-3 truncate">
                 {new Date(weekly.last_transaction_at).toLocaleDateString()}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">{getDaysAgo(weekly.last_transaction_at)}</p>
+              <p className="text-xs font-semibold text-[#98A2B3] mt-2">{getDaysAgo(weekly.last_transaction_at)}</p>
             </div>
           </div>
 
           {weekly.current_count === 0 && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-              <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-5 rounded-[24px] bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-yellow-900">Streak Broken</p>
-                <p className="text-sm text-yellow-800 mt-1">
+                <p className="font-extrabold text-amber-900">Streak Broken</p>
+                <p className="text-sm text-amber-800 mt-1">
                   Your weekly streak was broken. Complete a transaction this week to start a new streak!
                 </p>
               </div>
@@ -181,11 +185,11 @@ export default function StreaksPage() {
           )}
 
           {weekly.current_count > 0 && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-purple-50 border border-purple-200">
-              <TrendingUp className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-5 rounded-[24px] bg-[#F7F8FF] border border-[#DCE3FF]">
+              <TrendingUp className="h-5 w-5 text-[#4A5FF7] flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-purple-900">Amazing Performance!</p>
-                <p className="text-sm text-purple-800 mt-1">
+                <p className="font-extrabold text-[#111827]">Amazing Performance!</p>
+                <p className="text-sm text-[#667085] mt-1">
                   You're on a {weekly.current_count}-week streak. Keep transacting weekly for amazing rewards!
                 </p>
               </div>
@@ -195,31 +199,31 @@ export default function StreaksPage() {
       )}
 
       {/* Streak Bonuses Info */}
-      <Card>
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Streak Bonus Multipliers</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">3-Day Streak</span>
-            <Badge>1.5x Rewards</Badge>
+      <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-8 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+        <h3 className="text-xl font-extrabold tracking-tight text-[#111827] mb-6">Streak Bonus Multipliers</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-5 bg-[#FCFCFF] rounded-[24px] border border-[#E6E9F5]">
+            <span className="font-semibold text-[#111827]">3-Day Streak</span>
+            <span className="inline-flex rounded-full border border-[#DCE3FF] bg-[#F7F8FF] px-4 py-2 text-sm font-extrabold text-[#4A5FF7]">1.5x Rewards</span>
           </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">7-Day Streak</span>
-            <Badge>2x Rewards</Badge>
+          <div className="flex items-center justify-between p-5 bg-[#FCFCFF] rounded-[24px] border border-[#E6E9F5]">
+            <span className="font-semibold text-[#111827]">7-Day Streak</span>
+            <span className="inline-flex rounded-full border border-[#DCE3FF] bg-[#F7F8FF] px-4 py-2 text-sm font-extrabold text-[#4A5FF7]">2x Rewards</span>
           </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">14-Day Streak</span>
-            <Badge>3x Rewards</Badge>
+          <div className="flex items-center justify-between p-5 bg-[#FCFCFF] rounded-[24px] border border-[#E6E9F5]">
+            <span className="font-semibold text-[#111827]">14-Day Streak</span>
+            <span className="inline-flex rounded-full border border-[#DCE3FF] bg-[#F7F8FF] px-4 py-2 text-sm font-extrabold text-[#4A5FF7]">3x Rewards</span>
           </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-gray-700">30-Day Streak</span>
-            <Badge variant="success">5x Rewards</Badge>
+          <div className="flex items-center justify-between p-5 bg-[#F7F8FF] rounded-[24px] border border-[#DCE3FF]">
+            <span className="font-semibold text-[#111827]">30-Day Streak</span>
+            <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-extrabold text-green-700">5x Rewards</span>
           </div>
         </div>
       </Card>
 
       {error && (
-        <Card className="border border-red-200 bg-red-50">
-          <p className="text-red-800">{error}</p>
+        <Card className="rounded-[28px] border border-red-200 bg-red-50 p-5">
+          <p className="text-red-800 font-semibold">{error}</p>
         </Card>
       )}
     </div>

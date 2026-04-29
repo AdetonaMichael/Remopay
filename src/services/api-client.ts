@@ -144,6 +144,14 @@ class ApiClient {
           timestamp: new Date().toISOString(),
         });
 
+        // Transform backend response format to match ApiResponse interface
+        // Backend returns { status, message, data } but frontend expects { success, message, data }
+        if (response.data && typeof response.data === 'object') {
+          if ('status' in response.data && !('success' in response.data)) {
+            response.data.success = response.data.status;
+          }
+        }
+
         // Clear idempotency key on success for payment operations
         const url = response.config.url || '';
         if ((response.status === 200 || response.status === 201) && isPaymentOperation(url)) {

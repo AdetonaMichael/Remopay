@@ -42,7 +42,7 @@ class RewardService {
 
   async getRewardBalance(): Promise<RewardBalance> {
     const response = await this.apiClient.get<RewardBalance>(
-      '/v1/rewards/balance'
+      '/rewards/balance'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch reward balance');
@@ -59,7 +59,7 @@ class RewardService {
     if (type) params.append('type', type);
 
     const response = await this.apiClient.get<RewardTransaction[]>(
-      `/v1/rewards/transactions?${params.toString()}`
+      `/rewards/transactions?${params.toString()}`
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch transactions');
@@ -69,7 +69,7 @@ class RewardService {
 
   async getActiveCampaigns(): Promise<Campaign[]> {
     const response = await this.apiClient.get<Campaign[]>(
-      '/v1/rewards/campaigns'
+      '/rewards/campaigns'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch campaigns');
@@ -79,7 +79,7 @@ class RewardService {
 
   async redeemRewards(amount: number): Promise<RedemptionResponse> {
     const response = await this.apiClient.post<any>(
-      '/v1/rewards/redeem',
+      '/rewards/redeem',
       { amount }
     );
     if (!response.success) {
@@ -90,7 +90,7 @@ class RewardService {
 
   async checkEligibility(): Promise<EligibilityCheck> {
     const response = await this.apiClient.get<EligibilityCheck>(
-      '/v1/rewards/eligibility-check'
+      '/rewards/eligibility-check'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to check eligibility');
@@ -100,7 +100,7 @@ class RewardService {
 
   async getRewardStatistics(): Promise<RewardStatistics> {
     const response = await this.apiClient.get<RewardStatistics>(
-      '/v1/rewards/statistics'
+      '/rewards/statistics'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch statistics');
@@ -112,7 +112,7 @@ class RewardService {
 
   async getCurrentTier(): Promise<CurrentTier> {
     const response = await this.apiClient.get<CurrentTier>(
-      '/v1/loyalty/my-tier'
+      '/loyalty/my-tier'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch current tier');
@@ -122,7 +122,7 @@ class RewardService {
 
   async getAllTiers(): Promise<LoyaltyTier[]> {
     const response = await this.apiClient.get<LoyaltyTier[]>(
-      '/v1/loyalty/tiers'
+      '/loyalty/tiers'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch tiers');
@@ -132,7 +132,7 @@ class RewardService {
 
   async getTransactionStreaks(): Promise<StreakData> {
     const response = await this.apiClient.get<StreakData>(
-      '/v1/loyalty/streak'
+      '/loyalty/streak'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch streaks');
@@ -144,7 +144,7 @@ class RewardService {
 
   async getReferralMilestones(): Promise<ReferralMilestone[]> {
     const response = await this.apiClient.get<ReferralMilestone[]>(
-      '/v1/referrals/my-milestones'
+      '/referrals/my-milestones'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch milestones');
@@ -154,7 +154,7 @@ class RewardService {
 
   async getPayoutStatus(): Promise<PayoutStatus> {
     const response = await this.apiClient.get<PayoutStatus>(
-      '/v1/referrals/payout-status'
+      '/referrals/payout-status'
     );
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch payout status');
@@ -166,7 +166,7 @@ class RewardService {
 
   async sendPhoneVerificationOtp(phoneNumber: string): Promise<void> {
     const response = await this.apiClient.post<any>(
-      '/v1/auth/send-phone-verification-otp',
+      '/auth/send-phone-verification-otp',
       { phone_number: phoneNumber }
     );
     if (!response.success) {
@@ -179,7 +179,7 @@ class RewardService {
     otp: string
   ): Promise<{ message: string }> {
     const response = await this.apiClient.post<any>(
-      '/v1/auth/verify-phone-with-otp',
+      '/auth/verify-phone-with-otp',
       { phone_number: phoneNumber, otp }
     );
     if (!response.success) {

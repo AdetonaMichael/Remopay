@@ -110,7 +110,8 @@ const mockReferralData: ReferralData = {
   ],
 };
 
-function formatCurrency(amount: number) {
+function formatCurrency(amount?: number | null) {
+  if (amount === undefined || amount === null) return '₦0';
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
@@ -219,7 +220,7 @@ export default function ReferralPage() {
 
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="min-w-0 flex-1 break-all rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-semibold text-white/90">
-                  {referrals.link}
+                  {referrals?.link || 'No referral link available'}
                 </div>
 
                 <div className="flex flex-wrap gap-3">
@@ -240,38 +241,38 @@ export default function ReferralPage() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white">
-                Code: <span className="font-black">{referrals.code}</span>
+                Code: <span className="font-black">{referrals?.code || 'N/A'}</span>
               </div>
 
               <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-bold text-white capitalize">
-                Tier: <span className="font-black">{referrals.referral_tier}</span>
+                Tier: <span className="font-black">{referrals?.referral_tier || 'N/A'}</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {[
-              {
-                label: 'Total Referrals',
-                value: referrals.total_referrals,
-                icon: Users2,
-              },
-              {
-                label: 'Active Referrals',
-                value: referrals.active_referrals,
-                icon: CheckCircle2,
-              },
-              {
-                label: 'Available Balance',
-                value: formatCurrency(referrals.available_balance),
-                icon: Wallet,
-              },
-              {
-                label: 'Pending Earnings',
-                value: formatCurrency(referrals.pending_earnings),
-                icon: TrendingUp,
-              },
-            ].map((item) => {
+              {[
+                {
+                  label: 'Total Referrals',
+                  value: referrals?.total_referrals ?? 0,
+                  icon: Users2,
+                },
+                {
+                  label: 'Active Referrals',
+                  value: referrals?.active_referrals ?? 0,
+                  icon: CheckCircle2,
+                },
+                {
+                  label: 'Available Balance',
+                  value: formatCurrency(referrals?.available_balance),
+                  icon: Wallet,
+                },
+                {
+                  label: 'Pending Earnings',
+                  value: formatCurrency(referrals?.pending_earnings),
+                  icon: TrendingUp,
+                },
+              ].map((item) => {
               const Icon = item.icon;
 
               return (
@@ -304,7 +305,7 @@ export default function ReferralPage() {
                     Total Earned
                   </p>
                   <p className="mt-2 text-3xl font-black tracking-tight text-white">
-                    {formatCurrency(referrals.total_earnings)}
+                    {formatCurrency(referrals?.total_earnings)}
                   </p>
                 </div>
 

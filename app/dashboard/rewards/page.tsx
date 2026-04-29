@@ -1,11 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Wallet, Gift, TrendingUp, AlertCircle } from 'lucide-react';
-import { PageSkeleton } from '@/components/shared/SkeletonLoader';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Gift,
+  History,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Trophy,
+  Wallet,
+} from 'lucide-react';
+
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
+import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { Toast } from '@/utils/toast.utils';
 import { rewardService } from '@/services/reward.service';
 import {
@@ -15,7 +30,24 @@ import {
   RewardStatistics,
   EligibilityCheck,
 } from '@/types/rewards.types';
-import Link from 'next/link';
+
+const formatCurrency = (amount?: number) =>
+  `₦${Number(amount || 0).toLocaleString('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDate = (date?: string) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-NG', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
+const formatRewardType = (type: string) =>
+  type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
 export default function RewardsPage() {
   const [loading, setLoading] = useState(true);
@@ -32,18 +64,33 @@ export default function RewardsPage() {
     loadRewardData();
   }, []);
 
+  const availableBalance = balance?.available_balance || 0;
+  const lockedBalance = balance?.locked_balance || 0;
+  const redeemValue = Number(redeemAmount || 0);
+
+  const canRedeem = useMemo(
+    () => redeemValue > 0 && redeemValue <= availableBalance && !isRedeeming,
+    [redeemValue, availableBalance, isRedeeming]
+  );
+
   const loadRewardData = async () => {
     try {
       setLoading(true);
       setError('');
-      const [balanceData, statsData, campaignsData, transactionsData, eligibilityData] =
-        await Promise.all([
-          rewardService.getRewardBalance(),
-          rewardService.getRewardStatistics(),
-          rewardService.getActiveCampaigns(),
-          rewardService.getRewardTransactions(10),
-          rewardService.checkEligibility(),
-        ]);
+
+      const [
+        balanceData,
+        statsData,
+        campaignsData,
+        transactionsData,
+        eligibilityData,
+      ] = await Promise.all([
+        rewardService.getRewardBalance(),
+        rewardService.getRewardStatistics(),
+        rewardService.getActiveCampaigns(),
+        rewardService.getRewardTransactions(10),
+        rewardService.checkEligibility(),
+      ]);
 
       setBalance(balanceData);
       setStatistics(statsData);
@@ -63,15 +110,17 @@ export default function RewardsPage() {
       return;
     }
 
-    if (balance && Number(redeemAmount) > balance.available_balance) {
-      setError('Insufficient available balance');
+    if (Number(redeemAmount) > availableBalance) {
+      setError('Insufficient available reward balance');
       return;
     }
 
     try {
       setIsRedeeming(true);
       setError('');
+
       await rewardService.redeemRewards(Number(redeemAmount));
+
       setRedeemAmount('');
       Toast.success('Rewards redeemed successfully');
       loadRewardData();
@@ -82,30 +131,28 @@ export default function RewardsPage() {
     }
   };
 
-  if (loading) {
-    return <PageSkeleton />;
-  }
+  if (loading) return <PageSkeleton />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Rewards & Loyalty</h1>
-        <p className="mt-2 text-gray-600">
-          Earn rewards on every transaction and unlock amazing benefits
-        </p>
-      </div>
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
 
-      {/* Eligibility Alert */}
       {eligibility && !eligibility.eligible_for_rewards && (
-        <Card className="border border-yellow-200 bg-yellow-50">
-          <div className="flex gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <Card className="rounded-[28px] border border-amber-200 bg-amber-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 shrink-0 text-amber-600" size={22} />
             <div>
-              <h3 className="font-semibold text-yellow-900">Complete Verification</h3>
-              <div className="mt-2 space-y-1 text-sm text-yellow-800">
-                {eligibility.eligibility_messages.map((msg, idx) => (
-                  <div key={idx}>• {msg}</div>
+              <h3 className="text-sm font-extrabold text-amber-900">
+                Complete Verification
+              </h3>
+              <div className="mt-2 space-y-1 text-sm leading-6 text-amber-800">
+                {eligibility.eligibility_messages.map((message, index) => (
+                  <p key={index}>• {message}</p>
                 ))}
               </div>
             </div>
@@ -113,162 +160,255 @@ export default function RewardsPage() {
         </Card>
       )}
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Balance Card */}
-        <Card className="bg-gradient-to-br from-[#d71927] to-[#c91620] text-white">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-white/80 text-sm">Total Balance</p>
-              <h2 className="text-3xl font-bold mt-2">
-                ₦{balance?.available_balance.toLocaleString('en-NG', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </h2>
-              {balance && balance.locked_balance > 0 && (
-                <p className="text-xs text-white/60 mt-2">
-                  ₦{balance.locked_balance.toFixed(2)} locked
-                </p>
-              )}
-            </div>
-            <Wallet className="h-10 w-10 text-white/20" />
+      {error && (
+        <Card className="rounded-[28px] border border-red-200 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 shrink-0 text-red-600" size={22} />
+            <p className="text-sm font-semibold leading-6 text-red-800">{error}</p>
           </div>
         </Card>
-
-        {/* Earned Card */}
-        <Card>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Earned</p>
-              <h3 className="text-2xl font-bold mt-2 text-gray-900">
-                ₦{statistics?.total_earned.toLocaleString('en-NG', {
-                  minimumFractionDigits: 2,
-                })}
-              </h3>
-            </div>
-            <TrendingUp className="h-10 w-10 text-[#4a5ff7]" />
-          </div>
-        </Card>
-
-        {/* Redeemed Card */}
-        <Card>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Redeemed</p>
-              <h3 className="text-2xl font-bold mt-2 text-gray-900">
-                ₦{statistics?.total_redeemed.toLocaleString('en-NG', {
-                  minimumFractionDigits: 2,
-                })}
-              </h3>
-            </div>
-            <Gift className="h-10 w-10 text-green-500" />
-          </div>
-        </Card>
-      </div>
-
-      {/* Redemption Section */}
-      <Card className="border-2 border-dashed border-[#4a5ff7]">
-        <div className="flex flex-col md:flex-row md:items-end gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Redeem to Wallet
-            </label>
-            <input
-              type="number"
-              value={redeemAmount}
-              onChange={(e) => setRedeemAmount(e.target.value)}
-              placeholder="Enter amount (minimum ₦1)"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
-              disabled={isRedeeming || !balance || balance.available_balance === 0}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Available: ₦{balance?.available_balance.toFixed(2)}
-            </p>
-          </div>
-          <Button
-            onClick={handleRedeem}
-            isLoading={isRedeeming}
-            disabled={isRedeeming || !balance || balance.available_balance === 0}
-            className="bg-[#4a5ff7] hover:bg-[#3d4fe0] text-white px-6 py-2"
-          >
-            Redeem
-          </Button>
-        </div>
-      </Card>
-
-      {/* Active Campaigns */}
-      {campaigns.length > 0 && (
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Active Campaigns</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {campaigns.map((campaign) => (
-              <Card key={campaign.id} className="border border-gray-200 hover:shadow-md transition">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
-                    <Badge className="mt-1">
-                      {campaign.type === 'cashback'
-                        ? `${campaign.reward_percentage}% Cashback`
-                        : campaign.type === 'bonus'
-                          ? `₦${campaign.reward_amount} Bonus`
-                          : 'Streak Bonus'}
-                    </Badge>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Reward for you: ₦{campaign.reward_for_you.toFixed(2)}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  {campaign.start_date} to {campaign.end_date}
-                </p>
-              </Card>
-            ))}
-          </div>
-        </div>
       )}
 
-      {/* Recent Transactions */}
-      {transactions.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-            <Link href="/dashboard/rewards/history">
-              <Button variant="secondary">View All</Button>
-            </Link>
-          </div>
-          <Card>
-            <div className="divide-y divide-gray-200">
-              {transactions.map((txn) => (
-                <div key={txn.id} className="py-3 flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 capitalize">{txn.type}</p>
-                    <p className="text-sm text-gray-600">{txn.reason}</p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-semibold ${
-                        txn.type === 'redemption' ? 'text-red-600' : 'text-green-600'
-                      }`}
-                    >
-                      {txn.type === 'redemption' ? '-' : '+'}₦{txn.amount.toFixed(2)}
+      <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card className="relative overflow-hidden rounded-[32px] border border-[#4A5FF7]/20 bg-[#4A5FF7] p-6 text-white shadow-[0_18px_45px_rgba(74,95,247,0.24)]">
+              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white/75">
+                    Available Balance
+                  </p>
+                  <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
+                    {formatCurrency(availableBalance)}
+                  </h2>
+                  {lockedBalance > 0 && (
+                    <p className="mt-2 text-xs font-medium text-white/70">
+                      {formatCurrency(lockedBalance)} locked
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(txn.created_at).toLocaleDateString()}
+                  )}
+                </div>
+                <Wallet className="text-white/35" size={42} />
+              </div>
+            </Card>
+
+            <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#667085]">
+                    Total Earned
+                  </p>
+                  <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
+                    {formatCurrency(statistics?.total_earned)}
+                  </h3>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                  <TrendingUp size={24} />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#667085]">
+                    Total Redeemed
+                  </p>
+                  <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
+                    {formatCurrency(statistics?.total_redeemed)}
+                  </h3>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                  <Gift size={24} />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <Card className="rounded-[32px] border border-[#DCE3FF] bg-[#FCFCFF] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
+              <div className="flex-1">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                    <Wallet size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-extrabold tracking-tight text-[#111827]">
+                      Redeem to Wallet
+                    </h2>
+                    <p className="text-sm text-[#667085]">
+                      Convert your available rewards into spendable wallet balance.
                     </p>
                   </div>
                 </div>
-              ))}
+
+                <input
+                  type="number"
+                  value={redeemAmount}
+                  onChange={(event) => {
+                    setRedeemAmount(event.target.value);
+                    setError('');
+                  }}
+                  placeholder="Enter amount"
+                  disabled={isRedeeming || availableBalance === 0}
+                  className="h-13 w-full rounded-2xl border border-[#E6E9F5] bg-white px-4 text-base font-semibold text-[#111827] outline-none transition focus:border-[#4A5FF7] focus:ring-4 focus:ring-[#4A5FF7]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+
+                <p className="mt-2 text-xs font-semibold text-[#667085]">
+                  Available: {formatCurrency(availableBalance)}
+                </p>
+              </div>
+
+              <Button
+                onClick={handleRedeem}
+                isLoading={isRedeeming}
+                disabled={!canRedeem || availableBalance === 0}
+                className="h-13 rounded-2xl bg-[#4A5FF7] px-8 text-base font-bold text-white shadow-[0_14px_30px_rgba(74,95,247,0.24)] hover:bg-[#3B4FE0] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRedeeming ? 'Redeeming...' : 'Redeem Rewards'}
+              </Button>
             </div>
           </Card>
-        </div>
-      )}
 
-      {error && (
-        <Card className="border border-red-200 bg-red-50">
-          <p className="text-red-800">{error}</p>
-        </Card>
-      )}
+          {campaigns.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-extrabold tracking-tight text-[#111827]">
+                    Active Campaigns
+                  </h2>
+                  <p className="mt-1 text-sm text-[#667085]">
+                    Current reward opportunities available to you.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {campaigns.map((campaign) => (
+                  <Card
+                    key={campaign.id}
+                    className="rounded-[28px] border border-[#E6E9F5] bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] transition hover:border-[#A9B7FF] hover:shadow-[0_18px_45px_rgba(74,95,247,0.09)]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                          <Trophy size={22} />
+                        </div>
+
+                        <h3 className="text-base font-extrabold text-[#111827]">
+                          {campaign.name}
+                        </h3>
+
+                        <Badge className="mt-3">
+                          {campaign.type === 'cashback'
+                            ? `${campaign.reward_percentage}% Cashback`
+                            : campaign.type === 'bonus'
+                              ? `${formatCurrency(campaign.reward_amount)} Bonus`
+                              : 'Streak Bonus'}
+                        </Badge>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
+                          Reward
+                        </p>
+                        <p className="mt-2 text-lg font-extrabold text-[#4A5FF7]">
+                          {formatCurrency(campaign.reward_for_you)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 rounded-2xl bg-[#FCFCFF] px-4 py-3">
+                      <p className="text-xs font-semibold text-[#667085]">
+                        {formatDate(campaign.start_date)} —{' '}
+                        {formatDate(campaign.end_date)}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <aside>
+          <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] xl:sticky xl:top-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-extrabold tracking-tight text-[#111827]">
+                  Recent Activity
+                </h3>
+                <p className="mt-1 text-sm text-[#667085]">
+                  Latest reward movements.
+                </p>
+              </div>
+
+              <Link href="/dashboard/rewards/history">
+                <Button variant="secondary" className="rounded-2xl font-bold">
+                  View All
+                </Button>
+              </Link>
+            </div>
+
+            {transactions.length > 0 ? (
+              <div className="space-y-3">
+                {transactions.map((transaction) => {
+                  const isDebit = transaction.type === 'redemption';
+
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="rounded-2xl border border-[#EEF2F7] bg-[#FCFCFF] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-extrabold text-[#111827]">
+                            {formatRewardType(transaction.type)}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#667085]">
+                            {transaction.reason}
+                          </p>
+                        </div>
+
+                        <p
+                          className={`shrink-0 text-sm font-extrabold ${
+                            isDebit ? 'text-red-600' : 'text-green-600'
+                          }`}
+                        >
+                          {isDebit ? '-' : '+'}
+                          {formatCurrency(transaction.amount)}
+                        </p>
+                      </div>
+
+                      <p className="mt-3 text-xs font-semibold text-[#98A2B3]">
+                        {formatDate(transaction.created_at)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-[#E6E9F5] bg-[#FCFCFF] p-8 text-center">
+                <History className="mx-auto text-[#98A2B3]" size={28} />
+                <p className="mt-3 text-sm font-semibold text-[#667085]">
+                  No reward activity yet.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-5 rounded-2xl border border-[#DCE3FF] bg-[#F7F8FF] p-4">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#4A5FF7]">
+                <Lock size={13} />
+                Secure Rewards
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[#667085]">
+                Your reward balance and redemption activity are protected by
+                Remopay account security.
+              </p>
+            </div>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

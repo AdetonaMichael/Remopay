@@ -9,19 +9,19 @@ import { CurrentTier, LoyaltyTier } from '@/types/rewards.types';
 
 const tierColors: Record<string, { bg: string; border: string; text: string; icon: string }> = {
   Bronze: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-900',
-    icon: 'text-amber-600',
+    bg: 'bg-[#FCFCFF]',
+    border: 'border-[#E6E9F5]',
+    text: 'text-[#111827]',
+    icon: 'text-[#4A5FF7]',
   },
   Silver: {
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
-    text: 'text-slate-900',
-    icon: 'text-slate-600',
+    bg: 'bg-[#FCFCFF]',
+    border: 'border-[#E6E9F5]',
+    text: 'text-[#111827]',
+    icon: 'text-[#4A5FF7]',
   },
-  Gold: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-900', icon: 'text-yellow-600' },
-  None: { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-900', icon: 'text-gray-600' },
+  Gold: { bg: 'bg-[#FCFCFF]', border: 'border-[#E6E9F5]', text: 'text-[#111827]', icon: 'text-[#4A5FF7]' },
+  None: { bg: 'bg-[#FCFCFF]', border: 'border-[#E6E9F5]', text: 'text-[#111827]', icon: 'text-[#4A5FF7]' },
 };
 
 export default function LoyaltyTiersPage() {
@@ -57,7 +57,7 @@ export default function LoyaltyTiersPage() {
   if (!currentTier) {
     return (
       <Card className="text-center py-12">
-        <p className="text-gray-600">Failed to load loyalty tier information</p>
+        <p className="text-[#667085]">Failed to load loyalty tier information</p>
       </Card>
     );
   }
@@ -66,42 +66,46 @@ export default function LoyaltyTiersPage() {
   const colors = tierColors[tierName] || tierColors.None;
 
   return (
-    <div className="space-y-6">
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="space-y-8">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
+
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Loyalty Tiers</h1>
-        <p className="mt-2 text-gray-600">Unlock exclusive benefits as you climb the loyalty ladder</p>
+        <h1 className="text-3xl font-extrabold tracking-tight text-[#111827]">Loyalty Tiers</h1>
+        <p className="mt-2 text-[#667085]">Unlock exclusive benefits as you climb the loyalty ladder</p>
       </div>
 
       {/* Current Tier Card */}
-      <Card className={`border-2 ${colors.border} ${colors.bg}`}>
-        <div className="flex items-start justify-between mb-6">
+      <Card className={`border-2 rounded-[32px] p-8 shadow-[0_18px_45px_rgba(15,23,42,0.05)] ${colors.border} ${colors.bg}`}>
+        <div className="flex items-start justify-between mb-8">
           <div>
-            <p className={`text-sm font-semibold ${colors.text}`}>Current Tier</p>
-            <h2 className={`text-4xl font-black mt-2 ${colors.text}`}>{tierName}</h2>
+            <p className={`text-sm font-bold uppercase tracking-[0.16em] text-[#4A5FF7]`}>Current Tier</p>
+            <h2 className={`text-4xl font-black mt-3 ${colors.text}`}>{tierName}</h2>
           </div>
-          <Award className={`h-12 w-12 ${colors.icon}`} />
+          <Award className={`h-16 w-16 ${colors.icon}`} />
         </div>
 
-        {/* Benefits */}
-        <div className="mb-6 pb-6 border-b border-gray-300 border-opacity-50">
-          <h3 className={`text-sm font-semibold ${colors.text} mb-3`}>Current Benefits</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div className={`p-3 rounded-lg ${colors.bg} border ${colors.border}`}>
-              <p className="text-xs text-gray-600">Cashback Multiplier</p>
-              <p className="text-xl font-bold text-gray-900">
+        {/* Benefits Grid */}
+        <div className="mb-8 pb-8 border-b border-[#E6E9F5]">
+          <h3 className={`text-sm font-bold uppercase tracking-[0.16em] text-[#4A5FF7] mb-4`}>Current Benefits</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`p-5 rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF]`}>
+              <p className="text-xs font-semibold text-[#667085]">Cashback Multiplier</p>
+              <p className="text-2xl font-extrabold text-[#4A5FF7] mt-3">
                 {currentTier.benefits.cashback_multiplier}x
               </p>
             </div>
-            <div className={`p-3 rounded-lg ${colors.bg} border ${colors.border}`}>
-              <p className="text-xs text-gray-600">Referral Multiplier</p>
-              <p className="text-xl font-bold text-gray-900">
+            <div className={`p-5 rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF]`}>
+              <p className="text-xs font-semibold text-[#667085]">Referral Multiplier</p>
+              <p className="text-2xl font-extrabold text-[#4A5FF7] mt-3">
                 {currentTier.benefits.referral_multiplier}x
               </p>
             </div>
-            <div className={`p-3 rounded-lg ${colors.bg} border ${colors.border}`}>
-              <p className="text-xs text-gray-600">Bonus Multiplier</p>
-              <p className="text-xl font-bold text-gray-900">
+            <div className={`p-5 rounded-[24px] border border-[#DCE3FF] bg-[#F7F8FF]`}>
+              <p className="text-xs font-semibold text-[#667085]">Bonus Multiplier</p>
+              <p className="text-2xl font-extrabold text-[#4A5FF7] mt-3">
                 {currentTier.benefits.bonus_multiplier}x
               </p>
             </div>
@@ -111,9 +115,9 @@ export default function LoyaltyTiersPage() {
         {/* Progress to Next Tier */}
         {currentTier.progress_to_next.next_tier_level > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className={`text-sm font-semibold ${colors.text}`}>Progress to {currentTier.progress_to_next.next_tier_name}</p>
-              <span className={`text-xs font-bold ${colors.text}`}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-bold uppercase tracking-[0.16em] text-[#4A5FF7]">Progress to {currentTier.progress_to_next.next_tier_name}</p>
+              <span className="text-sm font-extrabold text-[#111827]">
                 {Math.round(
                   (currentTier.current_metrics.transactions /
                     parseInt(currentTier.progress_to_next.transaction_progress.split(' ')[2]) || 1) *
@@ -122,15 +126,15 @@ export default function LoyaltyTiersPage() {
                 %
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Transactions</span>
-                  <span className="font-semibold">{currentTier.progress_to_next.transaction_progress}</span>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold text-[#667085]">Transactions</span>
+                  <span className="font-extrabold text-[#111827]">{currentTier.progress_to_next.transaction_progress}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-[#E6E9F5] rounded-full h-2">
                   <div
-                    className="bg-[#4a5ff7] h-2 rounded-full"
+                    className="bg-[#4a5ff7] h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${
                         (currentTier.current_metrics.transactions /
@@ -142,13 +146,13 @@ export default function LoyaltyTiersPage() {
                 </div>
               </div>
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Total Volume</span>
-                  <span className="font-semibold">{currentTier.progress_to_next.volume_progress}</span>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold text-[#667085]">Total Volume</span>
+                  <span className="font-extrabold text-[#111827]">{currentTier.progress_to_next.volume_progress}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-[#E6E9F5] rounded-full h-2">
                   <div
-                    className="bg-[#4a5ff7] h-2 rounded-full"
+                    className="bg-[#4a5ff7] h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${
                         (currentTier.current_metrics.total_volume /
@@ -160,13 +164,13 @@ export default function LoyaltyTiersPage() {
                 </div>
               </div>
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Wallet Funding</span>
-                  <span className="font-semibold">{currentTier.progress_to_next.funding_progress}</span>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold text-[#667085]">Wallet Funding</span>
+                  <span className="font-extrabold text-[#111827]">{currentTier.progress_to_next.funding_progress}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-[#E6E9F5] rounded-full h-2">
                   <div
-                    className="bg-[#4a5ff7] h-2 rounded-full"
+                    className="bg-[#4a5ff7] h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${
                         (currentTier.current_metrics.total_funding /
@@ -178,13 +182,13 @@ export default function LoyaltyTiersPage() {
                 </div>
               </div>
               <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-gray-600">Days Active</span>
-                  <span className="font-semibold">{currentTier.progress_to_next.days_active_progress}</span>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold text-[#667085]">Days Active</span>
+                  <span className="font-extrabold text-[#111827]">{currentTier.progress_to_next.days_active_progress}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-[#E6E9F5] rounded-full h-2">
                   <div
-                    className="bg-[#4a5ff7] h-2 rounded-full"
+                    className="bg-[#4a5ff7] h-2 rounded-full transition-all duration-300"
                     style={{
                       width: `${
                         (currentTier.current_metrics.days_active /
@@ -202,53 +206,64 @@ export default function LoyaltyTiersPage() {
 
       {/* All Tiers Comparison */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Tier Comparison</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h2 className="text-xl font-extrabold tracking-tight text-[#111827] mb-5">Tier Comparison</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {allTiers.map((tier) => {
             const isCurrent = tier.level === currentTier.current_tier.level;
-            const tierColor = tierColors[tier.name as keyof typeof tierColors];
 
             return (
               <Card
                 key={tier.id}
-                className={`border-2 transition ${
+                className={`rounded-[28px] p-6 border shadow-[0_18px_45px_rgba(15,23,42,0.05)] transition ${
                   isCurrent
-                    ? `${tierColor.border} ${tierColor.bg} shadow-lg`
-                    : 'border-gray-200 bg-white'
+                    ? `border-[#4A5FF7] bg-[#F7F8FF] shadow-[0_18px_45px_rgba(74,95,247,0.15)]`
+                    : 'border-[#E6E9F5] bg-white'
                 }`}
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-5">
                   <div>
-                    <p className="text-xs text-gray-600 font-semibold">TIER {tier.level}</p>
-                    <h3 className="text-2xl font-bold text-gray-900 mt-1">{tier.name}</h3>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">TIER {tier.level}</p>
+                    <h3 className="text-2xl font-extrabold text-[#111827] mt-2">{tier.name}</h3>
                   </div>
-                  {isCurrent && <CheckCircle className="h-6 w-6 text-green-600" />}
+                  {isCurrent && <CheckCircle className="h-6 w-6 text-green-600 shrink-0" />}
                 </div>
 
                 {/* Requirements */}
-                <div className="mb-4 pb-4 border-b border-gray-200">
-                  <p className="text-xs font-semibold text-gray-700 uppercase mb-2">Requirements</p>
-                  <div className="space-y-1 text-xs text-gray-600">
-                    <div>• {tier.requirements?.min_transactions} transactions</div>
-                    <div>• ₦{tier.requirements?.min_volume.toLocaleString('en-NG')} volume</div>
-                    <div>• ₦{tier.requirements?.min_funding.toLocaleString('en-NG')} funding</div>
-                    <div>• {tier.requirements?.min_days_active} days active</div>
+                <div className="mb-5 pb-5 border-b border-[#E6E9F5]">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3] mb-3">Requirements</p>
+                  <div className="space-y-2 text-sm leading-6 text-[#667085]">
+                    <div className="flex items-center gap-2">
+                      <Circle size={6} className="fill-[#4A5FF7] text-[#4A5FF7]" />
+                      {tier.requirements?.min_transactions} transactions
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Circle size={6} className="fill-[#4A5FF7] text-[#4A5FF7]" />
+                      ₦{tier.requirements?.min_volume.toLocaleString('en-NG')} volume
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Circle size={6} className="fill-[#4A5FF7] text-[#4A5FF7]" />
+                      ₦{tier.requirements?.min_funding.toLocaleString('en-NG')} funding
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Circle size={6} className="fill-[#4A5FF7] text-[#4A5FF7]" />
+                      {tier.requirements?.min_days_active} days active
+                    </div>
                   </div>
                 </div>
 
                 {/* Multipliers */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Cashback</span>
-                    <span className="font-bold text-gray-900">{tier.multipliers.cashback}x</span>
+                    <span className="text-sm font-semibold text-[#667085]">Cashback</span>
+                    <span className="font-extrabold text-[#4A5FF7] text-lg">{tier.multipliers.cashback}x</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Referral</span>
-                    <span className="font-bold text-gray-900">{tier.multipliers.referral}x</span>
+                    <span className="text-sm font-semibold text-[#667085]">Referral</span>
+                    <span className="font-extrabold text-[#4A5FF7] text-lg">{tier.multipliers.referral}x</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Bonus</span>
-                    <span className="font-bold text-gray-900">{tier.multipliers.bonus}x</span>
+                    <span className="text-sm font-semibold text-[#667085]">Bonus</span>
+                    <span className="font-extrabold text-[#4A5FF7] text-lg">{tier.multipliers.bonus}x</span>
                   </div>
                 </div>
               </Card>
@@ -258,8 +273,8 @@ export default function LoyaltyTiersPage() {
       </div>
 
       {error && (
-        <Card className="border border-red-200 bg-red-50">
-          <p className="text-red-800">{error}</p>
+        <Card className="rounded-[28px] border border-red-200 bg-red-50 p-5">
+          <p className="text-red-800 font-semibold">{error}</p>
         </Card>
       )}
     </div>

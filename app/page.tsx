@@ -40,7 +40,7 @@ const heroSlides = [
     title: 'Fast Bills.',
     highlight: 'Instant VTU.',
     suffix: 'Zero Stress.',
-    desc: 'Buy airtime, data, electricity tokens and subscriptions from one reliable Remopay wallet.',
+    desc: 'Buy airtime, data, electricity tokens and subscriptions from one reliable  wallet.',
     image:
       'https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1800&q=90',
   },
