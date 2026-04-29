@@ -303,7 +303,7 @@ export default function RewardsPage() {
                           {campaign.type === 'cashback'
                             ? `${campaign.reward_percentage}% Cashback`
                             : campaign.type === 'bonus'
-                              ? `${formatCurrency(campaign.reward_amount)} Bonus`
+                              ? `${formatCurrency(campaign.reward_amount ?? 0)} Bonus`
                               : 'Streak Bonus'}
                         </Badge>
                       </div>
