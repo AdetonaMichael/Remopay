@@ -60,7 +60,7 @@ export const Modal = ({
               <Dialog.Panel className={clsx('w-full bg-white rounded-lg shadow-xl overflow-visible', sizeClasses[size])}>
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                  <Dialog.Title className="text-lg font-semibold text-gray-900">
+                  <Dialog.Title className="modal-title text-gray-900">
                     {title}
                   </Dialog.Title>
                   {closeButton && (

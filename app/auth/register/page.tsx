@@ -68,7 +68,7 @@ function StepIndicator({ current }: { current: number }) {
               </div>
 
               <span
-                className={`mt-1.5 text-[10px] font-bold ${
+                className={`mt-1.5 caption-xs ${
                   active ? 'text-[#ff737b]' : done ? 'text-white' : 'text-white/45'
                 }`}
               >
@@ -103,7 +103,7 @@ function FieldWrapper({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-bold text-white">{label}</label>
+      <label className="mb-1 block label text-white">{label}</label>
 
       <div className="relative">
         <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
@@ -112,7 +112,7 @@ function FieldWrapper({
         {children}
       </div>
 
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 caption-xs text-red-400">{error}</p>}
     </div>
   );
 }
@@ -136,7 +136,7 @@ function PasswordInput({
         {...registration}
         type={visible ? 'text' : 'password'}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-11 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+        className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-11 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
       />
 
       <button
@@ -201,14 +201,14 @@ function RegisterPageContent() {
           <div className="mb-6 flex justify-center">
             <Link href="/" className="flex items-center gap-3">
               <Image src="/icon.png" alt="Remopay" width={45} height={45} />
-              <span className="text-2xl font-black">Remopay</span>
+              <span className="h5 font-bold">Remopay</span>
             </Link>
           </div>
 
           <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
             <div className="mb-6 text-center">
-              <h1 className="text-3xl font-black">Create Account</h1>
-              <p className="mt-2 text-sm text-white/70">
+              <h1 className="h3">Create Account</h1>
+              <p className="mt-2 body-sm text-white/70">
                 Step {currentStep} of {STEPS.length} — {STEPS[currentStep - 1].description}
               </p>
             </div>
@@ -255,7 +255,7 @@ function RegisterPageContent() {
                       {...register('email')}
                       type="email"
                       placeholder="you@example.com"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
                   </FieldWrapper>
                 </div>
@@ -272,7 +272,7 @@ function RegisterPageContent() {
                       {...register('phone_number')}
                       type="tel"
                       placeholder="08102300935"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
                   </FieldWrapper>
 
@@ -281,11 +281,11 @@ function RegisterPageContent() {
                       {...register('referral_code')}
                       type="text"
                       placeholder="REMOPAY-XXXXX"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 text-sm uppercase tracking-wider text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 body-sm uppercase tracking-wider text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
                   </FieldWrapper>
 
-                  <p className="text-xs leading-5 text-white/55">
+                  <p className="caption-xs leading-5 text-white/55">
                     Enter a referral code if someone invited you to Remopay.
                   </p>
                 </div>
@@ -307,13 +307,13 @@ function RegisterPageContent() {
                     registration={register('password_confirmation')}
                   />
 
-                  <label className="flex cursor-pointer items-start gap-3 pt-1 text-sm text-white/70">
+                  <label className="flex cursor-pointer items-start gap-3 pt-1 body-sm text-white/70">
                     <input
                       type="checkbox"
                       required
                       className="mt-1 h-4 w-4 rounded border-white/20 bg-white/10 text-[#d71927] focus:ring-[#ff4b55]"
                     />
-                    <span className="leading-6">
+                    <span className="leading-relaxed">
                       I agree to the{' '}
                       <Link href="/terms" className="font-bold text-[#ff737b]">
                         Terms of Service
@@ -329,7 +329,7 @@ function RegisterPageContent() {
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 px-5 text-sm font-bold text-white/75 transition hover:bg-white/10"
+                    className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 px-5 button-md text-white/75 transition hover:bg-white/10"
                   >
                     <ArrowLeft size={15} />
                     Back
@@ -340,7 +340,7 @@ function RegisterPageContent() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#d71927] py-3 text-sm font-black text-white shadow-lg shadow-[#d71927]/30 transition hover:bg-[#b91420]"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#d71927] py-3 button-md text-white shadow-lg shadow-[#d71927]/30 transition hover:bg-[#b91420]"
                   >
                     Continue
                     <ArrowRight size={15} />

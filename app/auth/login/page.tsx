@@ -60,7 +60,7 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
             <div className="mb-6 flex justify-center">
               <Link href="/" className="flex items-center gap-3">
                 <Image src="/icon.png" alt="Remopay" width={45} height={45} />
-                <span className="text-2xl font-black">Remopay</span>
+                <span className="h5 font-bold">Remopay</span>
               </Link>
             </div>
 
@@ -69,8 +69,8 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
 
               {/* Header */}
               <div className="mb-6 text-center">
-                <h2 className="text-3xl font-black">Welcome Back</h2>
-                <p className="mt-2 text-sm text-white/70">
+                <h2 className="h3">Welcome Back</h2>
+                <p className="mt-2 body-sm text-white/70">
                   Sign in to continue your payments and rewards
                 </p>
               </div>
@@ -80,7 +80,7 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
 
                 {/* Email */}
                 <div>
-                  <label className="mb-1 block text-sm font-bold">
+                  <label className="mb-1 block label">
                     Email
                   </label>
                   <div className="relative">
@@ -89,17 +89,17 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
                       {...register('email')}
                       type="email"
                       placeholder="you@example.com"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
                   </div>
                   {errors.email && (
-                    <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>
+                    <p className="caption-xs text-red-400 mt-1">{errors.email.message}</p>
                   )}
                 </div>
 
                 {/* Password */}
                 <div>
-                  <label className="mb-1 block text-sm font-bold">
+                  <label className="mb-1 block label">
                     Password
                   </label>
                   <div className="relative">
@@ -109,7 +109,7 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-10 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-10 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
                     />
 
                     <button
@@ -122,12 +122,12 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
                   </div>
 
                   {errors.password && (
-                    <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
+                    <p className="caption-xs text-red-400 mt-1">{errors.password.message}</p>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between body-sm">
                   <label className="flex items-center gap-2 text-white/70">
                     <input type="checkbox" {...register('remember_me')} />
                     Remember me
@@ -142,7 +142,7 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-black text-white shadow-lg transition ${
+                  className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 button-md text-white shadow-lg transition ${
                     isLoading
                       ? 'bg-[#d71927]/60 shadow-[#d71927]/15 cursor-not-allowed opacity-70'
                       : 'bg-[#d71927] shadow-[#d71927]/30 hover:bg-[#b91420]'
@@ -162,7 +162,7 @@ import { loginSchema, type LoginSchema } from '@/utils/validation.utils';
               </form>
 
               {/* Footer */}
-              <div className="mt-6 text-center text-sm text-white/70">
+              <div className="mt-6 text-center body-sm text-white/70">
                 Don’t have an account?{' '}
                 <Link href="/auth/register" className="font-bold text-[#ff4b55]">
                   Create one

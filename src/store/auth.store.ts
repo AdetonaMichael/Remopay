@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { User, AuthResponse } from '@/types/api.types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
+import { cleanupIdempotencyOnLogout } from '@/utils/idempotency-maintenance.utils';
 
 interface PINStatus {
   has_pin: boolean;
@@ -129,6 +130,8 @@ export const useAuthStore = create<AuthStore>()(
           safeRemoveItem('token');
           // Clear all auth-related localStorage keys
           safeRemoveItem('auth-store');
+          // Clear idempotency keys on logout
+          cleanupIdempotencyOnLogout();
         }
         set({
           user: null,

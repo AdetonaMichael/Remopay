@@ -206,13 +206,13 @@ export default function DashboardPage() {
 
         <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <p className="text-sm font-bold text-[#ff737b]">Welcome back</p>
+            <p className="caption font-semibold text-[#ff737b]">Welcome back</p>
 
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+            <h1 className="mt-2 h2">
               Hi {user?.first_name || 'there'}, manage your Remopay wallet.
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/65">
+            <p className="mt-3 max-w-2xl body-sm text-white/65">
               Buy airtime, data, pay bills, track your transactions and manage
               your payment activities from one clean dashboard.
             </p>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/dashboard/airtime"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#d71927] px-5 py-3 text-sm font-black text-white shadow-lg shadow-[#d71927]/25 hover:bg-[#b91420]"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#d71927] px-5 py-3 button-md text-white shadow-lg shadow-[#d71927]/25 hover:bg-[#b91420]"
               >
                 Start Transaction
                 <ArrowRight size={16} />
@@ -228,7 +228,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/dashboard/history"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white hover:bg-white/15"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-5 py-3 button-md text-white hover:bg-white/15"
               >
                 View History
               </Link>
@@ -236,11 +236,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
-            <p className="text-sm font-semibold text-white/55">Available Balance</p>
-            <h2 className="mt-2 text-4xl font-black">
+            <p className="caption font-semibold text-white/55">Available Balance</p>
+            <h2 className="mt-2 display-md font-black">
               {wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00'}
             </h2>
-            <p className="mt-2 text-sm text-white/55">
+            <p className="mt-2 body-sm text-white/55">
               Ready for airtime, data and bill payments.
             </p>
           </div>
@@ -251,11 +251,11 @@ export default function DashboardPage() {
         <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-500">Monthly Transactions</p>
-              <p className="mt-3 text-3xl font-black text-gray-950">
+              <p className="caption font-semibold text-gray-500">Monthly Transactions</p>
+              <p className="mt-3 h2 text-gray-950">
                 {monthlyTransactionsCount}
               </p>
-              <p className="mt-2 text-sm text-gray-500">Transactions this month</p>
+              <p className="mt-2 body-sm text-gray-500">Transactions this month</p>
             </div>
 
             <div className="rounded-2xl bg-[#fff1f2] p-3">
@@ -267,11 +267,11 @@ export default function DashboardPage() {
         <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-500">Successful Payments</p>
-              <p className="mt-3 text-3xl font-black text-gray-950">
+              <p className="caption font-semibold text-gray-500">Successful Payments</p>
+              <p className="mt-3 h2 text-gray-950">
                 {successfulTransactionsCount}
               </p>
-              <p className="mt-2 text-sm text-gray-500">Completed transactions</p>
+              <p className="mt-2 body-sm text-gray-500">Completed transactions</p>
             </div>
 
             <div className="rounded-2xl bg-green-50 p-3">
@@ -283,11 +283,11 @@ export default function DashboardPage() {
         <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-500">Total Records</p>
-              <p className="mt-3 text-3xl font-black text-gray-950">
+              <p className="caption font-semibold text-gray-500">Total Records</p>
+              <p className="mt-3 h2 text-gray-950">
                 {pagination.total || transactions.length}
               </p>
-              <p className="mt-2 text-sm text-gray-500">Transaction records</p>
+              <p className="mt-2 body-sm text-gray-500">Transaction records</p>
             </div>
 
             <div className="rounded-2xl bg-[#fff1f2] p-3">
@@ -300,8 +300,8 @@ export default function DashboardPage() {
       <section>
         <div className="mb-5 flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black text-gray-950">Quick Actions</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <h2 className="h3 text-gray-950">Quick Actions</h2>
+            <p className="mt-1 body-sm text-gray-500">
               Complete your most common Remopay transactions faster.
             </p>
           </div>
@@ -331,13 +331,13 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="p-5">
-                  <h3 className="font-black text-gray-950">{action.label}</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-500">
+                  <h3 className="h5 font-bold text-gray-950">{action.label}</h3>
+                  <p className="mt-2 body-sm text-gray-500">
                     {action.description}
                   </p>
 
                   <div className="mt-5 flex items-center justify-between">
-                    <span className="text-sm font-black text-[#d71927]">Continue</span>
+                    <span className="button-sm text-[#d71927]">Continue</span>
                     <ArrowRight className="h-4 w-4 text-[#d71927] transition group-hover:translate-x-1" />
                   </div>
                 </div>

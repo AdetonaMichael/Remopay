@@ -57,7 +57,7 @@ function AuthBackground({ children }: { children: React.ReactNode }) {
           <div className="mb-6 flex justify-center">
             <Link href="/" className="flex items-center gap-3">
               <Image src="/icon.png" alt="Remopay" width={45} height={45} />
-              <span className="text-2xl font-black">Remopay</span>
+              <span className="h5 font-bold">Remopay</span>
             </Link>
           </div>
 
@@ -390,7 +390,7 @@ function ForgotPasswordPageContent() {
       {currentStep === 'email' && (
         <form onSubmit={emailForm.handleSubmit(handleEmailSubmit)} className="space-y-5">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-bold">
+            <label htmlFor="email" className="mb-1 block label">
               Email Address
             </label>
 
@@ -417,7 +417,7 @@ function ForgotPasswordPageContent() {
           <Button
             type="submit"
             disabled={emailForm.formState.isSubmitting}
-            className="w-full rounded-xl bg-[#d71927] py-3 font-black text-white shadow-lg shadow-[#d71927]/30 hover:bg-[#b91420]"
+            className="w-full rounded-xl bg-[#d71927] py-3 button-md text-white shadow-lg shadow-[#d71927]/30 hover:bg-[#b91420]"
           >
             {emailForm.formState.isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -432,7 +432,7 @@ function ForgotPasswordPageContent() {
           <div className="text-center">
             <Link
               href="/auth/login"
-              className="inline-flex items-center gap-2 text-sm font-bold text-[#ff737b]"
+              className="inline-flex items-center gap-2 label text-[#ff737b]"
             >
               <ArrowLeft size={15} />
               Back to login
@@ -444,18 +444,18 @@ function ForgotPasswordPageContent() {
       {currentStep === 'otp' && (
         <form onSubmit={otpForm.handleSubmit(handleOtpSubmit)} className="space-y-5">
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-            <p className="text-sm text-white/70">
-              Code sent to <span className="font-black text-[#ff737b]">{email}</span>
+            <p className="body-sm text-white/70">
+              Code sent to <span className="font-bold text-[#ff737b]">{email}</span>
             </p>
           </div>
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label htmlFor="otp" className="text-sm font-bold">
+              <label htmlFor="otp" className="label">
                 Verification Code
               </label>
 
-              <span className="text-xs font-bold text-white/60">
+              <span className="caption-xs font-semibold text-white/60">
                 Expires in {formatCountdown(otpCountdown)}
               </span>
             </div>

@@ -6,6 +6,42 @@
   --foreground: #171717;
   --color-primary: #620707;
   --color-secondary: #4a5ff7;
+
+  /* Typography scale - fully responsive with clamp() */
+  --text-display-xl: clamp(2.5rem, 8vw, 4rem);
+  --text-display-lg: clamp(2rem, 6vw, 3.5rem);
+  --text-display-md: clamp(1.75rem, 5vw, 3rem);
+  --text-h1: clamp(1.75rem, 5vw, 2.5rem);
+  --text-h2: clamp(1.5rem, 4vw, 2rem);
+  --text-h3: clamp(1.25rem, 3.5vw, 1.75rem);
+  --text-h4: clamp(1.1rem, 2.5vw, 1.375rem);
+  --text-h5: clamp(1rem, 2vw, 1.25rem);
+  --text-h6: clamp(0.9375rem, 1.75vw, 1.125rem);
+  --text-body-lg: clamp(1rem, 2vw, 1.125rem);
+  --text-body-base: 1rem;
+  --text-body-sm: clamp(0.875rem, 1.5vw, 1rem);
+  --text-caption: 0.875rem;
+  --text-caption-sm: 0.8125rem;
+  --text-caption-xs: 0.75rem;
+  --text-label: 0.875rem;
+  --text-button-lg: 1rem;
+  --text-button-md: 0.9375rem;
+  --text-button-sm: 0.875rem;
+
+  /* Line height scale */
+  --line-height-tight: 1.1;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --line-height-loose: 1.8;
+
+  /* Letter spacing scale */
+  --letter-spacing-tighter: -0.05em;
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-snug: -0.01em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.01em;
+  --letter-spacing-wider: 0.05em;
 }
 
 @theme inline {
@@ -50,37 +86,365 @@ body {
   scrollbar-width: none;
 }
 
-/* Professional Typography Classes */
+/* ==================== RESPONSIVE TYPOGRAPHY SYSTEM ==================== */
+
 @layer utilities {
+  /* ---- DISPLAY HEADINGS (Hero/Banner) ---- */
+  
+  .display-xl {
+    @apply font-black;
+    font-size: var(--text-display-xl);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  .display-lg {
+    @apply font-black;
+    font-size: var(--text-display-lg);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  .display-md {
+    @apply font-bold;
+    font-size: var(--text-display-md);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  /* ---- HEADINGS (h1-h6) ---- */
+
+  .h1 {
+    @apply font-bold;
+    font-size: var(--text-h1);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  .h2 {
+    @apply font-bold;
+    font-size: var(--text-h2);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  .h3 {
+    @apply font-bold;
+    font-size: var(--text-h3);
+    line-height: var(--line-height-normal);
+  }
+
+  .h4 {
+    @apply font-semibold;
+    font-size: var(--text-h4);
+    line-height: var(--line-height-normal);
+  }
+
+  .h5 {
+    @apply font-semibold;
+    font-size: var(--text-h5);
+    line-height: var(--line-height-normal);
+  }
+
+  .h6 {
+    @apply font-semibold;
+    font-size: var(--text-h6);
+    line-height: var(--line-height-normal);
+  }
+
+  /* ---- BODY TEXT ---- */
+
+  .body-lg {
+    @apply font-normal;
+    font-size: var(--text-body-lg);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .body-base {
+    @apply font-normal;
+    font-size: var(--text-body-base);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .body-sm {
+    @apply font-normal;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* ---- CAPTIONS & LABELS ---- */
+
+  .caption {
+    @apply font-medium;
+    font-size: var(--text-caption);
+    line-height: var(--line-height-normal);
+  }
+
+  .caption-sm {
+    @apply font-normal;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  .caption-xs {
+    @apply font-normal;
+    font-size: var(--text-caption-xs);
+    line-height: var(--line-height-normal);
+  }
+
+  .label {
+    @apply font-semibold;
+    font-size: var(--text-label);
+    line-height: var(--line-height-normal);
+  }
+
+  /* ---- BUTTON TEXT ---- */
+
+  .button-lg {
+    @apply font-semibold;
+    font-size: var(--text-button-lg);
+    line-height: var(--line-height-normal);
+  }
+
+  .button-md {
+    @apply font-semibold;
+    font-size: var(--text-button-md);
+    line-height: var(--line-height-normal);
+  }
+
+  .button-sm {
+    @apply font-semibold;
+    font-size: var(--text-button-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  /* ---- RESPONSIVE TEXT SIZES (Breakpoint-based) ---- */
+
+  /* Section headers with proper responsive scaling */
+  .section-header {
+    @apply font-bold mb-4;
+    font-size: var(--text-h2);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  .section-subheader {
+    @apply font-semibold mb-3;
+    font-size: var(--text-h3);
+    line-height: var(--line-height-normal);
+  }
+
+  .section-title {
+    @apply font-semibold mb-2;
+    font-size: var(--text-h4);
+    line-height: var(--line-height-normal);
+  }
+
+  .section-subtitle {
+    @apply text-gray-600 mb-6;
+    font-size: var(--text-body-lg);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Prose styles for rich text content */
   .prose-h1 {
-    @apply text-5xl lg:text-6xl font-black leading-tight tracking-tight text-gray-900;
+    @apply text-gray-900;
+    font-size: var(--text-h1);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+    font-weight: 700;
   }
 
   .prose-h2 {
-    @apply text-4xl lg:text-5xl font-black leading-snug tracking-tight text-gray-900;
+    @apply text-gray-900;
+    font-size: var(--text-h2);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+    font-weight: 700;
   }
 
   .prose-h3 {
-    @apply text-2xl lg:text-3xl font-bold leading-snug text-gray-900;
+    @apply text-gray-900;
+    font-size: var(--text-h3);
+    line-height: var(--line-height-normal);
+    font-weight: 700;
   }
 
   .prose-h4 {
-    @apply text-xl font-bold leading-snug text-gray-900;
+    @apply text-gray-900;
+    font-size: var(--text-h4);
+    line-height: var(--line-height-normal);
+    font-weight: 600;
   }
 
   .prose-p {
-    @apply text-base lg:text-lg leading-relaxed text-gray-600;
+    @apply text-gray-700;
+    font-size: var(--text-body-base);
+    line-height: var(--line-height-relaxed);
   }
 
   .prose-small {
-    @apply text-sm leading-relaxed text-gray-500;
+    @apply text-gray-600;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
   }
 
-  .section-header {
-    @apply text-4xl lg:text-5xl font-black leading-snug tracking-tight text-gray-900 mb-4;
+  /* Large display text for emphasis */
+  .display-text {
+    @apply font-black;
+    font-size: var(--text-display-lg);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
   }
 
-  .section-subtext {
-    @apply text-base lg:text-lg leading-relaxed text-gray-600 mb-8 max-w-2xl;
+  /* Highlighted/accent text (e.g., red highlight in hero) */
+  .accent-text {
+    @apply font-black;
+    font-size: var(--text-display-lg);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  /* Subtext for descriptions and secondary content */
+  .subtext {
+    @apply text-gray-600;
+    font-size: var(--text-body-base);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .subtext-sm {
+    @apply text-gray-500;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Metadata text for dates, tags, etc. */
+  .metadata {
+    @apply text-gray-500;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  .metadata-xs {
+    @apply text-gray-400;
+    font-size: var(--text-caption-xs);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Form labels and hints */
+  .form-label {
+    @apply text-gray-700 font-semibold;
+    font-size: var(--text-label);
+    line-height: var(--line-height-normal);
+  }
+
+  .form-hint {
+    @apply text-gray-500;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  .form-error {
+    @apply text-red-600 font-medium;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Navigation text */
+  .nav-link {
+    @apply text-gray-700 font-semibold;
+    font-size: var(--text-button-md);
+    line-height: var(--line-height-normal);
+  }
+
+  .nav-link-active {
+    @apply text-gray-900 font-semibold;
+    font-size: var(--text-button-md);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Stats and numbers */
+  .stat-value {
+    @apply font-black;
+    font-size: var(--text-display-md);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-snug);
+  }
+
+  .stat-label {
+    @apply text-gray-600;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Card headings */
+  .card-title {
+    @apply font-semibold text-gray-900;
+    font-size: var(--text-h4);
+    line-height: var(--line-height-normal);
+  }
+
+  .card-description {
+    @apply text-gray-600;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Modal and dialog text */
+  .modal-title {
+    @apply font-bold text-gray-900;
+    font-size: var(--text-h3);
+    line-height: var(--line-height-normal);
+  }
+
+  .modal-subtitle {
+    @apply text-gray-600;
+    font-size: var(--text-body-base);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Badge text */
+  .badge-text {
+    @apply font-medium;
+    font-size: var(--text-caption);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Alert and notification text */
+  .alert-title {
+    @apply font-semibold;
+    font-size: var(--text-h5);
+    line-height: var(--line-height-normal);
+  }
+
+  .alert-description {
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* Table text */
+  .table-header {
+    @apply text-gray-700 font-semibold;
+    font-size: var(--text-label);
+    line-height: var(--line-height-normal);
+  }
+
+  .table-cell {
+    @apply text-gray-900;
+    font-size: var(--text-body-sm);
+    line-height: var(--line-height-relaxed);
+  }
+
+  .table-small {
+    @apply text-gray-600;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
+  }
+
+  /* Tooltip text */
+  .tooltip-text {
+    @apply font-medium;
+    font-size: var(--text-caption-sm);
+    line-height: var(--line-height-normal);
   }
 }

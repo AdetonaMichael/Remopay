@@ -197,7 +197,7 @@ export default function RemopayLandingPage() {
 
         <div className="relative z-10 mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-5 py-20 lg:grid-cols-2 lg:px-8 lg:py-24">
           <div>
-            <h1 className="max-w-3xl text-5xl font-black leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-3xl display-xl text-white">
               {currentHero.title}
               <br />
               <span className="text-[#ff2635]">{currentHero.highlight}</span>
@@ -205,21 +205,21 @@ export default function RemopayLandingPage() {
               {currentHero.suffix}
             </h1>
 
-            <p className="mt-6 max-w-xl text-base leading-8 text-white/85 sm:text-lg">
+            <p className="mt-6 max-w-xl body-lg text-white/85">
               {currentHero.desc}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/auth/register"
-                className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-7 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420]"
+                className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-7 py-4 button-md text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420]"
               >
                 Create Free Account <ArrowRight size={18} />
               </Link>
 
               <a
                 href="#services"
-                className="inline-flex items-center gap-3 rounded-xl border border-[#ff4b55]/50 bg-black/20 px-7 py-4 text-sm font-black text-white backdrop-blur transition hover:bg-white/10"
+                className="inline-flex items-center gap-3 rounded-xl border border-[#ff4b55]/50 bg-black/20 px-7 py-4 button-md text-white backdrop-blur transition hover:bg-white/10"
               >
                 Explore Services <ArrowRight size={18} />
               </a>
@@ -234,8 +234,8 @@ export default function RemopayLandingPage() {
               ].map(([title, desc, Icon]: any) => (
                 <div key={title} className="border-r border-white/15 pr-4 last:border-0">
                   <Icon className="mb-3 h-7 w-7 text-white" />
-                  <p className="text-sm font-black">{title}</p>
-                  <p className="mt-1 text-xs text-white/65">{desc}</p>
+                  <p className="label text-white">{title}</p>
+                  <p className="mt-1 caption-xs text-white/65">{desc}</p>
                 </div>
               ))}
             </div>
@@ -280,16 +280,16 @@ export default function RemopayLandingPage() {
         <div className="mx-auto max-w-7xl">
           {/* Header section */}
           <div className="mb-12">
-            <h2 className="text-4xl font-black tracking-tight">
+            <h2 className="h2">
               Our <span className="text-[#ff2635]">Services</span>
             </h2>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/70">
+            <p className="mt-5 max-w-2xl body-base text-white/70">
               Everything you need for everyday payments in one simple app.
             </p>
 
             <Link
               href="/auth/register"
-              className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white transition hover:bg-[#b91420]"
+              className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 button-md text-white transition hover:bg-[#b91420]"
             >
               View All Services <ArrowRight size={18} />
             </Link>
@@ -324,10 +324,10 @@ export default function RemopayLandingPage() {
                     </div>
 
                     <div className="p-6">
-                      <h3 className="text-lg font-black text-[#ff2635]">
+                      <h3 className="h5 text-[#ff2635]">
                         {service.title}
                       </h3>
-                      <p className="mt-2 text-sm leading-6 text-white/75">
+                      <p className="mt-2 body-sm text-white/75">
                         {service.desc}
                       </p>
 
@@ -363,10 +363,10 @@ export default function RemopayLandingPage() {
       <section id="security" className="bg-[#100303] px-5 py-14 lg:px-8">
         <div className="mx-auto max-w-7xl border-t border-[#ff4b55]/20 pt-14">
           <div className="text-center">
-            <h2 className="text-3xl font-black sm:text-4xl">
+            <h2 className="h2">
               Why Choose <span className="text-[#ff2635]">Remopay?</span>
             </h2>
-            <p className="mt-3 text-white/65">
+            <p className="mt-3 body-base text-white/65">
               We make payments simple, fast and rewarding.
             </p>
           </div>
@@ -381,8 +381,8 @@ export default function RemopayLandingPage() {
                   className="rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-7"
                 >
                   <Icon className="mb-6 h-10 w-10 text-[#ff737b]" />
-                  <h3 className="font-black">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/65">{item.desc}</p>
+                  <h3 className="h5 font-semibold">{item.title}</h3>
+                  <p className="mt-3 body-sm text-white/65">{item.desc}</p>
                 </div>
               );
             })}
@@ -394,16 +394,16 @@ export default function RemopayLandingPage() {
         <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-[#ff4b55]/25 bg-gradient-to-r from-[#b91420] via-[#7f0f17] to-[#220606] p-8 shadow-2xl shadow-[#d71927]/20 lg:p-12">
           <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_1fr_0.8fr]">
             <div>
-              <h2 className="text-3xl font-black sm:text-4xl">
+              <h2 className="h2">
                 Invite. Earn. Repeat.
               </h2>
-              <p className="mt-4 max-w-md leading-7 text-white/80">
+              <p className="mt-4 max-w-md body-base leading-relaxed text-white/80">
                 Refer your friends and earn up to ₦200 per verified referral.
               </p>
 
               <Link
                 href="/auth/register"
-                className="mt-7 inline-flex items-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-[#9b111e] transition hover:bg-white/90"
+                className="mt-7 inline-flex items-center gap-3 rounded-xl bg-white px-6 py-4 button-md text-[#9b111e] transition hover:bg-white/90"
               >
                 Start Referring <ArrowRight size={18} />
               </Link>
@@ -420,9 +420,9 @@ export default function RemopayLandingPage() {
             </div>
 
             <div className="rounded-2xl border border-white/20 bg-black/20 p-7 backdrop-blur">
-              <p className="text-sm font-bold text-white/70">Your Reward Wallet</p>
-              <h3 className="mt-4 text-5xl font-black text-[#ff737b]">₦200</h3>
-              <p className="mt-2 text-sm text-white/60">Available Balance</p>
+              <p className="caption-sm text-white/70 font-semibold">Your Reward Wallet</p>
+              <h3 className="mt-4 display-md text-[#ff737b]">₦200</h3>
+              <p className="mt-2 body-sm text-white/60">Available Balance</p>
             </div>
           </div>
         </div>
@@ -439,8 +439,8 @@ export default function RemopayLandingPage() {
                   <Icon className="h-7 w-7 text-[#ff737b]" />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black">{stat.value}</h3>
-                  <p className="text-sm text-white/65">{stat.label}</p>
+                  <h3 className="stat-value">{stat.value}</h3>
+                  <p className="stat-label">{stat.label}</p>
                 </div>
               </div>
             );
@@ -460,13 +460,13 @@ export default function RemopayLandingPage() {
     <div>
      
 
-      <h2 className="max-w-xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
+      <h2 className="max-w-xl display-lg text-white">
         Everything you need,
         <br />
         <span className="text-[#ff2635]">right in your pocket.</span>
       </h2>
 
-      <p className="mt-5 max-w-xl text-base leading-8 text-white/70">
+      <p className="mt-5 max-w-xl body-lg text-white/70">
         Download the Remopay mobile app to buy airtime, data, pay bills, fund
         your wallet, track transactions, and earn rewards anytime.
       </p>
@@ -498,7 +498,7 @@ export default function RemopayLandingPage() {
         <a
           href="/"
           download
-          className="flex items-center justify-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420] w-full"
+          className="flex items-center justify-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 button-md text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420] w-full"
         >
           Direct Download
           <ArrowRight size={18} />
@@ -544,13 +544,13 @@ export default function RemopayLandingPage() {
 
         {/* Floating stat cards */}
         <div className="absolute -left-10 top-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
-          <p className="text-xs font-bold text-white/50">Wallet Balance</p>
-          <p className="mt-1 text-2xl font-black text-white">₦25,680.50</p>
+          <p className="caption-xs text-white/50 font-semibold">Wallet Balance</p>
+          <p className="mt-1 h4 text-white">₦25,680.50</p>
         </div>
 
         <div className="absolute -right-10 bottom-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-4 shadow-xl backdrop-blur md:block">
-          <p className="text-xs font-bold text-white/50">Reward Wallet</p>
-          <p className="mt-1 text-2xl font-black text-[#ff737b]">₦200</p>
+          <p className="caption-xs text-white/50 font-semibold">Reward Wallet</p>
+          <p className="mt-1 h4 text-[#ff737b]">₦200</p>
         </div>
       </div>
     </div>
@@ -562,9 +562,9 @@ export default function RemopayLandingPage() {
           <div className="md:col-span-2">
             <div className="flex items-center gap-3">
               <Image src="/icon.png" alt="Remopay Logo" width={44} height={44} />
-              <span className="text-xl font-black">Remopay</span>
+              <span className="h5 font-bold">Remopay</span>
             </div>
-            <p className="mt-5 max-w-sm text-sm leading-7 text-white/65">
+            <p className="mt-5 max-w-sm body-sm text-white/65">
               Pay smarter, live better with fast, secure and reliable payments.
             </p>
           </div>
@@ -575,11 +575,11 @@ export default function RemopayLandingPage() {
             ['Services', [['Airtime', '/'], ['Data', '/'], ['Electricity', '/'], ['TV Subscription', '/'], ['More Services', '/']]],
           ].map(([title, links]: any) => (
             <div key={title}>
-              <h3 className="mb-4 font-black">{title}</h3>
-              <ul className="space-y-3 text-sm text-white/60">
+              <h3 className="mb-4 h6 font-semibold">{title}</h3>
+              <ul className="space-y-3">
                 {links.map((item: any) => (
                   <li key={item[0]}>
-                    <Link href={item[1]} className="hover:text-[#ff737b]">{item[0]}</Link>
+                    <Link href={item[1]} className="body-sm text-white/60 hover:text-[#ff737b]">{item[0]}</Link>
                   </li>
                 ))}
               </ul>
@@ -587,7 +587,7 @@ export default function RemopayLandingPage() {
           ))}
 
           <div>
-            <h3 className="mb-4 font-black">Follow Us</h3>
+            <h3 className="mb-4 h6 font-semibold">Follow Us</h3>
             <div className="flex gap-3">
               <a
                 href="https://www.linkedin.com/products/remonode-remopay/"
@@ -605,7 +605,7 @@ export default function RemopayLandingPage() {
               </a>
             </div>
 
-            <p className="mt-6 text-sm text-white/50">
+            <p className="mt-6 caption-sm text-white/50">
               © 2026 Remopay. All rights reserved.
             </p>
           </div>

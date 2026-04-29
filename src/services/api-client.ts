@@ -6,21 +6,40 @@ import {
   storeIdempotencyKey,
   clearIdempotencyKey,
 } from '@/utils/idempotency.utils';
+import {
+  parseIdempotencyError,
+  getIdempotencyErrorMessage,
+  getErrorAction,
+} from '@/utils/idempotency-error.utils';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 import { trackApiError } from '@/utils/error-tracking.utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.afridata.remonode.com/api/v1';
 
 // Define payment operation paths that require idempotency keys
+// These are all endpoints that modify financial state and must be idempotent
 const PAYMENT_OPERATIONS = [
-  '/vtu/service',
+  // Wallet operations
+  '/wallet/transfer',
+  '/wallet/debit',
+  '/wallet/credit',
+  '/wallet/withdraw',
+  
+  // Payment operations
   '/payments/initialize',
   '/payments/verify',
+  
+  // VTU operations (Airtime, Data, Bills)
   '/vtu/pay',
+  '/vtu/service',
   '/transactions/data/purchase',
   '/transactions/bills/pay',
   '/vtu/pay/confirm',
   '/transactions/data/purchase/confirm',
+  
+  // Additional transaction endpoints
+  '/transactions/transfer',
+  '/transactions/withdraw',
 ];
 
 console.log('[ApiClient] Initializing API Client with:', {
@@ -187,28 +206,38 @@ class ApiClient {
         });
 
         // Handle idempotency-specific errors
-        const responseData = error.response?.data as any;
-        if (responseData?.code === 'MISSING_IDEMPOTENCY_KEY') {
-          console.error('[Idempotency] Missing idempotency key for payment operation');
-          return Promise.reject({
-            ...error,
-            message: 'Payment operation requires idempotency key. Please try again.',
-            isIdempotencyError: true,
+        const url = error.config?.url || '';
+        if (isPaymentOperation(url)) {
+          const idempotencyError = parseIdempotencyError(error as AxiosError<any>);
+          const action = getErrorAction(idempotencyError);
+          
+          console.error('[Idempotency] Error details:', {
+            type: idempotencyError.type,
+            message: idempotencyError.message,
+            isRetryable: idempotencyError.isRetryable,
+            action,
+            timestamp: new Date().toISOString(),
           });
-        }
 
-        if (responseData?.code === 'DUPLICATE_IDEMPOTENCY_KEY' || error.response?.status === 409) {
-          console.warn('[Idempotency] Duplicate request detected (idempotency key already used)');
-          const url = error.config?.url || '';
-          if (isPaymentOperation(url)) {
+          // Clear operation key on duplicate/invalid errors
+          if (action === 'check_transaction') {
             const operationId = generateOperationId(url, error.config?.data);
             clearIdempotencyKey(operationId);
           }
-          return Promise.reject({
-            ...error,
-            message: 'This payment has already been processed. Please check your transaction history.',
-            isDuplicateError: true,
-          });
+
+          const userMessage = getIdempotencyErrorMessage(idempotencyError.type);
+          const responseData = error.response?.data as any;
+          const rejectionError = {
+            ...this.formatError(error),
+            message: userMessage,
+            originalMessage: responseData?.message,
+            isIdempotencyError: true,
+            idempotencyErrorType: idempotencyError.type,
+            isRetryable: idempotencyError.isRetryable,
+            action,
+          };
+
+          return Promise.reject(rejectionError);
         }
         
         const config = error.config as ExtendedAxiosRequestConfig;

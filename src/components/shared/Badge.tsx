@@ -17,8 +17,8 @@ const variantClasses = {
 };
 
 const sizeClasses = {
-  sm: 'px-2 py-1 text-xs',
-  md: 'px-3 py-1 text-sm',
+  sm: 'px-2 py-1 caption-xs',
+  md: 'px-3 py-1 caption',
 };
 
 export const Badge = ({

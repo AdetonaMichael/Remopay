@@ -8,6 +8,7 @@ import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforce
 import { Error403Modal } from '@/components/Error403Modal';
 import { initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
+import { initializeIdempotencyMaintenance } from '@/utils/idempotency-maintenance.utils';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -22,6 +23,10 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
     // Initialize debug logging for mobile error tracking
     initializeDebugLogging();
     console.log('[Providers] Debug logging initialized');
+
+    // Initialize idempotency maintenance (cleanup expired keys, periodic tasks)
+    initializeIdempotencyMaintenance();
+    console.log('[Providers] Idempotency maintenance initialized');
   }, []);
 
   return (

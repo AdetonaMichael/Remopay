@@ -15,7 +15,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block label mb-2 text-gray-700">
             {label}
             {props.required && <span className="text-red-600">*</span>}
           </label>
@@ -23,7 +23,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
         <select
           className={clsx(
-            'w-full px-3 py-2 rounded-lg border text-gray-900 bg-white',
+            'w-full px-3 py-2 rounded-lg border body-sm text-gray-900 bg-white',
             'focus:outline-none focus:ring-2 focus:ring-[#a9b7ff] focus:border-transparent',
             'disabled:bg-gray-100 disabled:cursor-not-allowed',
             error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300',
@@ -40,8 +40,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
 
-        {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-        {helperText && !error && <p className="text-sm text-gray-500 mt-1">{helperText}</p>}
+        {error && <p className="body-sm text-red-600 mt-1">{error}</p>}
+        {helperText && !error && <p className="body-sm text-gray-500 mt-1">{helperText}</p>}
       </div>
     );
   }
