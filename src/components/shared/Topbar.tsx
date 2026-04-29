@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
+import { RoleSwitcher } from './RoleSwitcher';
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -73,6 +74,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Center/Right section - Flex spacer and user menu */}
           <div className="flex-1" />
+
+          {/* Role Switcher - Only shows if user has multiple roles */}
+          <RoleSwitcher />
 
           {/* User Profile Menu */}
           {user && isMounted ? (
