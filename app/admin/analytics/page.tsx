@@ -136,7 +136,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
+      className="min-h-screen space-y-8 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white"
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -145,25 +145,6 @@ export default function AdminAnalyticsPage() {
         }
       `}</style>
 
-      {/* ── Hero Section ──────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-[30px] border border-[#e5e7eb] bg-[#0b1220] px-6 py-8 sm:px-8 sm:py-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(74,95,247,0.24),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.06),transparent_24%)]" />
-
-        <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#c7d2fe]">
-              Admin Intelligence
-            </span>
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Analytics Dashboard
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-[#cbd5e1] sm:text-base">
-              Real-time platform performance metrics: wallet balances, VTU transactions,
-              user growth, and network performance.
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* ── Wallet Stats Section ──────────────────────────────────────────── */}
       {walletStats && (
@@ -179,25 +160,25 @@ export default function AdminAnalyticsPage() {
             {[
               {
                 label: 'Total Balance',
-                value: formatCompactCurrency(walletStats.total_balance_all_users),
+                value: formatCompactCurrency(walletStats?.total_balance_all_users ?? 0),
                 icon: Wallet,
                 color: 'bg-blue-50 text-blue-600',
               },
               {
                 label: 'Active Wallets',
-                value: walletStats.active_wallets.toLocaleString(),
+                value: (walletStats?.active_wallets ?? 0).toLocaleString(),
                 icon: Users2,
                 color: 'bg-purple-50 text-purple-600',
               },
               {
                 label: 'Avg. Balance',
-                value: formatCurrency(walletStats.average_balance),
+                value: formatCurrency(walletStats?.average_balance ?? 0),
                 icon: CreditCard,
                 color: 'bg-emerald-50 text-emerald-600',
               },
               {
                 label: 'Success Rate',
-                value: `${walletStats.transaction_success_rate.toFixed(1)}%`,
+                value: `${(walletStats?.transaction_success_rate ?? 0).toFixed(1)}%`,
                 icon: CheckCircle2,
                 color: 'bg-green-50 text-green-600',
               },
@@ -223,7 +204,7 @@ export default function AdminAnalyticsPage() {
             })}
           </div>
 
-          {walletStats.daily_volume && (
+          {walletStats?.daily_volume && (
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Today's Volume</h3>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -232,7 +213,7 @@ export default function AdminAnalyticsPage() {
                     Transactions
                   </p>
                   <p className="mt-2 text-2xl font-bold text-[#111827]">
-                    {walletStats.daily_volume.count.toLocaleString()}
+                    {walletStats?.daily_volume?.count.toLocaleString()}
                   </p>
                 </div>
                 <div className="rounded-2xl bg-[#f8fafc] p-4">
@@ -240,7 +221,7 @@ export default function AdminAnalyticsPage() {
                     Volume
                   </p>
                   <p className="mt-2 text-2xl font-bold text-[#111827]">
-                    {formatCompactCurrency(walletStats.daily_volume.value)}
+                    {formatCompactCurrency(walletStats?.daily_volume?.value ?? 0)}
                   </p>
                 </div>
               </div>
@@ -263,25 +244,25 @@ export default function AdminAnalyticsPage() {
             {[
               {
                 label: 'Total Transactions',
-                value: vtuStats.total_transactions.toLocaleString(),
+                value: (vtuStats?.total_transactions ?? 0).toLocaleString(),
                 icon: CreditCard,
                 color: 'bg-orange-50 text-orange-600',
               },
               {
                 label: 'Successful',
-                value: vtuStats.successful_transactions.toLocaleString(),
+                value: (vtuStats?.successful_transactions ?? 0).toLocaleString(),
                 icon: CheckCircle2,
                 color: 'bg-green-50 text-green-600',
               },
               {
                 label: 'Success Rate',
-                value: `${vtuStats.success_rate.toFixed(1)}%`,
+                value: `${(vtuStats?.success_rate ?? 0).toFixed(1)}%`,
                 icon: TrendingUp,
                 color: 'bg-blue-50 text-blue-600',
               },
               {
                 label: 'Total Volume',
-                value: formatCompactCurrency(vtuStats.total_volume),
+                value: formatCompactCurrency(vtuStats?.total_volume ?? 0),
                 icon: Wallet,
                 color: 'bg-purple-50 text-purple-600',
               },
@@ -311,7 +292,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Commissions</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {formatCompactCurrency(vtuStats.total_commission)}
+                {formatCompactCurrency(vtuStats?.total_commission ?? 0)}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 Total earned commissions
@@ -321,7 +302,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Avg. Transaction</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {formatCurrency(vtuStats.average_transaction)}
+                {formatCurrency(vtuStats?.average_transaction ?? 0)}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 Average per transaction
@@ -330,7 +311,7 @@ export default function AdminAnalyticsPage() {
           </div>
 
           {/* Network Breakdown */}
-          {vtuStats.by_network && Object.keys(vtuStats.by_network).length > 0 && (
+          {vtuStats?.by_network && Object.keys(vtuStats.by_network).length > 0 && (
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Network Performance</h3>
               <div className="mt-4 space-y-4">
@@ -372,25 +353,25 @@ export default function AdminAnalyticsPage() {
             {[
               {
                 label: 'Total Users',
-                value: userStats.total_users.toLocaleString(),
+                value: (userStats?.total_users ?? 0).toLocaleString(),
                 icon: Users2,
                 color: 'bg-blue-50 text-blue-600',
               },
               {
                 label: 'Verified Users',
-                value: userStats.verified_users.toLocaleString(),
+                value: (userStats?.verified_users ?? 0).toLocaleString(),
                 icon: Shield,
                 color: 'bg-green-50 text-green-600',
               },
               {
                 label: 'Active (30d)',
-                value: userStats.active_users_30days.toLocaleString(),
+                value: (userStats?.active_users_30days ?? 0).toLocaleString(),
                 icon: TrendingUp,
                 color: 'bg-emerald-50 text-emerald-600',
               },
               {
                 label: 'Verification Rate',
-                value: `${userStats.verification_rate.toFixed(1)}%`,
+                value: `${(userStats?.verification_rate ?? 0).toFixed(1)}%`,
                 icon: CheckCircle2,
                 color: 'bg-purple-50 text-purple-600',
               },
@@ -420,7 +401,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">New This Month</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {userStats.new_users_this_month.toLocaleString()}
+                {(userStats?.new_users_this_month ?? 0).toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 New user registrations this month
@@ -430,7 +411,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">New This Week</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {userStats.new_users_this_week.toLocaleString()}
+                {(userStats?.new_users_this_week ?? 0).toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 New user registrations this week
@@ -440,7 +421,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Email Verified</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {userStats.email_verified_users.toLocaleString()}
+                {(userStats?.email_verified_users ?? 0).toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 Users with verified email addresses
@@ -450,7 +431,7 @@ export default function AdminAnalyticsPage() {
             <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
               <h3 className="font-semibold text-[#111827]">Unverified</h3>
               <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {userStats.unverified_users.toLocaleString()}
+                {(userStats?.unverified_users ?? 0).toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-[#6b7280]">
                 Users pending verification

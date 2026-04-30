@@ -277,7 +277,7 @@ export default function BillsPage() {
                         }}
                         className={`rounded-2xl border p-4 text-center transition-all ${
                           active
-                            ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.14)]'
+                            ? 'border-[#d71927]  shadow-[0_14px_30px_rgba(215,25,39,0.14)]'
                             : 'border-gray-200 bg-white hover:border-[#A9B7FF] hover:bg-white'
                         }`}
                       >
@@ -334,11 +334,11 @@ export default function BillsPage() {
                         onClick={() => setPaymentType(type)}
                         className={`rounded-[24px] border p-5 text-left transition-all ${
                           active
-                            ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
+                            ? 'border-[#d71927]  shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
                             : 'border-gray-200 bg-white hover:border-[#A9B7FF]'
                         }`}
                       >
-                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-[#d71927]">
+                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl  text-[#d71927]">
                           <Zap size={22} />
                         </div>
 
@@ -380,7 +380,7 @@ export default function BillsPage() {
                   </p>
                 )}
 
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div className="mt-5 rounded-2xl border border-red-200  p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
                     Verification Required
                   </p>
@@ -469,7 +469,7 @@ export default function BillsPage() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <div className="mt-5 rounded-2xl border border-red-200  p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
                 Secure Bills Flow
               </p>

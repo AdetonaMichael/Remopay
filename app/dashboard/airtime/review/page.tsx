@@ -271,7 +271,7 @@ export default function AirtimeReviewPage() {
                 ))}
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-red-200  px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-gray-900">
                     Total Amount
@@ -328,7 +328,7 @@ export default function AirtimeReviewPage() {
                       method.disabled
                         ? 'cursor-not-allowed border-gray-200 bg-gray-100 opacity-60'
                         : active
-                          ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                          ? 'border-[#d71927]  shadow-sm shadow-red-200'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >

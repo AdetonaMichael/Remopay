@@ -1,23 +1,39 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, TrendingUp, Award } from 'lucide-react';
+import {
+  Users,
+  TrendingUp,
+  Award,
+  AlertCircle,
+  ShieldCheck,
+  BarChart3,
+  Crown,
+} from 'lucide-react';
 import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
-import { Badge } from '@/components/shared/Badge';
 import { rewardService } from '@/services/reward.service';
 import { LoyaltyDashboard } from '@/types/rewards.types';
 
-const tierColors = {
-  Bronze: 'bg-gradient-to-br from-amber-50 to-amber-100',
-  Silver: 'bg-gradient-to-br from-slate-50 to-slate-100',
-  Gold: 'bg-gradient-to-br from-yellow-50 to-yellow-100',
-};
-
-const tierIcons = {
-  Bronze: '🥉',
-  Silver: '🥈',
-  Gold: '🥇',
+const tierMeta = {
+  Bronze: {
+    icon: '🥉',
+    card: 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20',
+    text: 'text-amber-800 dark:text-amber-300',
+    bar: 'bg-amber-500',
+  },
+  Silver: {
+    icon: '🥈',
+    card: 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5',
+    text: 'text-slate-800 dark:text-slate-200',
+    bar: 'bg-slate-500',
+  },
+  Gold: {
+    icon: '🥇',
+    card: 'border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-950/20',
+    text: 'text-yellow-800 dark:text-yellow-300',
+    bar: 'bg-yellow-500',
+  },
 };
 
 export default function AdminLoyaltyPage() {
@@ -32,99 +48,190 @@ export default function AdminLoyaltyPage() {
   const loadLoyaltyDashboard = async () => {
     try {
       setLoading(true);
+      setError('');
+
       const data = await rewardService.getLoyaltyDashboard();
       setDashboard(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load loyalty dashboard');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load loyalty dashboard',
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <PageSkeleton />;
-  }
+  if (loading) return <PageSkeleton />;
 
-  const totalUsers = dashboard
-    ? dashboard.users_per_tier.reduce((sum, t) => sum + t.user_count, 0)
-    : 0;
+  const totalUsers =
+    dashboard?.users_per_tier.reduce((sum, tier) => sum + tier.user_count, 0) ||
+    0;
+
+  const averageTierLevel =
+    dashboard && totalUsers > 0
+      ? dashboard.users_per_tier.reduce(
+          (sum, tier, index) => sum + (index + 1) * tier.user_count,
+          0,
+        ) / totalUsers
+      : 0;
+
+  const goldUsers = dashboard?.users_per_tier[2]?.user_count || 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Loyalty Tier Management</h1>
-          <p className="mt-2 text-gray-600">Monitor user tier distribution and progression</p>
+    <div className="min-h-screen space-y-8 bg-[#faf7f7] px-4 py-6 text-slate-950 dark:bg-[#090707] dark:text-white sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-[#620707]/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#120d0d] md:p-8">
+        <div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-[#620707]/10 blur-3xl dark:bg-[#ffdddd]/10" />
+        <div className="absolute bottom-0 left-1/2 h-32 w-32 rounded-full bg-yellow-500/10 blur-3xl" />
+
+        <div className="relative">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#620707]/15 bg-[#620707]/5 px-3 py-1 text-xs font-bold text-[#620707] dark:border-white/10 dark:bg-white/5 dark:text-[#ffb3b3]">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Remopay Loyalty Engine
+          </div>
+
+          <h1 className="text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl">
+            Loyalty Tier Management
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+            Monitor customer loyalty distribution, tier progression, reward
+            multipliers, and high-value users across Remopay.
+          </p>
         </div>
       </div>
 
-      {/* Summary Stats */}
+      {error && (
+        <Card className="rounded-3xl border border-red-200 bg-red-50 p-5 dark:border-red-900/60 dark:bg-red-950/30">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600 dark:text-red-300" />
+            <p className="text-sm font-medium text-red-800 dark:text-red-200">
+              {error}
+            </p>
+          </div>
+        </Card>
+      )}
+
       {dashboard && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <div className="flex items-start justify-between">
+          {/* Stats */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card className="relative overflow-hidden rounded-3xl border border-[#620707]/10 bg-[#620707] p-6 text-white shadow-sm">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
+
+              <div className="relative flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total Users</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mt-2">
+                  <p className="text-sm font-medium text-white/75">
+                    Total Loyalty Users
+                  </p>
+                  <h3 className="mt-3 text-3xl font-black tracking-tight">
                     {totalUsers.toLocaleString()}
                   </h3>
+                  <p className="mt-3 text-xs text-white/65">
+                    Users currently assigned to loyalty tiers.
+                  </p>
                 </div>
-                <Users className="h-10 w-10 text-blue-500" />
+
+                <div className="rounded-2xl bg-white/10 p-3">
+                  <Users className="h-7 w-7" />
+                </div>
               </div>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#120d0d]">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Avg. Tier Level</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mt-2">
-                    {(
-                      dashboard.users_per_tier.reduce((sum, t, idx) => sum + idx * t.user_count, 0) /
-                      totalUsers
-                    ).toFixed(2)}
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Average Tier Level
+                  </p>
+                  <h3 className="mt-3 text-3xl font-black tracking-tight">
+                    {averageTierLevel.toFixed(2)}
                   </h3>
+                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    Weighted average across all loyalty users.
+                  </p>
                 </div>
-                <TrendingUp className="h-10 w-10 text-purple-500" />
+
+                <div className="rounded-2xl bg-[#620707]/10 p-3 text-[#620707] dark:bg-white/10 dark:text-[#ffb3b3]">
+                  <TrendingUp className="h-7 w-7" />
+                </div>
               </div>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-yellow-200 bg-white p-6 shadow-sm dark:border-yellow-900/50 dark:bg-[#120d0d]">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Gold Tier Users</p>
-                  <h3 className="text-3xl font-bold text-yellow-600 mt-2">
-                    {dashboard.users_per_tier[2]?.user_count.toLocaleString() || '0'}
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    Gold Tier Users
+                  </p>
+                  <h3 className="mt-3 text-3xl font-black tracking-tight text-yellow-700 dark:text-yellow-300">
+                    {goldUsers.toLocaleString()}
                   </h3>
+                  <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                    Highest-value Remopay loyalty customers.
+                  </p>
                 </div>
-                <Award className="h-10 w-10 text-yellow-500" />
+
+                <div className="rounded-2xl bg-yellow-50 p-3 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300">
+                  <Award className="h-7 w-7" />
+                </div>
               </div>
             </Card>
           </div>
 
-          {/* Tier Distribution */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">User Distribution by Tier</h2>
+          {/* Distribution */}
+          <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#120d0d]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#620707]/10 p-3 text-[#620707] dark:bg-white/10 dark:text-[#ffb3b3]">
+                <BarChart3 className="h-5 w-5" />
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {dashboard.users_per_tier.map((tier, idx) => {
-                const tierName = ['Bronze', 'Silver', 'Gold'][idx];
+              <div>
+                <h2 className="text-xl font-black">
+                  User Distribution by Tier
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Breakdown of users across Bronze, Silver, and Gold levels.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {dashboard.users_per_tier.map((tier, index) => {
+                const tierName = ['Bronze', 'Silver', 'Gold'][
+                  index
+                ] as keyof typeof tierMeta;
+
+                const meta = tierMeta[tierName];
+
                 const percentage =
-                  totalUsers > 0 ? ((tier.user_count / totalUsers) * 100).toFixed(1) : 0;
+                  totalUsers > 0 ? (tier.user_count / totalUsers) * 100 : 0;
 
                 return (
                   <div
                     key={tierName}
-                    className={`${tierColors[tierName as keyof typeof tierColors]} rounded-lg p-6 text-center`}
+                    className={`rounded-3xl border p-6 text-center ${meta.card}`}
                   >
-                    <div className="text-4xl mb-2">{tierIcons[tierName as keyof typeof tierIcons]}</div>
-                    <h3 className="text-xl font-bold text-gray-900">{tierName}</h3>
-                    <p className="text-3xl font-bold text-gray-900 mt-2">{tier.user_count}</p>
-                    <p className="text-sm text-gray-600 mt-1">{percentage}% of users</p>
+                    <div className="text-4xl">{meta.icon}</div>
 
-                    <div className="mt-4 pt-4 border-t border-gray-300 border-opacity-30">
-                      <p className="text-xs text-gray-600 font-semibold uppercase">Avg Multiplier</p>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">
+                    <h3 className={`mt-3 text-xl font-black ${meta.text}`}>
+                      {tierName}
+                    </h3>
+
+                    <p className="mt-3 text-4xl font-black text-slate-950 dark:text-white">
+                      {tier.user_count.toLocaleString()}
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      {percentage.toFixed(1)}% of users
+                    </p>
+
+                    <div className="mt-5 border-t border-black/10 pt-5 dark:border-white/10">
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Average Multiplier
+                      </p>
+
+                      <p className="mt-2 text-2xl font-black text-slate-950 dark:text-white">
                         {tier.average_multiplier.toFixed(2)}x
                       </p>
                     </div>
@@ -133,23 +240,30 @@ export default function AdminLoyaltyPage() {
               })}
             </div>
 
-            {/* Distribution Bar */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Overall Distribution</p>
-              <div className="flex gap-1 h-8 rounded-full overflow-hidden">
-                {dashboard.users_per_tier.map((tier, idx) => {
-                  const tierName = ['Bronze', 'Silver', 'Gold'][idx];
-                  const percentage = totalUsers > 0 ? (tier.user_count / totalUsers) * 100 : 0;
-                  const bgClasses = {
-                    Bronze: 'bg-amber-500',
-                    Silver: 'bg-slate-500',
-                    Gold: 'bg-yellow-500',
-                  };
+            <div className="mt-8 border-t border-slate-200 pt-6 dark:border-white/10">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-black text-slate-700 dark:text-slate-200">
+                  Overall Distribution
+                </p>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Total: {totalUsers.toLocaleString()} users
+                </p>
+              </div>
+
+              <div className="flex h-8 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                {dashboard.users_per_tier.map((tier, index) => {
+                  const tierName = ['Bronze', 'Silver', 'Gold'][
+                    index
+                  ] as keyof typeof tierMeta;
+
+                  const percentage =
+                    totalUsers > 0 ? (tier.user_count / totalUsers) * 100 : 0;
 
                   return (
                     <div
                       key={tierName}
-                      className={`${bgClasses[tierName as keyof typeof bgClasses]}`}
+                      className={tierMeta[tierName].bar}
                       style={{ width: `${percentage}%` }}
                       title={`${tierName}: ${percentage.toFixed(1)}%`}
                     />
@@ -159,46 +273,60 @@ export default function AdminLoyaltyPage() {
             </div>
           </Card>
 
-          {/* Tier Requirements Info */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Tier Requirements</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <h3 className="font-bold text-amber-900 mb-3">Bronze</h3>
-                <ul className="space-y-2 text-sm text-amber-900">
-                  <li>• 10+ transactions</li>
-                  <li>• ₦500k total volume</li>
-                  <li>• 30+ days active</li>
-                  <li>• Multiplier: 1.0x</li>
+          {/* Requirements */}
+          <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#120d0d]">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-2xl bg-[#620707]/10 p-3 text-[#620707] dark:bg-white/10 dark:text-[#ffb3b3]">
+                <Crown className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black">Tier Requirements</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Qualification rules for each Remopay loyalty level.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
+                <h3 className="font-black text-amber-900 dark:text-amber-300">
+                  Bronze
+                </h3>
+                <ul className="mt-4 space-y-2 text-sm text-amber-900 dark:text-amber-200">
+                  <li>10+ transactions</li>
+                  <li>₦500k total volume</li>
+                  <li>30+ days active</li>
+                  <li className="font-black">Multiplier: 1.0x</li>
                 </ul>
               </div>
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-3">Silver</h3>
-                <ul className="space-y-2 text-sm text-slate-900">
-                  <li>• 50+ transactions</li>
-                  <li>• ₦2M total volume</li>
-                  <li>• ₦100k wallet funding</li>
-                  <li>• Multiplier: 1.25x</li>
+
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
+                <h3 className="font-black text-slate-900 dark:text-slate-100">
+                  Silver
+                </h3>
+                <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                  <li>50+ transactions</li>
+                  <li>₦2M total volume</li>
+                  <li>₦100k wallet funding</li>
+                  <li className="font-black">Multiplier: 1.25x</li>
                 </ul>
               </div>
-              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h3 className="font-bold text-yellow-900 mb-3">Gold</h3>
-                <ul className="space-y-2 text-sm text-yellow-900">
-                  <li>• 100+ transactions</li>
-                  <li>• ₦5M total volume</li>
-                  <li>• 90+ days active</li>
-                  <li>• Multiplier: 1.5x</li>
+
+              <div className="rounded-3xl border border-yellow-200 bg-yellow-50 p-5 dark:border-yellow-900/50 dark:bg-yellow-950/20">
+                <h3 className="font-black text-yellow-900 dark:text-yellow-300">
+                  Gold
+                </h3>
+                <ul className="mt-4 space-y-2 text-sm text-yellow-900 dark:text-yellow-200">
+                  <li>100+ transactions</li>
+                  <li>₦5M total volume</li>
+                  <li>90+ days active</li>
+                  <li className="font-black">Multiplier: 1.5x</li>
                 </ul>
               </div>
             </div>
           </Card>
         </>
-      )}
-
-      {error && (
-        <Card className="border border-red-200 bg-red-50">
-          <p className="text-red-800">{error}</p>
-        </Card>
       )}
     </div>
   );

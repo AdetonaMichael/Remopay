@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pause, Play, Trash2, Edit } from 'lucide-react';
+import {
+  Plus,
+  Pause,
+  Play,
+  Trash2,
+  AlertCircle,
+  Megaphone,
+  CalendarDays,
+  Gift,
+  Filter,
+  ShieldCheck,
+} from 'lucide-react';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
@@ -9,13 +20,36 @@ import { Toast } from '@/utils/toast.utils';
 import { Modal } from '@/components/shared/Modal';
 import { rewardService } from '@/services/reward.service';
 import { Campaign } from '@/types/rewards.types';
-import Link from 'next/link';
+
+const formatMoney = (amount?: number | string | null) => {
+  const value = Number(amount || 0);
+  return `₦${value.toLocaleString('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const statusClass = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
+    case 'paused':
+      return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200';
+    case 'expired':
+      return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
+    default:
+      return 'bg-red-50 text-red-700 ring-1 ring-red-200';
+  }
+};
 
 export default function AdminCampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     type: 'cashback' as 'cashback' | 'bonus' | 'streak',
@@ -24,8 +58,6 @@ export default function AdminCampaignsPage() {
     start_date: '',
     end_date: '',
   });
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -34,13 +66,29 @@ export default function AdminCampaignsPage() {
   const loadCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await rewardService.getAllCampaigns(selectedStatus || undefined);
+      setError('');
+
+      const response = await rewardService.getAllCampaigns(
+        selectedStatus || undefined,
+      );
+
       setCampaigns(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load campaigns');
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'cashback',
+      reward_percentage: '',
+      reward_amount: '',
+      start_date: '',
+      end_date: '',
+    });
   };
 
   const handleCreateCampaign = async () => {
@@ -58,26 +106,25 @@ export default function AdminCampaignsPage() {
         type: formData.type,
         start_date: formData.start_date,
         end_date: formData.end_date,
-        conditions: { min_transactions: 0, min_funding: 0 },
+        conditions: {
+          min_transactions: 0,
+          min_funding: 0,
+        },
       };
 
       if (formData.type === 'cashback' && formData.reward_percentage) {
         payload.reward_percentage = parseFloat(formData.reward_percentage);
-      } else if (formData.type === 'bonus' && formData.reward_amount) {
+      }
+
+      if (formData.type === 'bonus' && formData.reward_amount) {
         payload.reward_amount = parseFloat(formData.reward_amount);
       }
 
       await rewardService.createCampaign(payload);
+
       Toast.success('Campaign created successfully');
       setShowCreateModal(false);
-      setFormData({
-        name: '',
-        type: 'cashback',
-        reward_percentage: '',
-        reward_amount: '',
-        start_date: '',
-        end_date: '',
-      });
+      resetForm();
       loadCampaigns();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create campaign');
@@ -107,238 +154,345 @@ export default function AdminCampaignsPage() {
   };
 
   const handleDeleteCampaign = async (campaignId: number) => {
-    if (confirm('Are you sure you want to delete this campaign?')) {
-      try {
-        await rewardService.deleteCampaign(campaignId);
-        Toast.success('Campaign deleted');
-        loadCampaigns();
-      } catch (err) {
-        Toast.error(err instanceof Error ? err.message : 'Failed to delete campaign');
-      }
+    if (!confirm('Are you sure you want to delete this campaign?')) return;
+
+    try {
+      await rewardService.deleteCampaign(campaignId);
+      Toast.success('Campaign deleted');
+      loadCampaigns();
+    } catch (err) {
+      Toast.error(err instanceof Error ? err.message : 'Failed to delete campaign');
     }
   };
 
   if (loading) {
-    return <TableSkeleton rows={5} cols={5} />;
+    return <TableSkeleton rows={5} cols={6} />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campaign Management</h1>
-          <p className="mt-2 text-gray-600">Create and manage reward campaigns</p>
-        </div>
-        <Button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-[#4a5ff7] hover:bg-[#3d4fe0] text-white flex items-center gap-2"
-        >
-          <Plus className="h-5 w-5" /> New Campaign
-        </Button>
+    <div className="min-h-screen space-y-8 bg-[#fafafa] px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+ 
+
+      {error && (
+        <Card className="rounded-3xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
+            <p className="text-sm font-medium text-red-800">
+              {error}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="rounded-3xl border border-[#620707]/10 bg-[#620707] p-6 text-white shadow-sm">
+          <Megaphone className="h-7 w-7" />
+          <p className="mt-4 text-sm text-white/75">Total Campaigns</p>
+          <h2 className="mt-2 text-3xl font-black">{campaigns.length}</h2>
+        </Card>
+
+        <Card className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">
+          <Gift className="h-7 w-7 text-emerald-600" />
+          <p className="mt-4 text-sm text-slate-500">
+            Active Campaigns
+          </p>
+          <h2 className="mt-2 text-3xl font-black">
+            {campaigns.filter((item) => item.status === 'active').length}
+          </h2>
+        </Card>
+
+        <Card className="rounded-3xl border border-amber-200 bg-white p-6 shadow-sm">
+          <Pause className="h-7 w-7 text-amber-600" />
+          <p className="mt-4 text-sm text-slate-500">
+            Paused Campaigns
+          </p>
+          <h2 className="mt-2 text-3xl font-black">
+            {campaigns.filter((item) => item.status === 'paused').length}
+          </h2>
+        </Card>
       </div>
 
-      {/* Status Filter */}
-      <Card className="bg-gray-50">
-        <select
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-          className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
-        >
-          <option value="">All Campaigns</option>
-          <option value="active">Active</option>
-          <option value="paused">Paused</option>
-          <option value="expired">Expired</option>
-        </select>
+      <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-[#620707]/10 p-3 text-[#620707]">
+              <Filter className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-black">Filter Campaigns</h2>
+              <p className="text-sm text-slate-500">
+                Narrow campaigns by operational status.
+              </p>
+            </div>
+          </div>
+
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10 md:w-64"
+          >
+            <option value="">All Campaigns</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="expired">Expired</option>
+          </select>
+        </div>
       </Card>
 
-      {/* Campaigns Table */}
-      {campaigns.length > 0 ? (
-        <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        {campaigns.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+            <table className="w-full min-w-[850px]">
+              <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Campaign
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Reward
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Period
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase">
-                    Actions
-                  </th>
+                  {['Campaign', 'Type', 'Reward', 'Period', 'Status', 'Actions'].map(
+                    (heading) => (
+                      <th
+                        key={heading}
+                        className={`px-6 py-4 text-xs font-black uppercase tracking-wide text-slate-500 ${
+                          heading === 'Actions' ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {heading}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+
+              <tbody className="divide-y divide-slate-100">
                 {campaigns.map((campaign) => (
-                  <tr key={campaign.id} className="hover:bg-gray-50">
+                  <tr
+                    key={campaign.id}
+                    className="transition hover:bg-[#620707]/5"
+                  >
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{campaign.name}</p>
+                      <p className="font-bold text-slate-950">
+                        {campaign.name}
+                      </p>
                     </td>
+
                     <td className="px-6 py-4">
-                      <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 capitalize">
+                      <span className="inline-flex rounded-full bg-[#620707]/10 px-3 py-1 text-xs font-bold capitalize text-[#620707] ring-1 ring-[#620707]/15">
                         {campaign.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+
+                    <td className="px-6 py-4 text-sm font-black text-slate-950">
                       {campaign.reward_percentage
                         ? `${campaign.reward_percentage}%`
-                        : `₦${campaign.reward_amount}`}
+                        : formatMoney(campaign.reward_amount)}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {campaign.start_date} to {campaign.end_date}
+
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4" />
+                        <span>
+                          {campaign.start_date} to {campaign.end_date}
+                        </span>
+                      </div>
                     </td>
+
                     <td className="px-6 py-4">
                       <span
-                        className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                          campaign.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : campaign.status === 'paused'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                        }`}
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${statusClass(
+                          campaign.status,
+                        )}`}
                       >
                         {campaign.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2 flex items-center justify-end">
-                      {campaign.status === 'active' ? (
+
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {campaign.status === 'active' ? (
+                          <button
+                            onClick={() => handlePauseCampaign(campaign.id)}
+                            className="rounded-xl p-2 text-amber-600 transition hover:bg-amber-50"
+                            title="Pause campaign"
+                          >
+                            <Pause className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleResumeCampaign(campaign.id)}
+                            className="rounded-xl p-2 text-emerald-600 transition hover:bg-emerald-50"
+                            title="Resume campaign"
+                          >
+                            <Play className="h-4 w-4" />
+                          </button>
+                        )}
+
                         <button
-                          onClick={() => handlePauseCampaign(campaign.id)}
-                          className="text-yellow-600 hover:text-yellow-800 p-1"
-                          title="Pause campaign"
+                          onClick={() => handleDeleteCampaign(campaign.id)}
+                          className="rounded-xl p-2 text-red-600 transition hover:bg-red-50"
+                          title="Delete campaign"
                         >
-                          <Pause className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => handleResumeCampaign(campaign.id)}
-                          className="text-green-600 hover:text-green-800 p-1"
-                          title="Resume campaign"
-                        >
-                          <Play className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteCampaign(campaign.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Delete campaign"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </Card>
-      ) : (
-        <Card className="text-center py-12">
-          <p className="text-gray-600">No campaigns found</p>
-        </Card>
-      )}
+        ) : (
+          <div className="flex min-h-[320px] flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="rounded-3xl bg-[#620707]/10 p-5 text-[#620707]">
+              <Megaphone className="h-8 w-8" />
+            </div>
 
-      {/* Create Campaign Modal */}
-      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create Campaign">
-        <div className="space-y-4">
+            <h3 className="mt-5 text-lg font-black">No campaigns found</h3>
+
+            <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+              Create your first reward campaign to start driving user retention,
+              cashback incentives, deposits, referrals, and transaction volume.
+            </p>
+
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-6 rounded-2xl bg-[#620707] px-5 py-3 text-white hover:bg-[#4d0505]"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Create Campaign
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Reward Campaign"
+      >
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Campaign Name</label>
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Campaign Name
+            </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Weekend Bonus"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
+              placeholder="e.g. April Cashback Boost"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Campaign Type</label>
+            <label className="mb-2 block text-sm font-bold text-slate-700">
+              Campaign Type
+            </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  type: e.target.value as 'cashback' | 'bonus' | 'streak',
+                }))
+              }
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
             >
-              <option value="cashback">Cashback (%)</option>
-              <option value="bonus">Bonus (Fixed Amount)</option>
-              <option value="streak">Streak Bonus</option>
+              <option value="cashback">Cashback</option>
+              <option value="bonus">Bonus</option>
+              <option value="streak">Streak</option>
             </select>
           </div>
 
           {formData.type === 'cashback' && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Cashback Percentage</label>
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                Reward Percentage
+              </label>
               <input
                 type="number"
                 value={formData.reward_percentage}
-                onChange={(e) => setFormData({ ...formData, reward_percentage: e.target.value })}
-                placeholder="e.g., 2.5"
-                step="0.1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    reward_percentage: e.target.value,
+                  }))
+                }
+                placeholder="e.g. 2.5"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
               />
             </div>
           )}
 
           {formData.type === 'bonus' && (
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Bonus Amount (₦)</label>
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                Reward Amount
+              </label>
               <input
                 type="number"
                 value={formData.reward_amount}
-                onChange={(e) => setFormData({ ...formData, reward_amount: e.target.value })}
-                placeholder="e.g., 500"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    reward_amount: e.target.value,
+                  }))
+                }
+                placeholder="e.g. 500"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
               />
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date</label>
-            <input
-              type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
-            <input
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 text-sm">{error}</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    start_date: e.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
+              />
             </div>
-          )}
 
-          <div className="flex gap-3 pt-4">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={formData.end_date}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    end_date: e.target.value,
+                  }))
+                }
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowCreateModal(false)}
+              className="rounded-2xl"
+            >
+              Cancel
+            </Button>
+
             <Button
               onClick={handleCreateCampaign}
-              isLoading={isSubmitting}
-              className="flex-1 bg-[#4a5ff7] hover:bg-[#3d4fe0] text-white"
+              disabled={isSubmitting}
+              className="rounded-2xl bg-[#620707] text-white hover:bg-[#4d0505]"
             >
-              Create Campaign
-            </Button>
-            <Button onClick={() => setShowCreateModal(false)} variant="secondary" className="flex-1">
-              Cancel
+              {isSubmitting ? 'Creating...' : 'Create Campaign'}
             </Button>
           </div>
         </div>

@@ -34,21 +34,21 @@ export default function AdminReferralDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Referral Dashboard</h1>
-        <p className="mt-2 text-gray-600">Monitor referral program metrics and payouts</p>
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">Referral Dashboard</h1>
+        <p className="mt-2 text-slate-600 dark:text-slate-400">Monitor referral program metrics and payouts</p>
       </div>
 
       {dashboard && (
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
+            <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#120d0d]">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Total Referrals</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mt-2">
+                  <p className="text-slate-600 text-sm dark:text-slate-400">Total Referrals</p>
+                  <h3 className="text-3xl font-bold text-slate-950 mt-2 dark:text-white">
                     {dashboard.total_referrals.toLocaleString()}
                   </h3>
                 </div>
@@ -59,8 +59,8 @@ export default function AdminReferralDashboardPage() {
             <Card>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Qualified for Payout</p>
-                  <h3 className="text-3xl font-bold text-green-600 mt-2">
+                  <p className="text-slate-600 text-sm dark:text-slate-400">Qualified for Payout</p>
+                  <h3 className="text-3xl font-bold text-green-600 mt-2 dark:text-green-400">
                     {dashboard.qualified_for_payout.toLocaleString()}
                   </h3>
                 </div>
@@ -71,8 +71,8 @@ export default function AdminReferralDashboardPage() {
             <Card>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm">Pending Payout</p>
-                  <h3 className="text-3xl font-bold text-yellow-600 mt-2">
+                  <p className="text-slate-600 text-sm dark:text-slate-400">Pending Payout</p>
+                  <h3 className="text-3xl font-bold text-yellow-600 mt-2 dark:text-yellow-400">
                     {dashboard.pending_payout.toLocaleString()}
                   </h3>
                 </div>

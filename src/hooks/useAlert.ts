@@ -34,5 +34,12 @@ export const useAlert = () => {
     [addToast]
   );
 
-  return { success, error, warning, info };
+  const showAlert = useCallback(
+    (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+      addToast({ type, message });
+    },
+    [addToast]
+  );
+
+  return { success, error, warning, info, showAlert };
 };

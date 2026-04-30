@@ -231,8 +231,95 @@ export default function AdminDashboardPage() {
 
         if (response.success && response.data) {
           console.log('[AdminDashboard] Setting dashboard data');
-          // response.data already contains the full dashboard object
-          setData(response.data as unknown as DashboardData);
+          
+          // Transform API response to match DashboardData structure
+          const apiData = response.data;
+          const transformedData: DashboardData = {
+            overview: {
+              users: {
+                total: apiData.users?.total || 0,
+                verified: apiData.users?.verified || 0,
+                verification_rate: apiData.users?.verified && apiData.users?.total 
+                  ? (apiData.users.verified / apiData.users.total) * 100 
+                  : 0,
+                active_last_30_days: 0,
+                new_today: 0,
+                new_this_month: apiData.users?.new || 0,
+              },
+              transactions: {
+                total_volume: 0,
+                volume_today: 0,
+                volume_this_month: 0,
+                month_growth_rate: '0%',
+                total_count: 0,
+                completed_count: 0,
+                pending_count: 0,
+                failed_count: 0,
+              },
+              vtu: {
+                completed_transactions: apiData.vtu?.total_transactions || 0,
+                volume: 0,
+                commission_earned: apiData.vtu?.total_revenue || 0,
+                failed_count: 0,
+                success_rate: apiData.vtu?.success_rate || 0,
+              },
+              wallet: {
+                total_transactions: 0,
+                volume: apiData.wallet?.total_balance || 0,
+                active_wallets: 0,
+              },
+              revenue: {
+                total_commission: apiData.vtu?.total_revenue || 0,
+                commission_today: 0,
+              },
+              referrals: {
+                total_referrals: 0,
+                active_referrers: 0,
+              },
+              timestamp: new Date().toISOString(),
+            },
+            services: {
+              vtu_by_network: [],
+              service_distribution: [],
+              timestamp: new Date().toISOString(),
+            },
+            performance: {
+              daily_trend_30_days: [],
+              hourly_trend_today: [],
+              success_rate_by_type: apiData.performance?.success_rate 
+                ? [{ type: 'overall', total: apiData.performance.total_transactions || 0, successful: apiData.performance.successful_transactions || 0, success_rate: apiData.performance.success_rate || 0 }]
+                : [],
+              timestamp: new Date().toISOString(),
+            },
+            top_performers: {
+              top_networks: [],
+              top_users_by_volume: [],
+              top_referrers: [],
+              timestamp: new Date().toISOString(),
+            },
+            health: {
+              transaction_health: {
+                failed_last_24h: 0,
+                pending_stuck: 0,
+                status: 'ok',
+              },
+              user_health: {
+                unverified_users: (apiData.users?.total || 0) - (apiData.users?.verified || 0),
+                email_unverified: 0,
+              },
+              notification_health: {
+                unread_count: 0,
+              },
+              offers: {
+                active_codes: 0,
+              },
+              alerts: [],
+              timestamp: new Date().toISOString(),
+            },
+            timestamp: new Date().toISOString(),
+          };
+          
+          setData(transformedData);
         } else {
           throw new Error(response.message || 'Invalid dashboard response');
         }
@@ -302,7 +389,7 @@ export default function AdminDashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707]">
         <div className="w-full max-w-md rounded-[24px] border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
             <AlertCircle className="h-8 w-8 text-red-500" />
@@ -326,39 +413,56 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // Safe access with defaults
+  const overview = data.overview || {};
+  const users = overview.users || { total: 0, verified: 0, verification_rate: 0 };
+  const transactionStats = overview.transactions || { volume_this_month: 0, month_growth_rate: '0%' };
+  const revenue = overview.revenue || { commission_today: 0, total_commission: 0 };
+  const vtuStats = overview.vtu || { success_rate: 0, completed_transactions: 0 };
+  
+  const services = data.services || { service_distribution: [], vtu_by_network: [] };
+  const performance = data.performance || { success_rate_by_type: [] };
+  const topPerformers = data.top_performers || { top_networks: [], top_users_by_volume: [], top_referrers: [] };
+  const health = data.health || { 
+    transaction_health: { failed_last_24h: 0, pending_stuck: 0, status: 'ok' },
+    user_health: { unverified_users: 0, email_unverified: 0 },
+    offers: { active_codes: 0 },
+    alerts: []
+  };
+
   const kpiCards = [
     {
       label: 'Total Users',
-      value: data.overview.users.total.toLocaleString(),
+      value: users.total.toLocaleString(),
       icon: Users,
       color: 'bg-blue-50 text-blue-600',
-      subtext: `${data.overview.users.verified} verified (${data.overview.users.verification_rate.toFixed(1)}%)`,
+      subtext: `${users.verified} verified (${users.verification_rate.toFixed(1)}%)`,
     },
     {
       label: 'Monthly Volume',
-      value: formatCompactCurrency(data.overview.transactions.volume_this_month),
+      value: formatCompactCurrency(transactionStats.volume_this_month),
       icon: CreditCard,
       color: 'bg-emerald-50 text-emerald-600',
-      subtext: `Growth: ${data.overview.transactions.month_growth_rate}`,
+      subtext: `Growth: ${transactionStats.month_growth_rate}`,
     },
     {
       label: 'Daily Revenue',
-      value: formatCurrency(data.overview.revenue.commission_today),
+      value: formatCurrency(revenue.commission_today),
       icon: Wallet,
       color: 'bg-purple-50 text-purple-600',
-      subtext: `Total: ${formatCompactCurrency(data.overview.revenue.total_commission)}`,
+      subtext: `Total: ${formatCompactCurrency(revenue.total_commission)}`,
     },
     {
       label: 'VTU Success Rate',
-      value: `${data.overview.vtu.success_rate.toFixed(1)}%`,
+      value: `${vtuStats.success_rate.toFixed(1)}%`,
       icon: CheckCircle2,
       color: 'bg-green-50 text-green-600',
-      subtext: `${data.overview.vtu.completed_transactions.toLocaleString()} completed`,
+      subtext: `${vtuStats.completed_transactions.toLocaleString()} completed`,
     },
   ];
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-gray-50">
+    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-[#fafafa] text-slate-950 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         * {
@@ -428,8 +532,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-4">
-              {data.services.service_distribution && data.services.service_distribution.length > 0 ? (
-                data.services.service_distribution.map((service) => (
+              {services.service_distribution && services.service_distribution.length > 0 ? (
+                services.service_distribution.map((service) => (
                   <div key={service.type}>
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-medium text-[#111827]">
@@ -470,8 +574,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-4">
-              {data.services.vtu_by_network && data.services.vtu_by_network.length > 0 ? (
-                data.services.vtu_by_network.map((network) => (
+              {services.vtu_by_network && services.vtu_by_network.length > 0 ? (
+                services.vtu_by_network.map((network) => (
                   <div
                     key={network.network}
                     className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
@@ -520,8 +624,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-4">
-              {data.performance?.success_rate_by_type && data.performance.success_rate_by_type.length > 0 ? (
-                data.performance.success_rate_by_type.map((type) => (
+              {performance?.success_rate_by_type && performance.success_rate_by_type.length > 0 ? (
+                performance.success_rate_by_type.map((type) => (
                   <div key={type.type}>
                     <div className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-medium text-[#111827]">
@@ -565,8 +669,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {data.top_performers?.top_networks && data.top_performers.top_networks.length > 0 ? (
-                data.top_performers.top_networks.slice(0, 4).map((network, idx) => (
+              {topPerformers?.top_networks && topPerformers.top_networks.length > 0 ? (
+                topPerformers.top_networks.slice(0, 4).map((network, idx) => (
                   <div key={network.network} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
@@ -607,8 +711,8 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="space-y-4">
-              {data.top_performers?.top_users_by_volume && data.top_performers.top_users_by_volume.length > 0 ? (
-                data.top_performers.top_users_by_volume.slice(0, 5).map((user, idx) => (
+              {topPerformers?.top_users_by_volume && topPerformers.top_users_by_volume.length > 0 ? (
+                topPerformers.top_users_by_volume.slice(0, 5).map((user, idx) => (
                   <div
                     key={user.user_id}
                     className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
@@ -660,7 +764,7 @@ export default function AdminDashboardPage() {
                     Failed Transactions (24h)
                   </span>
                   <span className="text-lg font-bold text-[#111827]">
-                    {data.health.transaction_health.failed_last_24h}
+                    {health.transaction_health.failed_last_24h}
                   </span>
                 </div>
               </div>
@@ -671,7 +775,7 @@ export default function AdminDashboardPage() {
                     Unverified Users
                   </span>
                   <span className="text-lg font-bold text-[#111827]">
-                    {data.health.user_health.unverified_users}
+                    {health.user_health.unverified_users}
                   </span>
                 </div>
               </div>
@@ -682,18 +786,18 @@ export default function AdminDashboardPage() {
                     Active Offer Codes
                   </span>
                   <span className="text-lg font-bold text-[#111827]">
-                    {data.health.offers.active_codes}
+                    {health.offers.active_codes}
                   </span>
                 </div>
               </div>
 
-              {data.health?.alerts && data.health.alerts.length > 0 && (
+              {health?.alerts && health.alerts.length > 0 && (
                 <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
                   <p className="text-xs font-semibold text-yellow-700">
                     Alerts
                   </p>
                   <div className="mt-2 space-y-2">
-                    {data.health.alerts.slice(0, 2).map((alert, idx) => (
+                    {health.alerts.slice(0, 2).map((alert, idx) => (
                       <p key={idx} className="text-xs text-yellow-600">
                         • {alert.message}
                       </p>
@@ -722,8 +826,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
-            {data.performance?.hourly_trend_today && data.performance.hourly_trend_today.filter((h) => h.transaction_count > 0).length > 0 ? (
-              data.performance.hourly_trend_today.filter((h) => h.transaction_count > 0).map((hour) => (
+            {performance?.hourly_trend_today && performance.hourly_trend_today.filter((h) => h.transaction_count > 0).length > 0 ? (
+              performance.hourly_trend_today.filter((h) => h.transaction_count > 0).map((hour) => (
                 <div
                   key={hour.hour}
                   className="rounded-2xl bg-[#f8fafc] p-4 text-center"

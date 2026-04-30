@@ -215,7 +215,7 @@ export default function AirtimePage() {
                       }}
                       className={`group rounded-2xl border p-4 text-center transition-all ${
                         active
-                          ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                          ? 'border-[#d71927]  shadow-sm shadow-red-200'
                           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
@@ -367,14 +367,7 @@ export default function AirtimePage() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
-                Delivery
-              </p>
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                Airtime is processed instantly after payment authorization.
-              </p>
-            </div>
+     
           </aside>
         </div>
       </Card>

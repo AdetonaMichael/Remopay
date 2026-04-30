@@ -61,14 +61,14 @@ export const metadata: Metadata = {
     siteName: "Remopay",
     images: [
       {
-        url: "/remopay-banner.png",
+        url: "https://remopay.vercel.app/remopay-banner.png",
         width: 1200,
         height: 630,
         alt: "Remopay - Your all-in-one payment solution",
         type: "image/png",
       },
       {
-        url: "/remopay-banner.png",
+        url: "https://remopay.vercel.app/remopay-banner.png",
         width: 800,
         height: 420,
         alt: "Remopay - Your all-in-one payment solution",
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Remopay - Your all-in-one payment solution",
     description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
-    images: ["/remopay-banner.png"],
+    images: ["https://remopay.vercel.app/remopay-banner.png"],
     creator: "@Remopay",
     site: "@Remopay",
   },
@@ -195,6 +195,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
         <meta name="theme-color" content="#620707" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Remopay" />

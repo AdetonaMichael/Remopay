@@ -441,11 +441,55 @@ export interface AdminUser extends User {
   status: 'active' | 'inactive' | 'suspended';
   is_verified: boolean;
   last_login?: string | null;
+  dob?: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+  };
+  bvn?: string;
+  nin?: string;
+  kyc_tier?: 'TIER_ONE' | 'TIER_TWO' | 'TIER_THREE';
+  kyc_status?: 'pending' | 'approved' | 'rejected';
+  maplerad_id?: string;
+  email_verified_at?: string | null;
+  phone_verified_at?: string | null;
+  statistics?: {
+    total_transactions: number;
+    successful_transactions: number;
+    total_spending: number;
+    wallet_balance: number;
+    unread_notifications: number;
+  };
 }
 
 export interface UpdateUserStatusRequest {
   status: 'active' | 'inactive' | 'suspended';
   reason?: string;
+}
+
+export interface SendEmailRequest {
+  title: string;
+  body: string;
+  send_email?: boolean;
+  email_template?: string;
+}
+
+export interface SendNotificationRequest {
+  title: string;
+  body: string;
+  type: string;
+  priority?: 'high' | 'normal' | 'low';
+  send_push?: boolean;
+  send_email?: boolean;
+  email_template?: string;
+  extra_data?: Record<string, any>;
+}
+
+export interface ChangeUserRoleRequest {
+  role: string;
 }
 
 export interface RefundTransactionRequest {

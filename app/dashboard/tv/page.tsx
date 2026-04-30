@@ -275,7 +275,7 @@ export default function TVPage() {
                         }}
                         className={`rounded-2xl border p-4 text-center transition-all ${
                           active
-                            ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                            ? 'border-[#d71927]  shadow-sm shadow-red-200'
                             : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
@@ -349,7 +349,7 @@ export default function TVPage() {
                           }}
                           className={`w-full rounded-2xl border p-4 text-left transition-all ${
                             active
-                              ? 'border-[#d71927] bg-red-50 shadow-sm shadow-red-200'
+                              ? 'border-[#d71927] shadow-sm shadow-red-200'
                               : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                           }`}
                         >
@@ -414,7 +414,7 @@ export default function TVPage() {
                   </p>
                 )}
 
-                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div className="mt-5 rounded-2xl border border-red-200  p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d71927]">
                     Verification
                   </p>

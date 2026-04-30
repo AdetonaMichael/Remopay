@@ -93,6 +93,38 @@ class AdminService {
     return apiClient.put(`/admin/users/${userId}/status`, data);
   }
 
+  async sendEmailToUser(
+    userId: string | number,
+    payload: {
+      title: string;
+      body: string;
+      send_email?: boolean;
+      email_template?: string;
+    }
+  ): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/email`, payload);
+  }
+
+  async sendNotificationWithData(
+    userId: string | number,
+    payload: {
+      title: string;
+      body: string;
+      type: string;
+      priority?: 'high' | 'normal' | 'low';
+      send_push?: boolean;
+      send_email?: boolean;
+      email_template?: string;
+      extra_data?: Record<string, any>;
+    }
+  ): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/notification`, payload);
+  }
+
+  async changeUserRole(userId: string | number, role: string): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/role`, { role });
+  }
+
   // TRANSACTIONS ENDPOINTS
   async getAllTransactions(page = 1, per_page = 50, filters?: any): Promise<any> {
     const params = new URLSearchParams();

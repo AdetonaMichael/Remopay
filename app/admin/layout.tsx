@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthStore } from '@/store/auth.store';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PageSkeleton } from '@/components/shared/SkeletonLoader';
 import { Topbar } from '@/components/shared/Topbar';
@@ -18,8 +18,12 @@ import {
   TrendingUp,
   Award,
   AlertCircle,
+  LogOut,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { clsx } from 'clsx';
 
 const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -41,8 +45,12 @@ const adminNavItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, activeRole } = useAuthStore();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const isActive = (href: string) => pathname === href;
 
   useEffect(() => {
     // Check if user is admin
@@ -78,58 +86,123 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <PageSkeleton />;
   }
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transform transition-transform duration-200 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0 md:z-0`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="px-6 py-6 border-b border-gray-800">
-            <h1 className="text-2xl font-bold">ADMiN</h1>
-            <p className="text-gray-400 text-sm">AFRIDataNG</p>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {adminNavItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition"
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+  const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <>
+      {!mobile && (
+        <div className="border-b border-white/10 px-5 py-6">
+          <Link href="/admin" className="flex items-center gap-3">
+            <Image src="/icon.png" alt="Remopay Admin" width={42} height={42} />
+            {(sidebarOpen || mobile) && (
+              <div>
+                <p className="text-xl font-black tracking-tight text-white">
+                  Remopay
+                </p>
+                <p className="text-xs font-semibold text-white/45">
+                  Admin
+                </p>
+              </div>
+            )}
+          </Link>
         </div>
+      )}
+
+      <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/40">
+        {adminNavItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => mobile && setMobileMenuOpen(false)}
+              className={clsx(
+                'group flex items-center gap-4 rounded-2xl px-4 py-3 text-sm font-bold transition-all',
+                active
+                  ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/25'
+                  : 'text-white/60 hover:bg-white/10 hover:text-white'
+              )}
+            >
+              <Icon
+                size={20}
+                className={clsx(
+                  active ? 'text-white' : 'text-white/50 group-hover:text-white'
+                )}
+              />
+              {(sidebarOpen || mobile) && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="border-t border-white/10 p-3">
+        {(sidebarOpen || mobile) && (
+          <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+            <p className="text-xs font-semibold text-white/45">Signed in as</p>
+            <p className="mt-1 truncate text-sm font-black text-white">
+              {user?.first_name || 'Admin User'}
+            </p>
+          </div>
+        )}
       </div>
+    </>
+  );
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-[#100303] text-white">
+      {/* Desktop Sidebar */}
+      <aside
+        className={clsx(
+          'hidden shrink-0 flex-col border-r border-white/10 bg-[#140404] transition-all duration-300 md:flex',
+          sidebarOpen ? 'w-72' : 'w-24'
+        )}
+      >
+        <SidebarContent />
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#fafafa]">
         {/* Top Bar */}
-        <Topbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} mobileMenuOpen={sidebarOpen} />
+        <Topbar onMenuToggle={() => setMobileMenuOpen((open) => !open)} mobileMenuOpen={mobileMenuOpen} />
 
-        {/* Backdrop for mobile */}
-        {sidebarOpen && (
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
-            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
+        {/* Mobile Sidebar */}
+        <aside
+          className={clsx(
+            'fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-white/10 bg-[#140404] text-white transition-transform duration-300 md:hidden',
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          <div className="border-b border-white/10 px-5 py-5 flex items-center justify-between">
+            <Link href="/admin" className="flex items-center gap-3">
+              <Image src="/icon.png" alt="Remopay Admin" width={42} height={42} />
+              <div>
+                <p className="text-xl font-black tracking-tight text-white">Remopay</p>
+                <p className="text-xs font-semibold text-white/45">Admin</p>
+              </div>
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white flex-shrink-0"
+              aria-label="Close menu"
+            >
+              <X size={22} />
+            </button>
+          </div>
+          <SidebarContent mobile />
+        </aside>
+
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
-          <main className=" mx-auto px-6 py-8">{children}</main>
-        </div>
+        <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-[#111] sm:px-6 lg:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

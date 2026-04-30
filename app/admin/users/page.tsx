@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Eye,
   Shield,
@@ -14,6 +13,11 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Mail,
+  Bell,
+  Trash2,
+  X,
+  CheckCircle,
 } from 'lucide-react';
 
 import { Button } from '@/components/shared/Button';
@@ -24,25 +28,15 @@ import { Modal } from '@/components/shared/Modal';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Spinner } from '@/components/shared/Spinner';
 import { useAuthStore } from '@/store/auth.store';
+import { useAlert } from '@/hooks/useAlert';
 import { adminService } from '@/services/admin.service';
 import { formatDate } from '@/utils/format.utils';
+import type { AdminUser } from '@/types/api.types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type UserStatus = 'active' | 'suspended' | 'inactive';
-
-interface AdminUser {
-  id: string | number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number?: string;
-  is_verified?: boolean;
-  balance_major?: number;
-  status?: UserStatus;
-  created_at?: string;
-  transactions?: number;
-}
+type BulkAction = 'verify' | 'unverify' | 'delete';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,21 +56,70 @@ function getStatusVariant(
 export default function AdminUsersPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { showAlert } = useAlert();
+
+  // ── State - Data ────────────────────────────────────────────────────────────
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+  const [userDetails, setUserDetails] = useState<AdminUser | null>(null);
+  const [userTransactions, setUserTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // ── State - Filters ─────────────────────────────────────────────────────────
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all');
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
+
+  // ── State - Selected User ───────────────────────────────────────────────────
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string | number>>(new Set());
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedBulkAction, setSelectedBulkAction] = useState<BulkAction>('verify');
+
+  // ── State - Modals ──────────────────────────────────────────────────────────
+
   const [showDetails, setShowDetails] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('');
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showTransactionsModal, setShowTransactionsModal] = useState(false);
+  const [showBulkActionModal, setShowBulkActionModal] = useState(false);
+
+  // ── State - Form Data ───────────────────────────────────────────────────────
+
+  const [editFormData, setEditFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+  });
+
+  const [notificationData, setNotificationData] = useState({
+    title: '',
+    body: '',
+    type: 'system',
+    priority: 'normal',
+    send_push: true,
+    send_email: false,
+  });
+
+  const [emailData, setEmailData] = useState({
+    title: '',
+    body: '',
+    template: 'admin-custom',
+  });
+
+  // ── State - Loading ─────────────────────────────────────────────────────────
+
   const [loadingRoles, setLoadingRoles] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
 
@@ -94,11 +137,19 @@ export default function AdminUsersPage() {
   const fetchUsers = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await adminService.getUsers(page, 50, {
+      const filters: any = {
         search: searchTerm,
-        status: statusFilter === 'all' ? '' : statusFilter,
-        verified: '',
-      });
+      };
+
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter;
+      }
+
+      if (verificationFilter !== 'all') {
+        filters.verified = verificationFilter === 'verified';
+      }
+
+      const response = await adminService.getUsers(page, 50, filters);
 
       if (response?.data) {
         const userData = Array.isArray(response.data)
@@ -111,6 +162,7 @@ export default function AdminUsersPage() {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      showAlert('Failed to fetch users', 'error');
     } finally {
       setLoading(false);
     }
@@ -120,9 +172,7 @@ export default function AdminUsersPage() {
     try {
       setLoadingRoles(true);
       const response = await adminService.getRoles();
-      console.log('[AdminUsers] Roles response:', { response });
-      
-      // API returns roles array directly or in response.data
+
       let rolesData = [];
       if (Array.isArray(response)) {
         rolesData = response;
@@ -131,49 +181,256 @@ export default function AdminUsersPage() {
       } else if (response?.data && Array.isArray(response.data)) {
         rolesData = response.data;
       }
-      
-      console.log('[AdminUsers] Processed roles:', { rolesData });
+
       setRoles(rolesData);
     } catch (error) {
       console.error('Error fetching roles:', error);
+      showAlert('Failed to fetch roles', 'error');
       setRoles([]);
     } finally {
       setLoadingRoles(false);
     }
   };
 
+  const fetchUserDetails = async (userId: string | number) => {
+    try {
+      const response = await adminService.getUser(String(userId));
+      if (response?.data) {
+        const details = response.data.user || response.data.data || response.data;
+        setUserDetails(details);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      showAlert('Failed to fetch user details', 'error');
+    }
+  };
+
+  const fetchUserTransactions = async (userId: string | number) => {
+    try {
+      setLoadingTransactions(true);
+      const response = await adminService.getUserTransactions(String(userId), 1, 20);
+      if (response?.data) {
+        const txns = Array.isArray(response.data) ? response.data : response.data.data ?? [];
+        setUserTransactions(txns);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      showAlert('Failed to fetch transactions', 'error');
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers(currentPage);
-    if (roles.length === 0) fetchRoles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchTerm, statusFilter]);
+  }, [currentPage, searchTerm, statusFilter, verificationFilter]);
 
-  // ── Actions ─────────────────────────────────────────────────────────────────
+  // ── Action Handlers ────────────────────────────────────────────────────────
+
+  const handleOpenDetails = async (user: AdminUser) => {
+    setSelectedUser(user);
+    await fetchUserDetails(user.id);
+    setShowDetails(true);
+  };
 
   const handleOpenRoleModal = async (user: AdminUser) => {
     setSelectedUser(user);
     setSelectedRole('');
-    
-    // Fetch roles if not already loaded
+
     if (roles.length === 0) {
       await fetchRoles();
     }
-    
+
     setShowRoleModal(true);
   };
 
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
+
     try {
-      await adminService.assignRoleToUser(
-        Number(selectedUser.id),
-        Number(selectedRole)
-      );
+      setLoadingAction(true);
+      await adminService.changeUserRole(selectedUser.id, selectedRole);
+      showAlert('Role changed successfully', 'success');
       setShowRoleModal(false);
       setSelectedRole('');
       fetchUsers(currentPage);
     } catch (error) {
       console.error('Error assigning role:', error);
+      showAlert('Failed to change user role', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleOpenNotificationModal = (user: AdminUser) => {
+    setSelectedUser(user);
+    setNotificationData({
+      title: '',
+      body: '',
+      type: 'system',
+      priority: 'normal',
+      send_push: true,
+      send_email: false,
+    });
+    setShowNotificationModal(true);
+  };
+
+  const handleSendNotification = async () => {
+    if (!selectedUser || !notificationData.title || !notificationData.body) {
+      showAlert('Please fill all required fields', 'warning');
+      return;
+    }
+
+    try {
+      setLoadingAction(true);
+      await adminService.sendNotificationWithData(selectedUser.id, {
+        title: notificationData.title,
+        body: notificationData.body,
+        type: notificationData.type,
+        priority: notificationData.priority as 'high' | 'normal' | 'low',
+        send_push: notificationData.send_push,
+        send_email: notificationData.send_email,
+      });
+      showAlert('Notification sent successfully', 'success');
+      setShowNotificationModal(false);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      showAlert('Failed to send notification', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleOpenEmailModal = (user: AdminUser) => {
+    setSelectedUser(user);
+    setEmailData({
+      title: '',
+      body: '',
+      template: 'admin-custom',
+    });
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedUser || !emailData.title || !emailData.body) {
+      showAlert('Please fill all required fields', 'warning');
+      return;
+    }
+
+    try {
+      setLoadingAction(true);
+      await adminService.sendEmailToUser(selectedUser.id, {
+        title: emailData.title,
+        body: emailData.body,
+        send_email: true,
+        email_template: emailData.template,
+      });
+      showAlert('Email sent successfully', 'success');
+      setShowEmailModal(false);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      showAlert('Failed to send email', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleOpenEditModal = (user: AdminUser) => {
+    setSelectedUser(user);
+    setEditFormData({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      phone_number: user.phone_number || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setLoadingAction(true);
+      await adminService.updateUser(String(selectedUser.id), editFormData);
+      showAlert('User updated successfully', 'success');
+      setShowEditModal(false);
+      fetchUsers(currentPage);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showAlert('Failed to update user', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleOpenTransactionsModal = async (user: AdminUser) => {
+    setSelectedUser(user);
+    await fetchUserTransactions(user.id);
+    setShowTransactionsModal(true);
+  };
+
+  const toggleUserSelection = (userId: string | number) => {
+    const newSet = new Set(selectedUsers);
+    if (newSet.has(userId)) {
+      newSet.delete(userId);
+    } else {
+      newSet.add(userId);
+    }
+    setSelectedUsers(newSet);
+  };
+
+  const toggleAllUsers = () => {
+    if (selectedUsers.size === filteredUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(filteredUsers.map((u) => u.id)));
+    }
+  };
+
+  const handleExecuteBulkAction = async () => {
+    if (selectedUsers.size === 0) {
+      showAlert('Please select at least one user', 'warning');
+      return;
+    }
+
+    try {
+      setLoadingAction(true);
+      await adminService.bulkUserAction(
+        Array.from(selectedUsers) as number[],
+        selectedBulkAction
+      );
+      showAlert(`Bulk action '${selectedBulkAction}' completed successfully`, 'success');
+      setShowBulkActionModal(false);
+      setSelectedUsers(new Set());
+      fetchUsers(currentPage);
+    } catch (error) {
+      console.error('Error executing bulk action:', error);
+      showAlert(`Failed to execute bulk action`, 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${user.first_name} ${user.last_name}?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoadingAction(true);
+      await adminService.deleteUser(String(user.id));
+      showAlert('User deleted successfully', 'success');
+      fetchUsers(currentPage);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showAlert('Failed to delete user', 'error');
+    } finally {
+      setLoadingAction(false);
     }
   };
 
@@ -187,16 +444,13 @@ export default function AdminUsersPage() {
         fullName.includes(term) ||
         u.email.toLowerCase().includes(term) ||
         (u.phone_number ?? '').includes(searchTerm);
-      const matchesStatus =
-        statusFilter === 'all' || u.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [users, searchTerm, statusFilter]);
 
   const summary = useMemo(() => {
-    const active = users.filter(
-      (u) => u.status === 'active' || !u.status
-    ).length;
+    const active = users.filter((u) => u.status === 'active' || !u.status).length;
     const suspended = users.filter((u) => u.status === 'suspended').length;
     const inactive = users.filter((u) => u.status === 'inactive').length;
     return { total: users.length, active, suspended, inactive };
@@ -215,7 +469,7 @@ export default function AdminUsersPage() {
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
+      className="min-h-screen space-y-8 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white"
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -223,8 +477,6 @@ export default function AdminUsersPage() {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
       `}</style>
-
-
 
       {/* ── Summary cards ────────────────────────────────────────────────── */}
       <section className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
@@ -281,12 +533,11 @@ export default function AdminUsersPage() {
             Filters
           </h2>
           <p className="mt-1 text-sm text-[#6b7280]">
-            Search by name, email, or phone and narrow results by account
-            status.
+            Search by name, email, or phone and narrow results by status and verification.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px_160px]">
           {/* Search */}
           <div className="relative">
             <Search
@@ -308,7 +559,7 @@ export default function AdminUsersPage() {
           {/* Status */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-[#374151]">
-              Status Filter
+              Status
             </label>
             <div className="relative">
               <Filter
@@ -331,11 +582,36 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          {/* Count */}
+          {/* Verification */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[#374151]">
+              Verified
+            </label>
+            <select
+              value={verificationFilter}
+              onChange={(e) => {
+                setVerificationFilter(e.target.value as 'all' | 'verified' | 'unverified');
+                setCurrentPage(1);
+              }}
+              className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-2 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+            >
+              <option value="all">All</option>
+              <option value="verified">Verified</option>
+              <option value="unverified">Unverified</option>
+            </select>
+          </div>
+
+          {/* Bulk Actions Button */}
           <div className="flex items-end">
-            <div className="flex h-11 w-full items-center rounded-xl border border-[#e5e7eb] bg-[#fafafa] px-4 text-sm font-medium text-[#6b7280]">
-              Showing {filteredUsers.length} of {users.length} users
-            </div>
+            <Button
+              variant={selectedUsers.size > 0 ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setShowBulkActionModal(true)}
+              disabled={selectedUsers.size === 0}
+              className="w-full"
+            >
+              Actions ({selectedUsers.size})
+            </Button>
           </div>
         </div>
       </Card>
@@ -347,7 +623,7 @@ export default function AdminUsersPage() {
             User Records
           </h2>
           <p className="mt-1 text-sm text-[#6b7280]">
-            Review account information, status, and user activity.
+            Manage user accounts, send communications, and update user information.
           </p>
         </div>
 
@@ -370,6 +646,14 @@ export default function AdminUsersPage() {
               <table className="w-full min-w-full">
                 <thead>
                   <tr className="border-b border-[#f1f5f9] bg-[#fcfcfd]">
+                    <th className="px-6 py-4 text-left">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                        onChange={toggleAllUsers}
+                        className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
+                      />
+                    </th>
                     {[
                       'User',
                       'Email',
@@ -397,6 +681,15 @@ export default function AdminUsersPage() {
                       key={u.id}
                       className="border-b border-[#f8fafc] transition-colors hover:bg-[#fafafa]"
                     >
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.has(u.id)}
+                          onChange={() => toggleUserSelection(u.id)}
+                          className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
+                        />
+                      </td>
+
                       {/* User */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -408,9 +701,7 @@ export default function AdminUsersPage() {
                             <p className="text-sm font-semibold text-[#111827]">
                               {u.first_name} {u.last_name}
                             </p>
-                            <p className="text-xs text-[#9ca3af]">
-                              ID: {u.id}
-                            </p>
+                            <p className="text-xs text-[#9ca3af]">ID: {u.id}</p>
                           </div>
                         </div>
                       </td>
@@ -451,21 +742,32 @@ export default function AdminUsersPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => {
-                              setSelectedUser(u);
-                              setShowDetails(true);
-                            }}
+                            onClick={() => handleOpenDetails(u)}
+                            title="View Details"
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                           >
                             <Eye size={15} />
-                            View
+                          </button>
+                          <button
+                            onClick={() => handleOpenNotificationModal(u)}
+                            title="Send Notification"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                          >
+                            <Bell size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEmailModal(u)}
+                            title="Send Email"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                          >
+                            <Mail size={15} />
                           </button>
                           <button
                             onClick={() => handleOpenRoleModal(u)}
+                            title="Change Role"
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
                           >
                             <Shield size={15} />
-                            Role
                           </button>
                         </div>
                       </td>
@@ -483,11 +785,13 @@ export default function AdminUsersPage() {
                   className="rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
-                        {u.first_name.charAt(0)}
-                        {u.last_name.charAt(0)}
-                      </div>
+                    <div className="flex items-center gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.has(u.id)}
+                        onChange={() => toggleUserSelection(u.id)}
+                        className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
+                      />
                       <div>
                         <p className="text-base font-bold text-[#111827]">
                           {u.first_name} {u.last_name}
@@ -522,31 +826,30 @@ export default function AdminUsersPage() {
                         </Badge>
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-[#9ca3af]">
-                        Joined
-                      </p>
-                      <p className="mt-1 text-sm text-[#111827]">
-                        {formatDate(u.created_at ?? '')}
-                      </p>
-                    </div>
-                    <div className="flex items-end justify-end gap-2">
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <p className="text-xs text-[#6b7280]">
+                      Joined {formatDate(u.created_at ?? '')}
+                    </p>
+                    <div className="flex gap-1">
                       <button
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setShowDetails(true);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                        onClick={() => handleOpenDetails(u)}
+                        className="rounded-lg p-2 text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                       >
-                        <Eye size={15} />
-                        View
+                        <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => handleOpenRoleModal(u)}
-                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                        onClick={() => handleOpenNotificationModal(u)}
+                        className="rounded-lg p-2 text-[#6b7280] transition hover:bg-[#f1f5f9]"
                       >
-                        <Shield size={15} />
-                        Role
+                        <Bell size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEmailModal(u)}
+                        className="rounded-lg p-2 text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                      >
+                        <Mail size={16} />
                       </button>
                     </div>
                   </div>
@@ -597,71 +900,483 @@ export default function AdminUsersPage() {
       </div>
 
       {/* ── User Details Modal ───────────────────────────────────────────── */}
-      {showDetails && selectedUser && (
+      {showDetails && userDetails && (
         <Modal
           isOpen={showDetails}
           onClose={() => setShowDetails(false)}
           title="User Details"
+          size="lg"
         >
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                {
-                  label: 'Name',
-                  value: `${selectedUser.first_name} ${selectedUser.last_name}`,
-                },
-                { label: 'Email', value: selectedUser.email },
-                {
-                  label: 'Phone',
-                  value: selectedUser.phone_number ?? 'N/A',
-                },
-                {
-                  label: 'Balance',
-                  value: `₦${(selectedUser.balance_major ?? 0).toLocaleString()}`,
-                },
-                {
-                  label: 'Joined',
-                  value: formatDate(selectedUser.created_at ?? ''),
-                },
-              ].map(({ label, value }) => (
-                <div key={label}>
-                  <p className="text-sm font-medium text-gray-600">{label}</p>
-                  <p className="mt-1 text-base font-semibold text-gray-900">
-                    {value}
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div>
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                Basic Information
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    First Name
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.first_name}
                   </p>
                 </div>
-              ))}
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Last Name
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.last_name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Email
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.email}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Phone
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.phone_number ?? 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
+            {/* Status & Verification */}
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
               <div>
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className="mt-1">
-                  <Badge variant={getStatusVariant(selectedUser.status)}>
-                    {selectedUser.status ?? 'active'}
+                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                  Status
+                </p>
+                <p className="mt-2">
+                  <Badge variant={getStatusVariant(userDetails.status)}>
+                    {userDetails.status ?? 'active'}
                   </Badge>
                 </p>
               </div>
-
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                   Verification
                 </p>
-                <p className="mt-1">
+                <p className="mt-2">
                   <Badge
-                    variant={selectedUser.is_verified ? 'success' : 'warning'}
+                    variant={userDetails.is_verified ? 'success' : 'warning'}
                   >
-                    {selectedUser.is_verified ? 'Verified' : 'Unverified'}
+                    {userDetails.is_verified ? 'Verified' : 'Unverified'}
                   </Badge>
                 </p>
               </div>
             </div>
 
+            {/* Statistics */}
+            {userDetails.statistics && (
+              <div>
+                <h3 className="mb-4 font-semibold text-[#111827]">
+                  Statistics
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-lg border border-[#e5e7eb] p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      Total Transactions
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-[#111827]">
+                      {userDetails.statistics.total_transactions}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[#e5e7eb] p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      Successful
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-[#111827]">
+                      {userDetails.statistics.successful_transactions}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[#e5e7eb] p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      Total Spending
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-[#111827]">
+                      ₦{userDetails.statistics.total_spending.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-[#e5e7eb] p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      Wallet Balance
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-[#111827]">
+                      ₦{userDetails.statistics.wallet_balance.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
             <div className="flex gap-3 pt-4">
               <Button
                 variant="primary"
                 size="md"
+                onClick={() => {
+                  setShowDetails(false);
+                  handleOpenEditModal(userDetails);
+                }}
+                className="flex-1"
+              >
+                Edit User
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
                 onClick={() => setShowDetails(false)}
+                className="flex-1"
               >
                 Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Send Notification Modal ──────────────────────────────────────── */}
+      {showNotificationModal && selectedUser && (
+        <Modal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          title="Send Notification"
+          size="md"
+        >
+          <div className="space-y-5">
+            {/* User Info */}
+            <div className="rounded-lg bg-[#f8fafc] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
+                To
+              </p>
+              <p className="mt-2 text-sm font-medium text-[#111827]">
+                {selectedUser.first_name} {selectedUser.last_name}
+              </p>
+              <p className="text-xs text-[#6b7280]">{selectedUser.email}</p>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Title
+              </label>
+              <Input
+                placeholder="Notification title..."
+                value={notificationData.title}
+                onChange={(e) =>
+                  setNotificationData({ ...notificationData, title: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Body */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Message
+              </label>
+              <textarea
+                placeholder="Notification message..."
+                value={notificationData.body}
+                onChange={(e) =>
+                  setNotificationData({ ...notificationData, body: e.target.value })
+                }
+                rows={4}
+                className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+              />
+            </div>
+
+            {/* Type */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Type
+              </label>
+              <select
+                value={notificationData.type}
+                onChange={(e) =>
+                  setNotificationData({ ...notificationData, type: e.target.value })
+                }
+                className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+              >
+                <option value="system">System</option>
+                <option value="promotional">Promotional</option>
+                <option value="security">Security</option>
+                <option value="update">Update</option>
+              </select>
+            </div>
+
+            {/* Options */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={notificationData.send_push}
+                  onChange={(e) =>
+                    setNotificationData({
+                      ...notificationData,
+                      send_push: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-[#d1d5db]"
+                />
+                <span className="text-sm font-medium text-[#111827]">
+                  Send as push notification
+                </span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={notificationData.send_email}
+                  onChange={(e) =>
+                    setNotificationData({
+                      ...notificationData,
+                      send_email: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-[#d1d5db]"
+                />
+                <span className="text-sm font-medium text-[#111827]">
+                  Also send as email
+                </span>
+              </label>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSendNotification}
+                disabled={loadingAction}
+                className="flex-1"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Notification'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowNotificationModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Send Email Modal ──────────────────────────────────────────────── */}
+      {showEmailModal && selectedUser && (
+        <Modal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          title="Send Email"
+          size="md"
+        >
+          <div className="space-y-5">
+            {/* User Info */}
+            <div className="rounded-lg bg-[#f8fafc] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
+                To
+              </p>
+              <p className="mt-2 text-sm font-medium text-[#111827]">
+                {selectedUser.email}
+              </p>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Subject
+              </label>
+              <Input
+                placeholder="Email subject..."
+                value={emailData.title}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, title: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Body */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Message
+              </label>
+              <textarea
+                placeholder="Email message..."
+                value={emailData.body}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, body: e.target.value })
+                }
+                rows={4}
+                className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+              />
+            </div>
+
+            {/* Template */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Template
+              </label>
+              <select
+                value={emailData.template}
+                onChange={(e) =>
+                  setEmailData({ ...emailData, template: e.target.value })
+                }
+                className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+              >
+                <option value="admin-custom">Custom Admin</option>
+                <option value="security">Security Alert</option>
+                <option value="promotional">Promotional</option>
+              </select>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSendEmail}
+                disabled={loadingAction}
+                className="flex-1"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Email'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowEmailModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Edit User Modal ──────────────────────────────────────────────── */}
+      {showEditModal && selectedUser && (
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Edit User"
+          size="md"
+        >
+          <div className="space-y-5">
+            {/* First Name */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                First Name
+              </label>
+              <Input
+                value={editFormData.first_name}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    first_name: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Last Name
+              </label>
+              <Input
+                value={editFormData.last_name}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    last_name: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Email
+              </label>
+              <Input
+                type="email"
+                value={editFormData.email}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    email: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Phone Number
+              </label>
+              <Input
+                value={editFormData.phone_number}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    phone_number: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleUpdateUser}
+                disabled={loadingAction}
+                className="flex-1"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowEditModal(false)}
+                className="flex-1"
+              >
+                Cancel
               </Button>
             </div>
           </div>
@@ -679,15 +1394,13 @@ export default function AdminUsersPage() {
           <div className="space-y-5">
             {/* User Info */}
             <div className="rounded-lg bg-[#f8fafc] p-4">
-              <p className="text-xs font-semibold text-[#6b7280] uppercase tracking-wide">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
                 User
               </p>
               <p className="mt-2 text-sm font-medium text-[#111827]">
-                {selectedUser?.first_name} {selectedUser?.last_name}
+                {selectedUser.first_name} {selectedUser.last_name}
               </p>
-              <p className="text-xs text-[#6b7280]">
-                {selectedUser?.email}
-              </p>
+              <p className="text-xs text-[#6b7280]">{selectedUser.email}</p>
             </div>
 
             {/* Role Selection */}
@@ -726,15 +1439,196 @@ export default function AdminUsersPage() {
                 variant="primary"
                 size="md"
                 onClick={handleAssignRole}
-                disabled={!selectedRole || loadingRoles}
+                disabled={!selectedRole || loadingAction}
                 className="flex-1"
               >
-                Assign Role
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Assigning...
+                  </>
+                ) : (
+                  'Assign Role'
+                )}
               </Button>
               <Button
                 variant="outline"
                 size="md"
                 onClick={() => setShowRoleModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Transactions Modal ───────────────────────────────────────────── */}
+      {showTransactionsModal && selectedUser && (
+        <Modal
+          isOpen={showTransactionsModal}
+          onClose={() => setShowTransactionsModal(false)}
+          title={`Transactions - ${selectedUser.first_name} ${selectedUser.last_name}`}
+          size="lg"
+        >
+          <div className="space-y-4">
+            {loadingTransactions ? (
+              <div className="flex items-center justify-center py-16">
+                <Spinner />
+                <span className="ml-2 text-sm text-[#6b7280]">Loading transactions…</span>
+              </div>
+            ) : userTransactions.length === 0 ? (
+              <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] py-8 text-center">
+                <p className="text-sm text-[#6b7280]">No transactions found</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {userTransactions.map((txn) => (
+                  <div
+                    key={txn.id}
+                    className="rounded-lg border border-[#e5e7eb] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="font-semibold text-[#111827]">
+                          {txn.transaction_type || txn.type}
+                        </p>
+                        <p className="text-sm text-[#6b7280]">
+                          Ref: {txn.reference}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-[#111827]">
+                          ₦{txn.amount.toLocaleString()}
+                        </p>
+                        <Badge
+                          variant={
+                            txn.status === 'success'
+                              ? 'success'
+                              : txn.status === 'failed'
+                              ? 'danger'
+                              : 'warning'
+                          }
+                          size="sm"
+                        >
+                          {txn.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-[#6b7280]">
+                      {formatDate(txn.created_at || txn.transaction_date)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setShowTransactionsModal(false)}
+              className="w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Bulk Action Modal ────────────────────────────────────────────── */}
+      {showBulkActionModal && (
+        <Modal
+          isOpen={showBulkActionModal}
+          onClose={() => setShowBulkActionModal(false)}
+          title="Bulk User Action"
+          size="md"
+        >
+          <div className="space-y-5">
+            <div className="rounded-lg bg-[#f8fafc] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
+                Selected Users
+              </p>
+              <p className="mt-2 text-lg font-bold text-[#111827]">
+                {selectedUsers.size} user{selectedUsers.size !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Action Selection */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Select Action
+              </label>
+              <div className="space-y-3">
+                {[
+                  {
+                    value: 'verify' as BulkAction,
+                    label: 'Verify Users',
+                    icon: CheckCircle,
+                  },
+                  {
+                    value: 'unverify' as BulkAction,
+                    label: 'Unverify Users',
+                    icon: X,
+                  },
+                  {
+                    value: 'delete' as BulkAction,
+                    label: 'Delete Users',
+                    icon: Trash2,
+                  },
+                ].map(({ value, label, icon: Icon }) => (
+                  <label
+                    key={value}
+                    className="flex items-center gap-3 rounded-lg border border-[#e5e7eb] p-3 cursor-pointer transition hover:bg-[#f8fafc]"
+                  >
+                    <input
+                      type="radio"
+                      name="bulk-action"
+                      value={value}
+                      checked={selectedBulkAction === value}
+                      onChange={(e) =>
+                        setSelectedBulkAction(e.target.value as BulkAction)
+                      }
+                      className="h-4 w-4"
+                    />
+                    <Icon size={18} className="text-[#6b7280]" />
+                    <span className="text-sm font-medium text-[#111827]">
+                      {label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {selectedBulkAction === 'delete' && (
+              <div className="rounded-lg border border-[#fee2e2] bg-[#fef2f2] p-4">
+                <p className="text-sm font-medium text-[#991b1b]">
+                  ⚠️ Warning: This action cannot be undone. All selected users will be permanently deleted.
+                </p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant={selectedBulkAction === 'delete' ? 'danger' : 'primary'}
+                size="md"
+                onClick={handleExecuteBulkAction}
+                disabled={loadingAction}
+                className="flex-1"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Processing...
+                  </>
+                ) : (
+                  'Execute Action'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowBulkActionModal(false)}
                 className="flex-1"
               >
                 Cancel
