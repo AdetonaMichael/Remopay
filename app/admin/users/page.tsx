@@ -195,9 +195,8 @@ export default function AdminUsersPage() {
   const fetchUserDetails = async (userId: string | number) => {
     try {
       const response = await adminService.getUser(String(userId));
-      if (response?.data) {
-        const details = response.data.user || response.data.data || response.data;
-        setUserDetails(details);
+      if (response?.data?.user) {
+        setUserDetails(response.data.user);
       }
     } catch (error) {
       console.error('Error fetching user details:', error);

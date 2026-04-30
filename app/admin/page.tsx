@@ -233,7 +233,7 @@ export default function AdminDashboardPage() {
           console.log('[AdminDashboard] Setting dashboard data');
           
           // Transform API response to match DashboardData structure
-          const apiData = response.data;
+          const apiData = response.data as any;
           const transformedData: DashboardData = {
             overview: {
               users: {

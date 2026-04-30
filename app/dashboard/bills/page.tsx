@@ -481,7 +481,6 @@ export default function BillsPage() {
           </aside>
         </div>
       </Card>
-
       <Toast />
     </div>
   );

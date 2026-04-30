@@ -296,7 +296,7 @@ export default function AdminCampaignsPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${statusClass(
-                          campaign.status,
+                          campaign.status || 'paused',
                         )}`}
                       >
                         {campaign.status}

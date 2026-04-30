@@ -597,7 +597,7 @@ function CreateReportModal({
       const payload = {
         name: formData.name,
         type: formData.type,
-        frequency: formData.frequency,
+        frequency: formData.frequency as 'daily' | 'weekly' | 'monthly' | 'manual',
         scheduled_time: formData.frequency !== 'manual' ? formData.scheduled_time : undefined,
         is_active: formData.is_active,
         config: formData.config ? JSON.parse(formData.config) : undefined,

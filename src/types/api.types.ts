@@ -454,8 +454,6 @@ export interface AdminUser extends User {
   kyc_tier?: 'TIER_ONE' | 'TIER_TWO' | 'TIER_THREE';
   kyc_status?: 'pending' | 'approved' | 'rejected';
   maplerad_id?: string;
-  email_verified_at?: string | null;
-  phone_verified_at?: string | null;
   statistics?: {
     total_transactions: number;
     successful_transactions: number;
