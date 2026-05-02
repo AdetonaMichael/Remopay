@@ -209,7 +209,7 @@ export default function DashboardPage() {
             <p className="caption font-semibold text-[#ff737b]">Welcome back</p>
 
             <h1 className="mt-2 h2">
-              Hi {user?.first_name || 'there'}, manage your Remopay wallet.
+              Hi {user?.first_name || 'there'}, manage your Remopay.
             </h1>
 
             <p className="mt-3 max-w-2xl body-sm text-white/65">

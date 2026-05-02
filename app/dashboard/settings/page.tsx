@@ -9,7 +9,7 @@ import {
   Camera,
   ChevronRight,
   KeyRound,
-  MapPin,
+  Zap,
   Settings2,
   ShieldCheck,
   User2,
@@ -21,21 +21,37 @@ import { Input } from '@/components/shared/Input';
 import { Select } from '@/components/shared/Select';
 import { useAuthStore } from '@/store/auth.store';
 import { userService } from '@/services/auth.service';
+import { tierUpgradeService } from '@/services/tier-upgrade.service';
+import { TierUpgradeFormV2 } from '@/components/dashboard/TierUpgradeForm.v2';
 import {
   updateProfileSchema,
   type UpdateProfileSchema,
 } from '@/utils/validation.utils';
 import { useAlert } from '@/hooks/useAlert';
+import { useApi } from '@/hooks/useApi';
+import { TierStatus, TierLevel } from '@/types/tier-upgrade.types';
 
 function classNames(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
 }
+
+const TIER_INFO: Record<TierLevel, { name: string; icon: React.ComponentType<any>; color: string }> = {
+  0: { name: 'None', icon: User2, color: 'text-gray-500' },
+  1: { name: 'Bronze', icon: Zap, color: 'text-amber-600' },
+  2: { name: 'Silver', icon: Zap, color: 'text-slate-400' },
+  3: { name: 'Gold', icon: Zap, color: 'text-yellow-500' },
+};
 
 const tabs = [
   {
     label: 'Profile',
     icon: User2,
     subtitle: 'Personal details and account info',
+  },
+  {
+    label: 'Account Tier',
+    icon: Zap,
+    subtitle: 'Upgrade your account and unlock benefits',
   },
   {
     label: 'Security',
@@ -52,7 +68,10 @@ const tabs = [
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore();
   const { success, error: alertError } = useAlert();
+  const { execute } = useApi();
   const [loading, setLoading] = useState(false);
+  const [tierStatus, setTierStatus] = useState<TierStatus | null>(null);
+  const [tierLoading, setTierLoading] = useState(true);
 
   const fullName = useMemo(() => {
     if (!user) return 'Remopay User';
@@ -104,6 +123,26 @@ export default function SettingsPage() {
       state: '',
     });
   }, [user, reset]);
+
+  useEffect(() => {
+    const loadTierStatus = async () => {
+      try {
+        setTierLoading(true);
+        const response = await execute(tierUpgradeService.getTierStatus());
+        if (response?.data) {
+          setTierStatus(response.data);
+        }
+      } catch (err: any) {
+        console.error('Failed to load tier status:', err);
+      } finally {
+        setTierLoading(false);
+      }
+    };
+
+    if (user) {
+      loadTierStatus();
+    }
+  }, [user, execute]);
 
   const onSubmit = async (data: UpdateProfileSchema) => {
     try {
@@ -185,53 +224,53 @@ export default function SettingsPage() {
 
             <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-sm">
               <h3 className="text-lg font-black tracking-tight text-[#111]">
-                Account Highlights
+                Account Tier
               </h3>
 
-              <div className="mt-5 space-y-4">
-                {[
-                  {
-                    title: 'Security posture',
-                    description:
-                      'Keep your account protected with strong credentials and account safeguards.',
-                    icon: ShieldCheck,
-                  },
-                  {
-                    title: 'Location details',
-                    description:
-                      'Complete your profile information for a better Remopay experience.',
-                    icon: MapPin,
-                  },
-                ].map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <div
-                      key={item.title}
-                      className="flex items-start gap-3 rounded-2xl bg-[#f8f8f8] p-4"
-                    >
-                      <div className="rounded-2xl bg-[#fff1f2] p-3">
-                        <Icon className="h-5 w-5 text-[#d71927]" />
-                      </div>
-
+              {tierLoading ? (
+                <div className="mt-5 h-32 rounded-2xl bg-[#f8f8f8] animate-pulse" />
+              ) : tierStatus ? (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-2xl bg-[#f8f8f8] p-4">
+                    <p className="text-sm font-bold text-black/45 mb-2">Current Tier</p>
+                    <div className="flex items-center gap-3">
+                      {TIER_INFO[tierStatus.current_tier.level].icon && (
+                        <div className={`text-2xl ${TIER_INFO[tierStatus.current_tier.level].color}`}>
+                          {tierStatus.current_tier.level > 0 ? '⚡' : '•'}
+                        </div>
+                      )}
                       <div>
-                        <p className="text-sm font-black text-[#111]">
-                          {item.title}
+                        <p className="text-lg font-black text-[#111]">
+                          {TIER_INFO[tierStatus.current_tier.level].name}
                         </p>
-                        <p className="mt-1 text-sm leading-6 text-black/50">
-                          {item.description}
+                        <p className="text-xs text-black/50 mt-0.5">
+                          {tierStatus.current_tier.status === 'active' ? '✓ Active' : 'Inactive'}
                         </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+
+                  {tierStatus.current_tier.level < 3 && (
+                    <div className="rounded-2xl border-2 border-[#d71927]/20 bg-[#fff1f2] p-4">
+                      <p className="text-sm font-bold text-[#d71927] mb-2">Next Tier</p>
+                      <p className="text-base font-black text-[#111]">
+                        {TIER_INFO[tierStatus.next_tier.level as TierLevel].name}
+                      </p>
+                      <p className="text-xs text-black/50 mt-2">
+                        Complete profile info to upgrade
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="mt-5 text-sm text-black/50">Unable to load tier information</p>
+              )}
             </Card>
           </aside>
 
           <section>
             <Tab.Group>
-              <Tab.List className="grid grid-cols-1 gap-3 rounded-[28px] border border-black/5 bg-white p-3 shadow-sm sm:grid-cols-3">
+              <Tab.List className="grid grid-cols-1 gap-3 rounded-[28px] border border-black/5 bg-white p-3 shadow-sm sm:grid-cols-4">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
 
@@ -387,6 +426,54 @@ export default function SettingsPage() {
                       </div>
                     </Card>
                   </form>
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-sm sm:p-8">
+                    <div className="mb-8">
+                      <h2 className="text-2xl font-black tracking-tight text-[#111]">
+                        Account Tier Upgrade
+                      </h2>
+                      <p className="mt-2 text-sm leading-7 text-black/50">
+                        Upgrade your account tier by completing your profile information. Each tier unlocks new features and higher limits.
+                      </p>
+                    </div>
+
+                    {tierStatus && !tierLoading ? (
+                      <TierUpgradeFormV2
+                        currentTier={tierStatus.current_tier.level}
+                        onSuccess={(newTier) => {
+                          success('Tier upgraded successfully! Your new tier is now active.');
+                          setTierStatus({
+                            ...tierStatus,
+                            current_tier: {
+                              ...tierStatus.current_tier,
+                              level: newTier as TierLevel,
+                            },
+                          });
+                        }}
+                        initialData={{
+                          first_name: user?.first_name,
+                          last_name: user?.last_name,
+                          email: user?.email,
+                          phone_number: user?.phone_number,
+                        }}
+                      />
+                    ) : tierLoading ? (
+                      <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div key={i} className="h-20 rounded-2xl bg-[#f8f8f8] animate-pulse" />
+                        ))}
+                      </div>
+                    ) : (
+                      <Card className="bg-red-50 border border-red-200">
+                        <div className="p-6 text-center">
+                          <p className="text-red-900 font-semibold">Unable to load tier information</p>
+                          <p className="text-red-700 text-sm mt-2">Please refresh the page and try again.</p>
+                        </div>
+                      </Card>
+                    )}
+                  </Card>
                 </Tab.Panel>
 
                 <Tab.Panel>

@@ -389,7 +389,7 @@ export default function TVReviewPage() {
               {[
                 {
                   value: 'wallet',
-                  label: 'Remopay Wallet',
+                  label: 'Remopay',
                   description:
                     'Recommended. Fastest option for secure checkout.',
                   icon: Wallet,

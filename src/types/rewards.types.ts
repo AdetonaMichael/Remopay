@@ -2,6 +2,8 @@
  * Reward System Type Definitions
  */
 
+import { TransactionStatus } from './api.types';
+
 // Transaction Types
 export type RewardTransactionType =
   | 'cashback'
@@ -11,7 +13,7 @@ export type RewardTransactionType =
   | 'first_transaction'
   | 'redemption';
 
-export type TransactionStatus = 'pending' | 'completed' | 'failed';
+// TransactionStatus is imported from api.types for consistency
 
 // Loyalty Tiers
 export type LoyaltyTierLevel = 0 | 1 | 2 | 3;
@@ -472,21 +474,5 @@ export interface ConversionFunnel {
 }
 
 // ============= API RESPONSE TYPES =============
+// Moved to api.types.ts for centralization
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  errors?: Record<string, string[]>;
-}
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  data: T[];
-  pagination: {
-    total: number;
-    per_page: number;
-    current_page: number;
-    last_page: number;
-  };
-}

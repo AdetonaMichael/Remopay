@@ -371,7 +371,7 @@ export default function DataReviewPage() {
               {[
                 {
                   value: 'wallet',
-                  label: 'Remopay Wallet',
+                  label: 'Remopay',
                   description:
                     'Recommended. Fastest option for instant checkout.',
                   icon: Wallet,

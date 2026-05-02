@@ -398,7 +398,7 @@ export default function ElectricityReviewPage() {
               {[
                 {
                   value: 'wallet',
-                  label: 'Remopay Wallet',
+                  label: 'Remopay',
                   description:
                     'Recommended. Fastest option for secure checkout.',
                   icon: Wallet,
