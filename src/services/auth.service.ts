@@ -102,9 +102,7 @@ class UserService {
     password: string,
     reason?: string
   ): Promise<ApiResponse<{ message: string }>> {
-    return apiClient.delete('/users/account', {
-      data: { password, reason },
-    });
+    return apiClient.post('/auth/delete-account', { password, reason });
   }
 
   async enable2FA(): Promise<

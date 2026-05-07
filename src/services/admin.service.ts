@@ -364,7 +364,7 @@ class AdminService {
     return apiClient.post('/admin/notifications/send-to-user', {
       user_id: userId,
       title,
-      body,
+      message: body,
       type,
       priority,
       metadata,
@@ -375,7 +375,7 @@ class AdminService {
     return apiClient.post('/admin/notifications/send-to-users', {
       user_ids: userIds,
       title,
-      body,
+      message: body,
       type,
       priority,
     });
@@ -385,7 +385,7 @@ class AdminService {
     return apiClient.post('/admin/test/send-campaign', {
       user_ids: userIds,
       title,
-      body,
+      message: body,
       options,
     });
   }

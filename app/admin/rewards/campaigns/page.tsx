@@ -11,11 +11,12 @@ import {
   CalendarDays,
   Gift,
   Filter,
-  ShieldCheck,
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { Toast } from '@/utils/toast.utils';
 import { Modal } from '@/components/shared/Modal';
 import { rewardService } from '@/services/reward.service';
@@ -42,10 +43,22 @@ const statusClass = (status: string) => {
   }
 };
 
+const CAMPAIGN_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    options: [
+      { label: 'Active', value: 'active' },
+      { label: 'Paused', value: 'paused' },
+      { label: 'Expired', value: 'expired' },
+    ],
+  },
+];
+
 export default function AdminCampaignsPage() {
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedStatus, setSelectedStatus] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,24 +72,31 @@ export default function AdminCampaignsPage() {
     end_date: '',
   });
 
+  const { filters, isOpen, openFilters, closeFilters, applyFilters, resetFilters, hasActiveFilters, getActiveFilterCount } = useFilters({
+    fields: CAMPAIGN_FILTER_FIELDS,
+    onFiltersChange: async () => {
+      await loadCampaigns();
+    },
+  });
+
   useEffect(() => {
     loadCampaigns();
-  }, [selectedStatus]);
+  }, []);
 
   const loadCampaigns = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError('');
 
       const response = await rewardService.getAllCampaigns(
-        selectedStatus || undefined,
+        filters.status || undefined,
       );
 
       setCampaigns(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load campaigns');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -165,7 +185,7 @@ export default function AdminCampaignsPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <TableSkeleton rows={5} cols={6} />;
   }
 
@@ -212,32 +232,24 @@ export default function AdminCampaignsPage() {
         </Card>
       </div>
 
-      <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-[#620707]/10 p-3 text-[#620707]">
-              <Filter className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-black">Filter Campaigns</h2>
-              <p className="text-sm text-slate-500">
-                Narrow campaigns by operational status.
-              </p>
-            </div>
-          </div>
+      {/* Filter Button */}
+      <div className="flex gap-2">
+        <Button onClick={openFilters} variant="outline">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10 md:w-64"
-          >
-            <option value="">All Campaigns</option>
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="expired">Expired</option>
-          </select>
-        </div>
-      </Card>
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Campaigns"
+        description="Search and filter campaigns by operational status."
+        isOpen={isOpen}
+        fields={CAMPAIGN_FILTER_FIELDS}
+        onApply={applyFilters}
+        onClose={closeFilters}
+        onReset={resetFilters}
+      />
 
       <Card className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         {campaigns.length > 0 ? (

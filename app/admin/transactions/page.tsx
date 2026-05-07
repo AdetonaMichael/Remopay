@@ -9,12 +9,14 @@ import {
   CreditCard,
   Download,
   Eye,
+  Filter,
 } from 'lucide-react';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminFilters } from '@/components/admin/AdminFilters';
 import { AdminTable } from '@/components/admin/AdminTable';
 import { AdminStats } from '@/components/admin/AdminStats';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
 import { useAuthStore } from '@/store/auth.store';
@@ -46,17 +48,9 @@ export default function AdminTransactionsPage() {
   const { user } = useAuthStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<TransactionStats>({});
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    status: '',
-    user_id: '',
-    transaction_type: '',
-    date_from: '',
-    date_to: '',
-    search: '',
-  });
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -70,10 +64,73 @@ export default function AdminTransactionsPage() {
     }
   }, [user, isAdmin, router]);
 
-  const fetchTransactions = async (page = 1) => {
+  // Define filter fields
+  const filterFields: FilterField[] = [
+    {
+      id: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Reference, user ID...',
+      helpText: 'Search by transaction reference or user ID',
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'completed', label: 'Completed' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'failed', label: 'Failed' },
+      ],
+    },
+    {
+      id: 'transaction_type',
+      label: 'Transaction Type',
+      type: 'select',
+      options: [
+        { value: 'vtu_purchase', label: 'VTU Purchase' },
+        { value: 'airtime_conversion', label: 'Airtime Conversion' },
+        { value: 'bill_payment', label: 'Bill Payment' },
+      ],
+    },
+    {
+      id: 'date_from',
+      label: 'From Date',
+      type: 'date',
+      helpText: 'Filter from this date',
+    },
+    {
+      id: 'date_to',
+      label: 'To Date',
+      type: 'date',
+      helpText: 'Filter to this date',
+    },
+  ];
+
+  // Use filters hook
+  const {
+    isOpen,
+    filters,
+    isLoading: filtersLoading,
+    hasActiveFilters,
+    openFilters,
+    closeFilters,
+    applyFilters,
+    resetFilters,
+    getActiveFilterCount,
+  } = useFilters({
+    fields: filterFields,
+    onFiltersChange: (newFilters) => {
+      setCurrentPage(1);
+      fetchTransactions(1, newFilters);
+    },
+  });
+
+  const fetchTransactions = async (page = 1, filterValues?: Record<string, any>) => {
     try {
-      setLoading(true);
-      const response = await adminService.getAllTransactions(page, 50, filters);
+      setIsLoading(true);
+      const filtersToUse = filterValues || filters;
+      const response = await adminService.getAllTransactions(page, 50, filtersToUse);
 
       if (response?.data) {
         if (response.data.data) {
@@ -111,30 +168,13 @@ export default function AdminTransactionsPage() {
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTransactions(currentPage);
-  }, [currentPage, filters]);
-
-  const handleFilter = (newFilters: Partial<{ status: string; user_id: string; transaction_type: string; date_from: string; date_to: string; search: string }>) => {
-    setFilters((prevFilters) => ({ ...prevFilters, ...newFilters }));
-    setCurrentPage(1);
-  };
-
-  const handleReset = () => {
-    setFilters({
-      status: '',
-      user_id: '',
-      transaction_type: '',
-      date_from: '',
-      date_to: '',
-      search: '',
-    });
-    setCurrentPage(1);
-  };
+  }, [currentPage]);
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
@@ -182,45 +222,6 @@ export default function AdminTransactionsPage() {
       title: 'Failed',
       value: stats.failed_count || 0,
       change: { value: '-2.1%', direction: 'down' as const },
-    },
-  ];
-
-  const filterConfigs = [
-    {
-      key: 'search',
-      label: 'Search',
-      type: 'text' as const,
-      placeholder: 'Reference, user ID...',
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      type: 'select' as const,
-      options: [
-        { label: 'Completed', value: 'completed' },
-        { label: 'Pending', value: 'pending' },
-        { label: 'Failed', value: 'failed' },
-      ],
-    },
-    {
-      key: 'transaction_type',
-      label: 'Type',
-      type: 'select' as const,
-      options: [
-        { label: 'VTU Purchase', value: 'vtu_purchase' },
-        { label: 'Airtime Conversion', value: 'airtime_conversion' },
-        { label: 'Bill Payment', value: 'bill_payment' },
-      ],
-    },
-    {
-      key: 'date_from',
-      label: 'From Date',
-      type: 'date' as const,
-    },
-    {
-      key: 'date_to',
-      label: 'To Date',
-      type: 'date' as const,
     },
   ];
 
@@ -295,18 +296,39 @@ export default function AdminTransactionsPage() {
 
       <AdminStats stats={statsItems} />
 
-      <AdminFilters
-        filters={filterConfigs}
-        values={filters}
-        onFilter={handleFilter}
-        onReset={handleReset}
-        loading={loading}
+      {/* Filter Button */}
+      <div className="flex justify-end">
+        <Button
+          onClick={openFilters}
+          className={`h-11 rounded-xl px-4 font-semibold transition ${
+            hasActiveFilters
+              ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
+              : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+          }`}
+        >
+          <Filter className="h-4 w-4 mr-2 inline" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
+
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Transactions"
+        description="Narrow down transactions by status, type, date range, or search term"
+        fields={filterFields}
+        isOpen={isOpen}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        isLoading={filtersLoading}
+        position="right"
+        mobilePosition="auto"
       />
 
       <AdminTable
         columns={tableColumns}
         data={transactions}
-        loading={loading}
+        loading={isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
         total={stats.total_transactions}

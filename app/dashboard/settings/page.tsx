@@ -13,6 +13,7 @@ import {
   Settings2,
   ShieldCheck,
   User2,
+  Trash2,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
@@ -23,6 +24,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { userService } from '@/services/auth.service';
 import { tierUpgradeService } from '@/services/tier-upgrade.service';
 import { TierUpgradeFormV2 } from '@/components/dashboard/TierUpgradeForm.v2';
+import { AccountDeletion } from '@/components/dashboard/AccountDeletion';
 import {
   updateProfileSchema,
   type UpdateProfileSchema,
@@ -62,6 +64,11 @@ const tabs = [
     label: 'Notifications',
     icon: BellRing,
     subtitle: 'Control how you receive updates',
+  },
+  {
+    label: 'Privacy & Account',
+    icon: Trash2,
+    subtitle: 'Manage your data and account deletion',
   },
 ];
 
@@ -608,6 +615,10 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                   </Card>
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <AccountDeletion />
                 </Tab.Panel>
               </Tab.Panels>
             </Tab.Group>

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
-import { Input } from '@/components/shared/Input';
+import { Button } from '@/components/shared/Button';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { rewardService } from '@/services/reward.service';
 import { AdminRewardTransaction } from '@/types/rewards.types';
 
@@ -18,37 +20,74 @@ const transactionTypeLabels = {
   redemption: 'Redemption',
 };
 
+const REWARD_TRANSACTION_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    type: 'text',
+    helpText: 'Search by user ID or reason',
+  },
+  {
+    id: 'type',
+    label: 'Transaction Type',
+    type: 'select',
+    options: [
+      { label: 'Cashback', value: 'cashback' },
+      { label: 'Bonus', value: 'bonus' },
+      { label: 'Streak Bonus', value: 'streak' },
+      { label: 'Referral', value: 'referral' },
+      { label: 'First Transaction', value: 'first_transaction' },
+      { label: 'Redemption', value: 'redemption' },
+    ],
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    options: [
+      { label: 'Completed', value: 'completed' },
+      { label: 'Pending', value: 'pending' },
+      { label: 'Failed', value: 'failed' },
+    ],
+  },
+];
+
 export default function AdminRewardTransactionsPage() {
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<AdminRewardTransaction[]>([]);
   const [error, setError] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | any>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const { filters, isOpen, openFilters, closeFilters, applyFilters, resetFilters, hasActiveFilters, getActiveFilterCount } = useFilters({
+    fields: REWARD_TRANSACTION_FILTER_FIELDS,
+    onFiltersChange: async (filterValues) => {
+      setCurrentPage(1);
+      await loadTransactions(filterValues);
+    },
+  });
 
   useEffect(() => {
-    loadTransactions();
-  }, [page, typeFilter, statusFilter]);
+    loadTransactions(filters);
+  }, [currentPage]);
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (filterValues = filters) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const data = await rewardService.getAllRewardTransactions(
         20,
-        typeFilter === 'all' ? undefined : typeFilter,
-        statusFilter === 'all' ? undefined : statusFilter
+        filterValues.type ? filterValues.type : undefined,
+        filterValues.status ? filterValues.status : undefined
       );
       setTransactions(data.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load transactions');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const filteredTransactions = transactions.filter((t) =>
-    searchTerm === '' || t.user_id.toString().includes(searchTerm) || t.reason?.toLowerCase().includes(searchTerm.toLowerCase())
+    !filters.search || t.user_id.toString().includes(filters.search) || t.reason?.toLowerCase().includes(filters.search.toLowerCase())
   );
 
   const statusColors = {
@@ -57,7 +96,7 @@ export default function AdminRewardTransactionsPage() {
     failed: 'bg-red-100 text-red-800',
   };
 
-  if (loading && page === 1) {
+  if (isLoading && currentPage === 1) {
     return <TableSkeleton />;
   }
 
@@ -68,66 +107,24 @@ export default function AdminRewardTransactionsPage() {
         <p className="mt-2 text-gray-600">View all reward transactions</p>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Type</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => {
-                setTypeFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="all">All Types</option>
-              <option value="cashback">Cashback</option>
-              <option value="bonus">Bonus</option>
-              <option value="streak">Streak Bonus</option>
-              <option value="referral">Referral</option>
-              <option value="first_transaction">First Transaction</option>
-              <option value="redemption">Redemption</option>
-            </select>
-          </div>
+      {/* Filter Button */}
+      <div className="flex gap-2">
+        <Button onClick={openFilters} variant="outline">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Status</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-                setPage(1);
-              }}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">Search</label>
-            <Input
-              placeholder="User ID or reason..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={loadTransactions}
-              className="w-full px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 transition font-medium"
-            >
-              <Filter className="inline h-4 w-4 mr-2" />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </Card>
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Transactions"
+        description="Search and filter reward transactions by type and status."
+        isOpen={isOpen}
+        fields={REWARD_TRANSACTION_FILTER_FIELDS}
+        onApply={applyFilters}
+        onClose={closeFilters}
+        onReset={resetFilters}
+      />
 
       {/* Transactions Table */}
       <Card className="overflow-hidden">
@@ -200,15 +197,15 @@ export default function AdminRewardTransactionsPage() {
       {/* Pagination */}
       <div className="flex items-center justify-center gap-2">
         <button
-          onClick={() => setPage(Math.max(1, page - 1))}
-          disabled={page === 1}
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
           className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Previous
         </button>
-        <span className="text-gray-600">Page {page}</span>
+        <span className="text-gray-600">Page {currentPage}</span>
         <button
-          onClick={() => setPage(page + 1)}
+          onClick={() => setCurrentPage(currentPage + 1)}
           disabled={filteredTransactions.length < 20}
           className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >

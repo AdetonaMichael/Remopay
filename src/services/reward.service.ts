@@ -64,7 +64,9 @@ class RewardService {
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch transactions');
     }
-    return response.data || [];
+    const data = response.data || [];
+    console.log('[RewardService] Transactions data:', { response, data, isArray: Array.isArray(data) });
+    return Array.isArray(data) ? data : [];
   }
 
   async getActiveCampaigns(): Promise<Campaign[]> {
@@ -74,7 +76,9 @@ class RewardService {
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch campaigns');
     }
-    return response.data || [];
+    const data = response.data || [];
+    console.log('[RewardService] Campaigns data:', { response, data, isArray: Array.isArray(data) });
+    return Array.isArray(data) ? data : [];
   }
 
   async redeemRewards(amount: number): Promise<RedemptionResponse> {
@@ -92,10 +96,17 @@ class RewardService {
     const response = await this.apiClient.get<EligibilityCheck>(
       '/rewards/eligibility-check'
     );
+    console.log('[RewardService] Eligibility response:', response);
     if (!response.success) {
       throw new Error(response.message || 'Failed to check eligibility');
     }
-    return response.data!;
+    const eligibilityData = response.data!;
+    console.log('[RewardService] Eligibility data:', eligibilityData);
+    // Ensure eligibility_messages is always an array
+    if (!Array.isArray(eligibilityData.eligibility_messages)) {
+      eligibilityData.eligibility_messages = [];
+    }
+    return eligibilityData;
   }
 
   async getRewardStatistics(): Promise<RewardStatistics> {

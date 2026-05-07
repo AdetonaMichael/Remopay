@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit2, Trash2, Eye, Copy } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Copy, Filter } from 'lucide-react';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminFilters } from '@/components/admin/AdminFilters';
 import { AdminTable } from '@/components/admin/AdminTable';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { AdminStats } from '@/components/admin/AdminStats';
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
@@ -35,13 +36,9 @@ export default function AdminOfferCodesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [offerCodes, setOfferCodes] = useState<OfferCode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    active: '',
-    search: '',
-  });
   const [selectedOffer, setSelectedOffer] = useState<OfferCode | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -65,10 +62,50 @@ export default function AdminOfferCodesPage() {
     }
   }, [user, isAdmin, router]);
 
-  const fetchOfferCodes = async (page = 1) => {
+  // Define filter fields
+  const filterFields: FilterField[] = [
+    {
+      id: 'search',
+      label: 'Search',
+      type: 'text',
+      placeholder: 'Offer code...',
+      helpText: 'Search by offer code',
+    },
+    {
+      id: 'active',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'true', label: 'Active' },
+        { value: 'false', label: 'Inactive' },
+      ],
+    },
+  ];
+
+  // Use filters hook
+  const {
+    isOpen,
+    filters,
+    isLoading: filtersLoading,
+    hasActiveFilters,
+    openFilters,
+    closeFilters,
+    applyFilters,
+    resetFilters,
+    getActiveFilterCount,
+  } = useFilters({
+    fields: filterFields,
+    onFiltersChange: (newFilters) => {
+      setCurrentPage(1);
+      fetchOfferCodes(1, newFilters);
+    },
+  });
+
+  const fetchOfferCodes = async (page = 1, filterValues?: Record<string, any>) => {
     try {
-      setLoading(true);
-      const response = await adminService.getOfferCodes(page, 20, filters);
+      setIsLoading(true);
+      const filtersToUse = filterValues || filters;
+      const response = await adminService.getOfferCodes(page, 20, filtersToUse);
 
       if (response?.data) {
         const data = Array.isArray(response.data) ? response.data : response.data.data || [];
@@ -80,23 +117,13 @@ export default function AdminOfferCodesPage() {
     } catch (error) {
       console.error('Error fetching offer codes:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOfferCodes(currentPage);
-  }, [currentPage, filters]);
-
-  const handleFilter = (newFilters: Partial<{ active: string; search: string }>) => {
-    setFilters((prevFilters) => ({ ...prevFilters, ...newFilters }));
-    setCurrentPage(1);
-  };
-
-  const handleReset = () => {
-    setFilters({ active: '', search: '' });
-    setCurrentPage(1);
-  };
+  }, [currentPage]);
 
   const handleCreateOrUpdate = async () => {
     try {
@@ -162,24 +189,6 @@ export default function AdminOfferCodesPage() {
       title: 'Avg Usage/Code',
       value: offerCodes.length > 0 ? Math.round(offerCodes.reduce((sum, o) => sum + o.uses, 0) / offerCodes.length) : 0,
       change: { value: '+8.5%', direction: 'up' as const },
-    },
-  ];
-
-  const filterConfigs = [
-    {
-      key: 'search',
-      label: 'Search',
-      type: 'text' as const,
-      placeholder: 'Offer code...',
-    },
-    {
-      key: 'active',
-      label: 'Status',
-      type: 'select' as const,
-      options: [
-        { label: 'Active', value: 'true' },
-        { label: 'Inactive', value: 'false' },
-      ],
     },
   ];
 
@@ -297,18 +306,39 @@ export default function AdminOfferCodesPage() {
 
       <AdminStats stats={statsItems} />
 
-      <AdminFilters
-        filters={filterConfigs}
-        values={filters}
-        onFilter={handleFilter}
-        onReset={handleReset}
-        loading={loading}
+      {/* Filter Button */}
+      <div className="flex justify-end">
+        <Button
+          onClick={openFilters}
+          className={`h-11 rounded-xl px-4 font-semibold transition ${
+            hasActiveFilters
+              ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
+              : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+          }`}
+        >
+          <Filter className="h-4 w-4 mr-2 inline" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
+
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Offer Codes"
+        description="Narrow down offer codes by search term or active status"
+        fields={filterFields}
+        isOpen={isOpen}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        isLoading={filtersLoading}
+        position="right"
+        mobilePosition="auto"
       />
 
       <AdminTable
         columns={tableColumns}
         data={offerCodes}
-        loading={loading}
+        loading={isLoading}
         currentPage={currentPage}
         totalPages={totalPages}
         total={offerCodes.length}

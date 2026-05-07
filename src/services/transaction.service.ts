@@ -27,8 +27,7 @@ export interface TransactionsApiResponse {
   success: boolean;
   message: string;
   data: {
-    success: boolean;
-    data: ExtendedTransaction[];
+    transactions: ExtendedTransaction[];
     pagination: {
       current_page: number;
       last_page: number;

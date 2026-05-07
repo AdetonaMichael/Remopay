@@ -137,8 +137,8 @@ export default function DashboardPage() {
           setWallet(walletRes.data.wallet);
         }
 
-        if (transactionsRes?.data?.data) {
-          setTransactions(transactionsRes.data.data);
+        if (transactionsRes?.data?.transactions) {
+          setTransactions(transactionsRes.data.transactions);
 
           if (transactionsRes.data.pagination) {
             setPagination({
@@ -148,8 +148,8 @@ export default function DashboardPage() {
               perPage: transactionsRes.data.pagination.per_page || 10,
             });
           }
-        } else if (Array.isArray(transactionsRes?.data)) {
-          setTransactions(transactionsRes.data);
+        } else if (Array.isArray(transactionsRes?.data?.transactions)) {
+          setTransactions(transactionsRes.data.transactions);
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);

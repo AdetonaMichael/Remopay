@@ -7,13 +7,14 @@ import {
   AlertCircle,
   ShieldCheck,
   RefreshCw,
-  Search,
   Trophy,
 } from 'lucide-react';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
-import { Input } from '@/components/shared/Input';
+import { Button } from '@/components/shared/Button';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { rewardService } from '@/services/reward.service';
 import { AdminLoyaltyUser } from '@/types/rewards.types';
 
@@ -32,14 +33,36 @@ const tierColors = {
     'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-300 dark:ring-yellow-800',
 };
 
+const LOYALTY_USER_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    type: 'text',
+    helpText: 'Search by email or user ID',
+  },
+  {
+    id: 'tier',
+    label: 'Tier',
+    type: 'select',
+    options: [
+      { label: 'Bronze', value: 'Bronze' },
+      { label: 'Silver', value: 'Silver' },
+      { label: 'Gold', value: 'Gold' },
+    ],
+  },
+];
+
 export default function AdminLoyaltyUsersPage() {
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<AdminLoyaltyUser[]>([]);
   const [error, setError] = useState('');
-  const [tierFilter, setTierFilter] = useState<
-    'All' | 'Bronze' | 'Silver' | 'Gold'
-  >('All');
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const { filters, isOpen, openFilters, closeFilters, applyFilters, resetFilters, hasActiveFilters, getActiveFilterCount } = useFilters({
+    fields: LOYALTY_USER_FILTER_FIELDS,
+    onFiltersChange: async () => {
+      await loadUsers();
+    },
+  });
 
   useEffect(() => {
     loadUsers();
@@ -47,7 +70,7 @@ export default function AdminLoyaltyUsersPage() {
 
   const loadUsers = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError('');
 
       const data = await rewardService.getAllUsersWithLoyalty(100);
@@ -55,15 +78,15 @@ export default function AdminLoyaltyUsersPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const filteredUsers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = filters.search ? filters.search.trim().toLowerCase() : '';
 
     return users.filter((user) => {
-      const matchesTier = tierFilter === 'All' || user.tier === tierFilter;
+      const matchesTier = !filters.tier || user.tier === filters.tier;
 
       const matchesSearch =
         query === '' ||
@@ -72,13 +95,13 @@ export default function AdminLoyaltyUsersPage() {
 
       return matchesTier && matchesSearch;
     });
-  }, [users, tierFilter, searchTerm]);
+  }, [users, filters]);
 
   const totalUsers = users.length;
   const goldUsers = users.filter((user) => user.tier === 'Gold').length;
   const totalVolume = users.reduce((sum, user) => sum + user.total_volume, 0);
 
-  if (loading) {
+  if (isLoading) {
     return <TableSkeleton />;
   }
 
@@ -183,56 +206,24 @@ export default function AdminLoyaltyUsersPage() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#120d0d]">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
-              Tier
-            </label>
+      {/* Filter Button */}
+      <div className="flex gap-2">
+        <Button onClick={openFilters} variant="outline">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
 
-            <select
-              value={tierFilter}
-              onChange={(e) =>
-                setTierFilter(e.target.value as 'All' | 'Bronze' | 'Silver' | 'Gold')
-              }
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10 dark:border-white/10 dark:bg-white/5 dark:text-white"
-            >
-              <option>All</option>
-              <option>Bronze</option>
-              <option>Silver</option>
-              <option>Gold</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
-              Search
-            </label>
-
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-              <Input
-                placeholder="Email or user ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="rounded-2xl border-slate-200 py-3 pl-10 focus:border-[#620707] focus:ring-[#620707]/10 dark:border-white/10 dark:bg-white/5"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={loadUsers}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-[#620707]/15 bg-[#620707]/5 px-4 py-3 text-sm font-bold text-[#620707] transition hover:bg-[#620707]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </Card>
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Loyalty Users"
+        description="Search and filter by tier to find specific loyalty users."
+        isOpen={isOpen}
+        fields={LOYALTY_USER_FILTER_FIELDS}
+        onApply={applyFilters}
+        onClose={closeFilters}
+        onReset={resetFilters}
+      />
 
       {/* Users Table */}
       <Card className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#120d0d]">

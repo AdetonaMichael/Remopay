@@ -5,6 +5,8 @@ import { AlertCircle, CheckCircle, Filter } from 'lucide-react';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { Toast } from '@/utils/toast.utils';
 import { Modal } from '@/components/shared/Modal';
 import { useAlert } from '@/hooks/useAlert';
@@ -27,30 +29,49 @@ const severityColors: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
 };
 
+const ABUSE_FLAG_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'severity',
+    label: 'Severity',
+    type: 'select',
+    options: [
+      { label: 'Low', value: 'low' },
+      { label: 'Medium', value: 'medium' },
+      { label: 'High', value: 'high' },
+    ],
+  },
+];
+
 export default function AdminAbuseFlagsPage() {
   const alert = useAlert();
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [flags, setFlags] = useState<AbuseFlag[]>([]);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [selectedFlag, setSelectedFlag] = useState<AbuseFlag | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
   const [error, setError] = useState('');
   const [isResolving, setIsResolving] = useState(false);
 
+  const { filters, isOpen, openFilters, closeFilters, applyFilters, resetFilters, hasActiveFilters, getActiveFilterCount } = useFilters({
+    fields: ABUSE_FLAG_FILTER_FIELDS,
+    onFiltersChange: async () => {
+      await loadFlags();
+    },
+  });
+
   useEffect(() => {
     loadFlags();
-  }, [selectedSeverity]);
+  }, []);
 
   const loadFlags = async () => {
     try {
-      setLoading(true);
-      const response = await rewardService.getAllAbuseFlags(20, selectedSeverity || undefined, undefined, false);
+      setIsLoading(true);
+      const response = await rewardService.getAllAbuseFlags(20, filters.severity || undefined, undefined, false);
       setFlags(response.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load flags');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -80,7 +101,7 @@ export default function AdminAbuseFlagsPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <TableSkeleton rows={5} cols={5} />;
   }
 
@@ -141,22 +162,24 @@ export default function AdminAbuseFlagsPage() {
         </Card>
       </div>
 
-      {/* Filter */}
-      <Card className="bg-gray-50">
-        <div className="flex items-center gap-3">
-          <Filter className="h-5 w-5 text-gray-600" />
-          <select
-            value={selectedSeverity}
-            onChange={(e) => setSelectedSeverity(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4a5ff7]"
-          >
-            <option value="">All Severities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-      </Card>
+      {/* Filter Button */}
+      <div className="flex gap-2">
+        <Button onClick={openFilters} variant="outline">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
+
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Abuse Flags"
+        description="Filter flags by severity level to prioritize review."
+        isOpen={isOpen}
+        fields={ABUSE_FLAG_FILTER_FIELDS}
+        onApply={applyFilters}
+        onClose={closeFilters}
+        onReset={resetFilters}
+      />
 
       {/* Flags Table */}
       {flags.length > 0 ? (

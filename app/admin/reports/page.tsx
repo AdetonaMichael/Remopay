@@ -16,6 +16,8 @@ import {
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 import { Toast } from '@/utils/toast.utils';
 import { Modal } from '@/components/shared/Modal';
 import { reportService, Report, ReportType, ReportStatistics } from '@/services/report.service';
@@ -30,23 +32,83 @@ interface ReportFilters {
   search: string;
 }
 
+// Define filter fields for FilterPanel
+const REPORT_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    type: 'text',
+    placeholder: 'Report name or ID...',
+    helpText: 'Search by report name or ID',
+  },
+  {
+    id: 'type',
+    label: 'Report Type',
+    type: 'select',
+    options: [
+      { value: 'transaction', label: 'Transaction' },
+      { value: 'user', label: 'User' },
+      { value: 'revenue', label: 'Revenue' },
+      { value: 'analytics', label: 'Analytics' },
+    ],
+  },
+  {
+    id: 'frequency',
+    label: 'Frequency',
+    type: 'select',
+    options: [
+      { value: 'daily', label: 'Daily' },
+      { value: 'weekly', label: 'Weekly' },
+      { value: 'monthly', label: 'Monthly' },
+    ],
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    options: [
+      { value: 'pending', label: 'Pending' },
+      { value: 'processing', label: 'Processing' },
+      { value: 'completed', label: 'Completed' },
+      { value: 'failed', label: 'Failed' },
+    ],
+  },
+  {
+    id: 'is_active',
+    label: 'Active Status',
+    type: 'checkbox',
+    helpText: 'Show only active reports',
+  },
+];
+
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [reportTypes, setReportTypes] = useState<ReportType[]>([]);
   const [statistics, setStatistics] = useState<ReportStatistics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(15);
 
-  const [filters, setFilters] = useState<ReportFilters>({
-    type: '',
-    frequency: '',
-    status: '',
-    is_active: '',
-    search: '',
+  // Use filters hook
+  const {
+    isOpen,
+    filters,
+    isLoading: filtersLoading,
+    hasActiveFilters,
+    openFilters,
+    closeFilters,
+    applyFilters,
+    resetFilters,
+    getActiveFilterCount,
+  } = useFilters({
+    fields: REPORT_FILTER_FIELDS,
+    onFiltersChange: (newFilters) => {
+      setCurrentPage(1);
+      loadReports(1, newFilters);
+    },
   });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -57,28 +119,31 @@ export default function AdminReportsPage() {
   const [generatingId, setGeneratingId] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([loadReports(), loadReportTypes(), loadStatistics()]);
+    Promise.all([loadReports(1), loadReportTypes(), loadStatistics()]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    loadReports();
-  }, [currentPage, filters]);
+    loadReports(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
-  const loadReports = async () => {
+  const loadReports = async (page = 1, filterValues?: Record<string, any>) => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError('');
 
+      const filtersToUse = filterValues || filters;
       const params: Record<string, any> = {
-        page: currentPage,
+        page: page,
         per_page: perPage,
       };
 
-      if (filters.type) params.type = filters.type;
-      if (filters.frequency) params.frequency = filters.frequency;
-      if (filters.status) params.status = filters.status;
-      if (filters.is_active !== '') params.is_active = filters.is_active;
-      if (filters.search) params.search = filters.search;
+      if (filtersToUse.type) params.type = filtersToUse.type;
+      if (filtersToUse.frequency) params.frequency = filtersToUse.frequency;
+      if (filtersToUse.status) params.status = filtersToUse.status;
+      if (filtersToUse.is_active !== '' && filtersToUse.is_active !== false) params.is_active = filtersToUse.is_active;
+      if (filtersToUse.search) params.search = filtersToUse.search;
 
       const response = await reportService.getReports(params);
       setReports(response.data?.data || []);
@@ -89,7 +154,7 @@ export default function AdminReportsPage() {
       setError(err instanceof Error ? err.message : 'Failed to load reports');
       Toast.error('Failed to load reports');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -111,28 +176,12 @@ export default function AdminReportsPage() {
     }
   };
 
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      type: '',
-      frequency: '',
-      status: '',
-      is_active: '',
-      search: '',
-    });
-    setCurrentPage(1);
-  };
-
   const handleGenerateReport = async (reportId: number) => {
     try {
       setGeneratingId(reportId);
       await reportService.generateReport(reportId);
       Toast.success('Report generation started');
-      await loadReports();
+      await loadReports(currentPage);
     } catch (err) {
       Toast.error(err instanceof Error ? err.message : 'Failed to generate report');
     } finally {
@@ -146,7 +195,7 @@ export default function AdminReportsPage() {
     try {
       await reportService.deleteReport(reportId);
       Toast.success('Report deleted successfully');
-      await loadReports();
+      await loadReports(currentPage);
     } catch (err) {
       Toast.error(err instanceof Error ? err.message : 'Failed to delete report');
     }
@@ -187,7 +236,7 @@ export default function AdminReportsPage() {
     }
   };
 
-  if (loading && !reports.length) {
+  if (isLoading && !reports.length) {
     return <TableSkeleton rows={8} cols={7} />;
   }
 
@@ -252,95 +301,33 @@ export default function AdminReportsPage() {
       )}
 
       {/* Filters */}
-      <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-700">
-              Type
-            </label>
-            <select
-              value={filters.type}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
-            >
-              <option value="">All Types</option>
-              {reportTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="flex justify-end">
+        <Button
+          onClick={openFilters}
+          className={`h-11 rounded-xl px-4 font-semibold transition ${
+            hasActiveFilters
+              ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
+              : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+          }`}
+        >
+          <Filter className="h-4 w-4 mr-2 inline" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
 
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-700">
-              Frequency
-            </label>
-            <select
-              value={filters.frequency}
-              onChange={(e) => handleFilterChange('frequency', e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
-            >
-              <option value="">All Frequencies</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="manual">Manual</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-700">
-              Status
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
-            >
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="failed">Failed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-700">
-              Active
-            </label>
-            <select
-              value={String(filters.is_active)}
-              onChange={(e) => {
-                const val = e.target.value === '' ? '' : e.target.value === 'true';
-                handleFilterChange('is_active', val);
-              }}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
-            >
-              <option value="">All</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </div>
-
-          <div className="flex items-end gap-2">
-            <input
-              type="text"
-              placeholder="Search reports..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#620707] focus:ring-4 focus:ring-[#620707]/10"
-            />
-            <button
-              onClick={handleResetFilters}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      </Card>
+      {/* FilterPanel Component */}
+      <FilterPanel
+        title="Filter Reports"
+        description="Narrow down reports by type, frequency, status, and search term"
+        fields={REPORT_FILTER_FIELDS}
+        isOpen={isOpen}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        isLoading={filtersLoading}
+        position="right"
+        mobilePosition="auto"
+      />
 
       {/* Reports Table */}
       <Card className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

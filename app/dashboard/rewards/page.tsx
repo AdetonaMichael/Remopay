@@ -79,12 +79,12 @@ export default function RewardsPage() {
       setError('');
 
       const [
-        balanceData,
-        statsData,
-        campaignsData,
-        transactionsData,
-        eligibilityData,
-      ] = await Promise.all([
+        balanceResult,
+        statsResult,
+        campaignsResult,
+        transactionsResult,
+        eligibilityResult,
+      ] = await Promise.allSettled([
         rewardService.getRewardBalance(),
         rewardService.getRewardStatistics(),
         rewardService.getActiveCampaigns(),
@@ -92,11 +92,43 @@ export default function RewardsPage() {
         rewardService.checkEligibility(),
       ]);
 
-      setBalance(balanceData);
-      setStatistics(statsData);
-      setCampaigns(campaignsData);
-      setTransactions(transactionsData);
-      setEligibility(eligibilityData);
+      // Handle balance
+      if (balanceResult.status === 'fulfilled') {
+        setBalance(balanceResult.value);
+      } else {
+        console.error('[RewardsPage] Balance error:', balanceResult.reason);
+      }
+
+      // Handle statistics
+      if (statsResult.status === 'fulfilled') {
+        setStatistics(statsResult.value);
+      } else {
+        console.error('[RewardsPage] Stats error:', statsResult.reason);
+      }
+
+      // Handle campaigns
+      if (campaignsResult.status === 'fulfilled') {
+        setCampaigns(campaignsResult.value || []);
+      } else {
+        console.error('[RewardsPage] Campaigns error:', campaignsResult.reason);
+        setCampaigns([]);
+      }
+
+      // Handle transactions
+      if (transactionsResult.status === 'fulfilled') {
+        setTransactions(transactionsResult.value || []);
+      } else {
+        console.error('[RewardsPage] Transactions error:', transactionsResult.reason);
+        setTransactions([]);
+      }
+
+      // Handle eligibility
+      if (eligibilityResult.status === 'fulfilled') {
+        setEligibility(eligibilityResult.value);
+      } else {
+        console.error('[RewardsPage] Eligibility error:', eligibilityResult.reason);
+        setEligibility(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load rewards');
     } finally {
@@ -151,9 +183,13 @@ export default function RewardsPage() {
                 Complete Verification
               </h3>
               <div className="mt-2 space-y-1 text-sm leading-6 text-amber-800">
-                {eligibility.eligibility_messages.map((message, index) => (
-                  <p key={index}>• {message}</p>
-                ))}
+                {Array.isArray(eligibility.eligibility_messages) && eligibility.eligibility_messages.length > 0 ? (
+                  eligibility.eligibility_messages.map((message, index) => (
+                    <p key={index}>• {message}</p>
+                  ))
+                ) : (
+                  <p>• You do not meet the eligibility requirements for rewards</p>
+                )}
               </div>
             </div>
           </div>
@@ -171,58 +207,60 @@ export default function RewardsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Card className="relative overflow-hidden rounded-[32px] border border-[#4A5FF7]/20 bg-[#4A5FF7] p-6 text-white shadow-[0_18px_45px_rgba(74,95,247,0.24)]">
-              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
-              <div className="relative flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white/75">
-                    Available Balance
-                  </p>
-                  <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
-                    {formatCurrency(availableBalance)}
-                  </h2>
-                  {lockedBalance > 0 && (
-                    <p className="mt-2 text-xs font-medium text-white/70">
-                      {formatCurrency(lockedBalance)} locked
+          <div className="overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex min-w-min gap-4 md:grid md:min-w-full md:grid-cols-3 md:gap-4">
+              <Card className="relative shrink-0 overflow-hidden rounded-[32px] border border-[#4A5FF7]/20 bg-[#4A5FF7] p-6 text-white shadow-[0_18px_45px_rgba(74,95,247,0.24)] w-full sm:w-80 md:w-auto">
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white/75">
+                      Available Balance
                     </p>
-                  )}
+                    <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
+                      {formatCurrency(availableBalance)}
+                    </h2>
+                    {lockedBalance > 0 && (
+                      <p className="mt-2 text-xs font-medium text-white/70">
+                        {formatCurrency(lockedBalance)} locked
+                      </p>
+                    )}
+                  </div>
+                  <Wallet className="text-white/35" size={42} />
                 </div>
-                <Wallet className="text-white/35" size={42} />
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#667085]">
-                    Total Earned
-                  </p>
-                  <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
-                    {formatCurrency(statistics?.total_earned)}
-                  </h3>
+              <Card className="relative shrink-0 rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] w-full sm:w-80 md:w-auto">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#667085]">
+                      Total Earned
+                    </p>
+                    <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
+                      {formatCurrency(statistics?.total_earned)}
+                    </h3>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                    <TrendingUp size={24} />
+                  </div>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
-                  <TrendingUp size={24} />
-                </div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#667085]">
-                    Total Redeemed
-                  </p>
-                  <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
-                    {formatCurrency(statistics?.total_redeemed)}
-                  </h3>
+              <Card className="relative shrink-0 rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] w-full sm:w-80 md:w-auto">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#667085]">
+                      Total Redeemed
+                    </p>
+                    <h3 className="mt-3 text-2xl font-extrabold text-[#111827]">
+                      {formatCurrency(statistics?.total_redeemed)}
+                    </h3>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                    <Gift size={24} />
+                  </div>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
-                  <Gift size={24} />
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
 
           <Card className="rounded-[32px] border border-[#DCE3FF] bg-[#FCFCFF] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:p-8">
@@ -283,49 +321,51 @@ export default function RewardsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {campaigns.map((campaign) => (
-                  <Card
-                    key={campaign.id}
-                    className="rounded-[28px] border border-[#E6E9F5] bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] transition hover:border-[#A9B7FF] hover:shadow-[0_18px_45px_rgba(74,95,247,0.09)]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
-                          <Trophy size={22} />
+              <div className="overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex min-w-min gap-4 md:grid md:min-w-full md:grid-cols-2 md:gap-4">
+                  {campaigns.map((campaign) => (
+                    <Card
+                      key={campaign.id}
+                      className="relative shrink-0 rounded-[28px] border border-[#E6E9F5] bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] transition hover:border-[#A9B7FF] hover:shadow-[0_18px_45px_rgba(74,95,247,0.09)] w-full sm:w-96 md:w-auto"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                            <Trophy size={22} />
+                          </div>
+
+                          <h3 className="text-base font-extrabold text-[#111827]">
+                            {campaign.name}
+                          </h3>
+
+                          <Badge className="mt-3">
+                            {campaign.type === 'cashback'
+                              ? `${campaign.reward_percentage}% Cashback`
+                              : campaign.type === 'bonus'
+                                ? `${formatCurrency(campaign.reward_amount ?? 0)} Bonus`
+                                : 'Streak Bonus'}
+                          </Badge>
                         </div>
 
-                        <h3 className="text-base font-extrabold text-[#111827]">
-                          {campaign.name}
-                        </h3>
-
-                        <Badge className="mt-3">
-                          {campaign.type === 'cashback'
-                            ? `${campaign.reward_percentage}% Cashback`
-                            : campaign.type === 'bonus'
-                              ? `${formatCurrency(campaign.reward_amount ?? 0)} Bonus`
-                              : 'Streak Bonus'}
-                        </Badge>
+                        <div className="text-right">
+                          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
+                            Reward
+                          </p>
+                          <p className="mt-2 text-lg font-extrabold text-[#4A5FF7]">
+                            {formatCurrency(campaign.reward_for_you)}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
-                          Reward
-                        </p>
-                        <p className="mt-2 text-lg font-extrabold text-[#4A5FF7]">
-                          {formatCurrency(campaign.reward_for_you)}
+                      <div className="mt-5 rounded-2xl bg-[#FCFCFF] px-4 py-3">
+                        <p className="text-xs font-semibold text-[#667085]">
+                          {formatDate(campaign.start_date)} —{' '}
+                          {formatDate(campaign.end_date)}
                         </p>
                       </div>
-                    </div>
-
-                    <div className="mt-5 rounded-2xl bg-[#FCFCFF] px-4 py-3">
-                      <p className="text-xs font-semibold text-[#667085]">
-                        {formatDate(campaign.start_date)} —{' '}
-                        {formatDate(campaign.end_date)}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
+                </div>
               </div>
             </section>
           )}

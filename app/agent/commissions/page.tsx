@@ -5,53 +5,82 @@ import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { TableSkeleton } from '@/components/shared/SkeletonLoader';
 import { Badge } from '@/components/shared/Badge';
-import { Input } from '@/components/shared/Input';
-import { TrendingUp } from 'lucide-react';
+import { Filter, TrendingUp } from 'lucide-react';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
+
+const COMMISSION_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'period',
+    label: 'Period',
+    type: 'select',
+    options: [
+      { label: 'This Week', value: 'week' },
+      { label: 'This Month', value: 'month' },
+      { label: 'This Quarter', value: 'quarter' },
+      { label: 'This Year', value: 'year' },
+    ],
+  },
+];
 
 export default function AgentCommissionsPage() {
   const [commissions, setCommissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterPeriod, setFilterPeriod] = useState('month');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { filters, isOpen, openFilters, closeFilters, applyFilters, resetFilters, hasActiveFilters, getActiveFilterCount } = useFilters({
+    fields: COMMISSION_FILTER_FIELDS,
+    onFiltersChange: async () => {
+      await loadCommissions();
+    },
+  });
 
   useEffect(() => {
-    // Mock data - replace with API call
-    setCommissions([
-      {
-        id: 'COMM001',
-        transaction_id: 'TXN001',
-        customer: 'John Doe',
-        type: 'airtime',
-        amount: 5000,
-        commission: 250,
-        rate: '5%',
-        status: 'paid',
-        date: '2024-01-25',
-      },
-      {
-        id: 'COMM002',
-        transaction_id: 'TXN002',
-        customer: 'Jane Smith',
-        type: 'data',
-        amount: 2500,
-        commission: 100,
-        rate: '4%',
-        status: 'paid',
-        date: '2024-01-24',
-      },
-      {
-        id: 'COMM003',
-        transaction_id: 'TXN003',
-        customer: 'Mike Johnson',
-        type: 'bills',
-        amount: 25000,
-        commission: 500,
-        rate: '2%',
-        status: 'pending',
-        date: '2024-01-23',
-      },
-    ]);
-    setLoading(false);
+    loadCommissions();
   }, []);
+
+  const loadCommissions = async () => {
+    try {
+      setIsLoading(true);
+      // Mock data - replace with API call using filters.period
+      setCommissions([
+        {
+          id: 'COMM001',
+          transaction_id: 'TXN001',
+          customer: 'John Doe',
+          type: 'airtime',
+          amount: 5000,
+          commission: 250,
+          rate: '5%',
+          status: 'paid',
+          date: '2024-01-25',
+        },
+        {
+          id: 'COMM002',
+          transaction_id: 'TXN002',
+          customer: 'Jane Smith',
+          type: 'data',
+          amount: 2500,
+          commission: 100,
+          rate: '4%',
+          status: 'paid',
+          date: '2024-01-24',
+        },
+        {
+          id: 'COMM003',
+          transaction_id: 'TXN003',
+          customer: 'Mike Johnson',
+          type: 'bills',
+          amount: 25000,
+          commission: 500,
+          rate: '2%',
+          status: 'pending',
+          date: '2024-01-23',
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const totalEarnings = commissions.reduce((sum, c) => sum + c.commission, 0);
   const paidCommissions = commissions.reduce(
@@ -67,7 +96,7 @@ export default function AgentCommissionsPage() {
     return (status === 'paid' || status === 'success' || status === 'completed') ? 'success' : 'warning';
   };
 
-  if (loading) {
+  if (isLoading) {
     return <TableSkeleton rows={5} cols={4} />;
   }
 
@@ -96,20 +125,27 @@ export default function AgentCommissionsPage() {
         ))}
       </div>
 
+      {/* Filter Button */}
+      <div className="flex gap-2">
+        <Button onClick={openFilters} variant="outline">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
+
+      {/* Filter Panel */}
+      <FilterPanel
+        title="Filter Commissions"
+        description="Filter your commissions by time period."
+        isOpen={isOpen}
+        fields={COMMISSION_FILTER_FIELDS}
+        onApply={applyFilters}
+        onClose={closeFilters}
+        onReset={resetFilters}
+      />
+
       <Card>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Commission Breakdown</h2>
-          <select
-            value={filterPeriod}
-            onChange={(e) => setFilterPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a9b7ff]"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-          </select>
-        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Commission Breakdown</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full">

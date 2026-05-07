@@ -11,6 +11,8 @@ import {
   Search,
   Wallet,
 } from 'lucide-react';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/shared/Card';
@@ -41,8 +43,7 @@ type TransactionsResponse = {
   success: boolean;
   message: string;
   data?: {
-    success: boolean;
-    data?: TransactionItem[];
+    transactions?: TransactionItem[];
     pagination?: {
       current_page: number;
       last_page: number;
@@ -65,6 +66,43 @@ const INITIAL_FILTERS: FiltersState = {
   type: '',
   search: '',
 };
+
+// Filter configuration for FilterPanel component
+const HISTORY_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    type: 'text',
+    placeholder: 'Search by ID, provider, reference...',
+    helpText: 'Search transaction by ID or reference number',
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'All Statuses',
+    options: [
+      { value: '', label: 'All Statuses' },
+      { value: 'success', label: 'Success' },
+      { value: 'completed', label: 'Completed' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'failed', label: 'Failed' },
+    ],
+  },
+  {
+    id: 'type',
+    label: 'Transaction Type',
+    type: 'select',
+    placeholder: 'All Types',
+    options: [
+      { value: '', label: 'All Types' },
+      { value: 'Airtime Recharge', label: 'Airtime Recharge' },
+      { value: 'Wallet Funding', label: 'Wallet Funding' },
+      { value: 'Airtime Conversion', label: 'Airtime Conversion' },
+      { value: 'Bills', label: 'Bills' },
+    ],
+  },
+];
 
 function getStatusBadgeVariant(status: string) {
   const normalized = status as TransactionStatusKey;
@@ -101,8 +139,6 @@ export default function HistoryPage() {
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<FiltersState>(INITIAL_FILTERS);
-  const [searchInput, setSearchInput] = useState('');
   const [pagination, setPagination] = useState({
     currentPage: 1,
     lastPage: 1,
@@ -110,17 +146,23 @@ export default function HistoryPage() {
     perPage: 15,
   });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-      setFilters((prev) => ({
-        ...prev,
-        search: searchInput,
-      }));
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  // Use the standardized filter hook
+  const {
+    isOpen,
+    filters,
+    hasActiveFilters,
+    getActiveFilterCount,
+    openFilters,
+    closeFilters,
+    applyFilters,
+    resetFilters,
+  } = useFilters({
+    fields: HISTORY_FILTER_FIELDS,
+    initialFilters: INITIAL_FILTERS,
+    onFiltersChange: () => {
+      setPage(1); // Reset to page 1 when filters change
+    },
+  });
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -140,7 +182,7 @@ export default function HistoryPage() {
 
         const payload = res?.data;
 
-        setTransactions(payload?.data ?? []);
+        setTransactions(payload?.transactions ?? []);
         setPagination({
           currentPage: payload?.pagination?.current_page ?? page,
           lastPage: payload?.pagination?.last_page ?? 1,
@@ -186,24 +228,6 @@ export default function HistoryPage() {
       pendingCount,
     };
   }, [transactions]);
-
-  const hasActiveFilters = Boolean(
-    searchInput.trim() || filters.status || filters.type
-  );
-
-  const handleFilterChange = (key: keyof FiltersState, value: string) => {
-    setPage(1);
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const clearFilters = () => {
-    setPage(1);
-    setSearchInput('');
-    setFilters(INITIAL_FILTERS);
-  };
 
   const isInitialLoading = loading && transactions.length === 0;
   const isPaginationLoading = loading && transactions.length > 0;
@@ -282,32 +306,34 @@ export default function HistoryPage() {
           <FilterSkeleton />
         ) : (
           <>
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black tracking-tight text-[#111]">
-                  Filters
+                  Transactions
                 </h2>
                 <p className="mt-1 text-sm font-medium text-black/50">
-                  Search and narrow down your transaction records.
+                  View and manage your transaction history.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {hasActiveFilters ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="h-11 rounded-xl border-black/10 px-5 font-black text-[#111] hover:bg-[#fff1f2]"
-                  >
-                    Reset Filters
-                  </Button>
-                ) : null}
+                <Button
+                  type="button"
+                  onClick={openFilters}
+                  className={`relative h-11 rounded-xl px-5 font-black transition ${
+                    hasActiveFilters
+                      ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
+                      : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+                  }`}
+                >
+                  <Filter className="mr-2 h-4 w-4 inline" />
+                  Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+                </Button>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 rounded-xl border-black/10 px-5 font-black text-[#111] hover:bg-[#fff1f2]"
+                  className="h-11 rounded-xl border-black/10 px-5 font-black text-[#111] hover:bg-[#f8f8f8]"
                 >
                   <ArrowDownToLine size={16} />
                   Export
@@ -315,45 +341,19 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-              <Input
-                placeholder="Search by ID, provider, reference..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                icon={<Search size={18} />}
-              />
-
-              <Select
-                options={[
-                  { value: '', label: 'All Statuses' },
-                  { value: 'success', label: 'Success' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'failed', label: 'Failed' },
-                ]}
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-              />
-
-              <Select
-                options={[
-                  { value: '', label: 'All Types' },
-                  { value: 'Airtime Recharge', label: 'Airtime Recharge' },
-                  { value: 'Wallet Funding', label: 'Wallet Funding' },
-                  { value: 'Airtime Conversion', label: 'Airtime Conversion' },
-                  { value: 'Bills', label: 'Bills' },
-                ]}
-                value={filters.type}
-                onChange={(e) => handleFilterChange('type', e.target.value)}
-              />
-
-              <div className="flex items-center rounded-2xl border border-black/10 bg-[#f8f8f8] px-4">
-                <Filter className="mr-3 h-4 w-4 text-[#d71927]" />
-                <span className="text-sm font-black text-black/50">
-                  {hasActiveFilters ? 'Filters active' : 'No filters'}
-                </span>
-              </div>
-            </div>
+            {/* Standardized FilterPanel component */}
+            <FilterPanel
+              title="Filter Transactions"
+              description="Search and narrow down your transaction records."
+              fields={HISTORY_FILTER_FIELDS}
+              isOpen={isOpen}
+              onClose={closeFilters}
+              onApply={applyFilters}
+              onReset={resetFilters}
+              isLoading={loading}
+              position="right"
+              mobilePosition="auto"
+            />
           </>
         )}
       </Card>
@@ -430,7 +430,7 @@ export default function HistoryPage() {
               <div className="mt-6">
                 <Button
                   type="button"
-                  onClick={clearFilters}
+                  onClick={resetFilters}
                   className="h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
                 >
                   Clear Filters

@@ -19,6 +19,8 @@ import {
   X,
   CheckCircle,
 } from 'lucide-react';
+import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
+import { useFilters } from '@/hooks/useFilters';
 
 import { Button } from '@/components/shared/Button';
 import { Badge } from '@/components/shared/Badge';
@@ -51,6 +53,40 @@ function getStatusVariant(
   return map[status ?? ''] ?? 'info';
 }
 
+// Filter configuration for FilterPanel component
+const USERS_FILTER_FIELDS: FilterField[] = [
+  {
+    id: 'search',
+    label: 'Search',
+    type: 'text',
+    placeholder: 'Search by name, email, or phone…',
+    helpText: 'Find users by their name, email, or phone number',
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    type: 'select',
+    placeholder: 'All Status',
+    options: [
+      { value: 'all', label: 'All Status' },
+      { value: 'active', label: 'Active' },
+      { value: 'suspended', label: 'Suspended' },
+      { value: 'inactive', label: 'Inactive' },
+    ],
+  },
+  {
+    id: 'verified',
+    label: 'Verified',
+    type: 'select',
+    placeholder: 'All',
+    options: [
+      { value: 'all', label: 'All' },
+      { value: 'verified', label: 'Verified' },
+      { value: 'unverified', label: 'Unverified' },
+    ],
+  },
+];
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminUsersPage() {
@@ -68,18 +104,34 @@ export default function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // ── State - Filters ─────────────────────────────────────────────────────────
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all');
-  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all');
-
   // ── State - Selected User ───────────────────────────────────────────────────
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<Set<string | number>>(new Set());
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedBulkAction, setSelectedBulkAction] = useState<BulkAction>('verify');
+
+  // Use the standardized filter hook
+  const {
+    isOpen,
+    filters,
+    hasActiveFilters,
+    getActiveFilterCount,
+    openFilters,
+    closeFilters,
+    applyFilters,
+    resetFilters,
+  } = useFilters({
+    fields: USERS_FILTER_FIELDS,
+    initialFilters: {
+      search: '',
+      status: 'all',
+      verified: 'all',
+    },
+    onFiltersChange: () => {
+      setCurrentPage(1); // Reset to page 1 when filters change
+    },
+  });
 
   // ── State - Modals ──────────────────────────────────────────────────────────
 
@@ -93,11 +145,24 @@ export default function AdminUsersPage() {
 
   // ── State - Form Data ───────────────────────────────────────────────────────
 
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<{
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number: string;
+    dob?: string;
+    address?: string;
+    bvn?: string;
+    nin?: string;
+  }>({
     first_name: '',
     last_name: '',
     email: '',
     phone_number: '',
+    dob: '',
+    address: '',
+    bvn: '',
+    nin: '',
   });
 
   const [notificationData, setNotificationData] = useState({
@@ -137,19 +202,19 @@ export default function AdminUsersPage() {
   const fetchUsers = async (page = 1) => {
     try {
       setLoading(true);
-      const filters: any = {
-        search: searchTerm,
+      const filterParams: any = {
+        search: filters.search || undefined,
       };
 
-      if (statusFilter !== 'all') {
-        filters.status = statusFilter;
+      if (filters.status && filters.status !== 'all') {
+        filterParams.status = filters.status;
       }
 
-      if (verificationFilter !== 'all') {
-        filters.verified = verificationFilter === 'verified';
+      if (filters.verified && filters.verified !== 'all') {
+        filterParams.verified = filters.verified === 'verified';
       }
 
-      const response = await adminService.getUsers(page, 50, filters);
+      const response = await adminService.getUsers(page, 50, filterParams);
 
       if (response?.data) {
         const userData = Array.isArray(response.data)
@@ -195,8 +260,10 @@ export default function AdminUsersPage() {
   const fetchUserDetails = async (userId: string | number) => {
     try {
       const response = await adminService.getUser(String(userId));
-      if (response?.data?.user) {
-        setUserDetails(response.data.user);
+      // Handle both response structures: response.data directly or response.data.user
+      const userData = response?.data?.user || response?.data;
+      if (userData && typeof userData === 'object') {
+        setUserDetails(userData as AdminUser);
       }
     } catch (error) {
       console.error('Error fetching user details:', error);
@@ -223,7 +290,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     fetchUsers(currentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchTerm, statusFilter, verificationFilter]);
+  }, [currentPage, filters]);
 
   // ── Action Handlers ────────────────────────────────────────────────────────
 
@@ -342,6 +409,10 @@ export default function AdminUsersPage() {
       last_name: user.last_name,
       email: user.email,
       phone_number: user.phone_number || '',
+      dob: (user as any).dob || '',
+      address: typeof (user as any).address === 'string' ? (user as any).address : JSON.stringify((user as any).address || {}),
+      bvn: user.bvn || '',
+      nin: user.nin || '',
     });
     setShowEditModal(true);
   };
@@ -351,7 +422,17 @@ export default function AdminUsersPage() {
 
     try {
       setLoadingAction(true);
-      await adminService.updateUser(String(selectedUser.id), editFormData);
+      const updatePayload = {
+        first_name: editFormData.first_name,
+        last_name: editFormData.last_name,
+        email: editFormData.email,
+        phone_number: editFormData.phone_number,
+        ...(editFormData.dob && { dob: editFormData.dob }),
+        ...(editFormData.address && { address: editFormData.address }),
+        ...(editFormData.bvn && { bvn: editFormData.bvn }),
+        ...(editFormData.nin && { nin: editFormData.nin }),
+      };
+      await adminService.updateUser(String(selectedUser.id), updatePayload);
       showAlert('User updated successfully', 'success');
       setShowEditModal(false);
       fetchUsers(currentPage);
@@ -380,10 +461,10 @@ export default function AdminUsersPage() {
   };
 
   const toggleAllUsers = () => {
-    if (selectedUsers.size === filteredUsers.length) {
+    if (selectedUsers.size === users.length) {
       setSelectedUsers(new Set());
     } else {
-      setSelectedUsers(new Set(filteredUsers.map((u) => u.id)));
+      setSelectedUsers(new Set(users.map((u) => u.id)));
     }
   };
 
@@ -434,19 +515,6 @@ export default function AdminUsersPage() {
   };
 
   // ── Derived state ───────────────────────────────────────────────────────────
-
-  const filteredUsers = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return users.filter((u) => {
-      const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
-      const matchesSearch =
-        fullName.includes(term) ||
-        u.email.toLowerCase().includes(term) ||
-        (u.phone_number ?? '').includes(searchTerm);
-      const matchesStatus = statusFilter === 'all' || u.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [users, searchTerm, statusFilter]);
 
   const summary = useMemo(() => {
     const active = users.filter((u) => u.status === 'active' || !u.status).length;
@@ -525,95 +593,33 @@ export default function AdminUsersPage() {
         ))}
       </section>
 
-      {/* ── Filters ──────────────────────────────────────────────────────── */}
-      <Card className="rounded-[28px] border border-[#e5e7eb] bg-white p-5 shadow-[0_10px_35px_rgba(0,0,0,0.04)] sm:p-6">
-        <div className="mb-5">
-          <h2 className="text-2xl font-bold tracking-tight text-[#111827]">
-            Filters
-          </h2>
-          <p className="mt-1 text-sm text-[#6b7280]">
-            Search by name, email, or phone and narrow results by status and verification.
-          </p>
-        </div>
+      {/* ── Filters with FilterPanel ────────────────────────────────── */}
+      <div className="flex justify-end">
+        <Button
+          onClick={openFilters}
+          className={`h-11 rounded-xl px-4 font-semibold transition ${
+            hasActiveFilters
+              ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
+              : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+          }`}
+        >
+          <Filter className="h-4 w-4 mr-2 inline" />
+          Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
+        </Button>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px_160px]">
-          {/* Search */}
-          <div className="relative">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]"
-              size={18}
-            />
-            <Input
-              label="Search"
-              placeholder="Search by name, email, or phone…"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-11"
-            />
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-[#374151]">
-              Status
-            </label>
-            <div className="relative">
-              <Filter
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9ca3af]"
-                size={18}
-              />
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as 'all' | UserStatus);
-                  setCurrentPage(1);
-                }}
-                className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white pl-11 pr-4 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Verification */}
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-[#374151]">
-              Verified
-            </label>
-            <select
-              value={verificationFilter}
-              onChange={(e) => {
-                setVerificationFilter(e.target.value as 'all' | 'verified' | 'unverified');
-                setCurrentPage(1);
-              }}
-              className="h-11 w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-2 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
-            >
-              <option value="all">All</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Unverified</option>
-            </select>
-          </div>
-
-          {/* Bulk Actions Button */}
-          <div className="flex items-end">
-            <Button
-              variant={selectedUsers.size > 0 ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setShowBulkActionModal(true)}
-              disabled={selectedUsers.size === 0}
-              className="w-full"
-            >
-              Actions ({selectedUsers.size})
-            </Button>
-          </div>
-        </div>
-      </Card>
+      {/* FilterPanel Component */}
+      <FilterPanel
+        title="Filter Users"
+        description="Search users and narrow results by status and verification status"
+        fields={USERS_FILTER_FIELDS}
+        isOpen={isOpen}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        position="right"
+        mobilePosition="auto"
+      />
 
       {/* ── Table ────────────────────────────────────────────────────────── */}
       <Card className="overflow-hidden rounded-[28px] border border-[#e5e7eb] bg-white p-0 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
@@ -626,7 +632,7 @@ export default function AdminUsersPage() {
           </p>
         </div>
 
-        {filteredUsers.length === 0 ? (
+        {users.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eef2ff]">
               <Users2 className="h-8 w-8 text-[#4a5ff7]" />
@@ -648,7 +654,7 @@ export default function AdminUsersPage() {
                     <th className="px-6 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                        checked={selectedUsers.size === users.length && users.length > 0}
                         onChange={toggleAllUsers}
                         className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
                       />
@@ -675,7 +681,7 @@ export default function AdminUsersPage() {
                 </thead>
 
                 <tbody>
-                  {filteredUsers.map((u) => (
+                  {users.map((u) => (
                     <tr
                       key={u.id}
                       className="border-b border-[#f8fafc] transition-colors hover:bg-[#fafafa]"
@@ -778,7 +784,7 @@ export default function AdminUsersPage() {
 
             {/* Mobile cards */}
             <div className="space-y-4 p-4 xl:hidden">
-              {filteredUsers.map((u) => (
+              {users.map((u) => (
                 <div
                   key={u.id}
                   className="rounded-[22px] border border-[#edf2f7] bg-[#fcfcfd] p-4"
@@ -864,7 +870,7 @@ export default function AdminUsersPage() {
         <div className="text-sm text-[#6b7280]">
           Showing{' '}
           <span className="font-semibold text-[#111827]">
-            {filteredUsers.length}
+            {users.length}
           </span>{' '}
           of{' '}
           <span className="font-semibold text-[#111827]">{users.length}</span>{' '}
@@ -904,15 +910,23 @@ export default function AdminUsersPage() {
           isOpen={showDetails}
           onClose={() => setShowDetails(false)}
           title="User Details"
-          size="lg"
+          size="xl"
         >
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto">
             {/* Basic Info */}
             <div>
               <h3 className="mb-4 font-semibold text-[#111827]">
                 Basic Information
               </h3>
               <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    User ID
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.id}
+                  </p>
+                </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
                     First Name
@@ -939,38 +953,180 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Phone
+                    Phone Number
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#111827]">
                     {userDetails.phone_number ?? 'N/A'}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Date of Birth
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.dob ? formatDate(userDetails.dob) : 'N/A'}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Address
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {typeof userDetails.address === 'string'
+                      ? userDetails.address || 'N/A'
+                      : userDetails.address
+                      ? `${userDetails.address.street || ''}, ${userDetails.address.city || ''}`
+                      : 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Status & Verification */}
-            <div className="grid grid-cols-2 gap-4 rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
+            {/* Verification Status */}
+            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                Verification Status
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Overall Verification
+                  </p>
+                  <p className="mt-2">
+                    <Badge
+                      variant={userDetails.is_verified ? 'success' : 'warning'}
+                    >
+                      {userDetails.is_verified ? 'Verified' : 'Unverified'}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Email Verified
+                  </p>
+                  <p className="mt-2">
+                    <Badge
+                      variant={userDetails.isEmailVerified ? 'success' : 'warning'}
+                    >
+                      {userDetails.isEmailVerified ? 'Yes' : 'No'}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Phone Verified
+                  </p>
+                  <p className="mt-2">
+                    <Badge
+                      variant={userDetails.isPhoneVerified ? 'success' : 'warning'}
+                    >
+                      {userDetails.isPhoneVerified ? 'Yes' : 'No'}
+                    </Badge>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Account Status
+                  </p>
+                  <p className="mt-2">
+                    <Badge variant={getStatusVariant(userDetails.status)}>
+                      {userDetails.status ?? 'active'}
+                    </Badge>
+                  </p>
+                </div>
+              </div>
+              {userDetails.email_verified_at && (
+                <p className="mt-3 text-xs text-[#6b7280]">
+                  Email verified at: {formatDate(userDetails.email_verified_at)}
+                </p>
+              )}
+              {userDetails.phone_verified_at && (
+                <p className="mt-1 text-xs text-[#6b7280]">
+                  Phone verified at: {formatDate(userDetails.phone_verified_at)}
+                </p>
+              )}
+            </div>
+
+            {/* KYC Information */}
+            <div>
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                KYC Information
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    KYC Tier
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.kyc_tier || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    KYC Status
+                  </p>
+                  <p className="mt-1">
+                    <Badge
+                      variant={
+                        userDetails.kyc_status === 'approved'
+                          ? 'success'
+                          : userDetails.kyc_status === 'pending'
+                          ? 'warning'
+                          : 'danger'
+                      }
+                    >
+                      {userDetails.kyc_status || 'N/A'}
+                    </Badge>
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    BVN
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.bvn || 'N/A'}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    NIN
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">
+                    {userDetails.nin || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Maplerad ID */}
+            <div>
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                Maplerad Information
+              </h3>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Status
+                  Maplerad ID
                 </p>
-                <p className="mt-2">
-                  <Badge variant={getStatusVariant(userDetails.status)}>
-                    {userDetails.status ?? 'active'}
-                  </Badge>
+                <p className="mt-1 text-sm font-medium text-[#111827]">
+                  {userDetails.maplerad_id || 'N/A'}
                 </p>
               </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                  Verification
-                </p>
-                <p className="mt-2">
-                  <Badge
-                    variant={userDetails.is_verified ? 'success' : 'warning'}
-                  >
-                    {userDetails.is_verified ? 'Verified' : 'Unverified'}
-                  </Badge>
-                </p>
+            </div>
+
+            {/* Financial Information */}
+            <div>
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                Financial Information
+              </h3>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="rounded-lg border border-[#e5e7eb] p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Account Balance
+                  </p>
+                  <p className="mt-2 text-lg font-bold text-[#111827]">
+                    ₦{(userDetails.balance || 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -978,7 +1134,7 @@ export default function AdminUsersPage() {
             {userDetails.statistics && (
               <div>
                 <h3 className="mb-4 font-semibold text-[#111827]">
-                  Statistics
+                  Transaction Statistics
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="rounded-lg border border-[#e5e7eb] p-4">
@@ -1007,15 +1163,60 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="rounded-lg border border-[#e5e7eb] p-4">
                     <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                      Wallet Balance
+                      Unread Notifications
                     </p>
                     <p className="mt-2 text-lg font-bold text-[#111827]">
-                      ₦{userDetails.statistics.wallet_balance.toLocaleString()}
+                      {userDetails.statistics.unread_notifications}
                     </p>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* Roles */}
+            {userDetails.roles && userDetails.roles.length > 0 && (
+              <div>
+                <h3 className="mb-4 font-semibold text-[#111827]">
+                  Roles
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {userDetails.roles.map((role: string) => (
+                    <Badge key={role} variant="info">
+                      {role}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Account Dates */}
+            <div className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
+              <h3 className="mb-4 font-semibold text-[#111827]">
+                Account Information
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Created At
+                  </p>
+                  <p className="text-sm text-[#111827]">
+                    {(userDetails as any)?.created_at
+                      ? formatDate((userDetails as any)?.created_at)
+                      : 'N/A'}
+                  </p>
+                </div>
+                  <div className="flex justify-between">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                    Last Updated
+                  </p>
+                  <p className="text-sm text-[#111827]">
+                    {(userDetails as any)?.updated_at
+                      ? formatDate((userDetails as any)?.updated_at)
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Actions */}
             <div className="flex gap-3 pt-4">
@@ -1283,9 +1484,9 @@ export default function AdminUsersPage() {
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           title="Edit User"
-          size="md"
+          size="lg"
         >
-          <div className="space-y-5">
+          <div className="space-y-5 max-h-[70vh] overflow-y-auto">
             {/* First Name */}
             <div>
               <label className="mb-2 block text-sm font-semibold text-[#111827]">
@@ -1346,6 +1547,77 @@ export default function AdminUsersPage() {
                   setEditFormData({
                     ...editFormData,
                     phone_number: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Date of Birth */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Date of Birth
+              </label>
+              <Input
+                type="date"
+                value={editFormData.dob || ''}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    dob: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                Address
+              </label>
+              <Input
+                placeholder="Enter address or JSON object"
+                value={editFormData.address || ''}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    address: e.target.value,
+                  })
+                }
+              />
+              <p className="mt-1 text-xs text-[#6b7280]">
+                For structured address, use JSON format: {"{\"street\": \"...\", \"city\": \"...\", etc.}"}
+              </p>
+            </div>
+
+            {/* BVN */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                BVN
+              </label>
+              <Input
+                placeholder="Bank Verification Number"
+                value={editFormData.bvn || ''}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    bvn: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* NIN */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                NIN
+              </label>
+              <Input
+                placeholder="National Identification Number"
+                value={editFormData.nin || ''}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    nin: e.target.value,
                   })
                 }
               />

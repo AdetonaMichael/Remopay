@@ -14,15 +14,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
 import { Spinner } from '@/components/shared/Spinner';
 import { Modal } from '@/components/shared/Modal';
-
-interface AdminUser {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  status?: string;
-}
+import { AdminUser } from '@/types/api.types';
 
 interface NotificationStats {
   total?: number;
@@ -92,9 +84,18 @@ export default function AdminNotificationsPage() {
       const fetchUsers = async () => {
         try {
           setLoadingUsers(true);
-          const response = await adminService.getUsers(1, 1000); // Fetch up to 1000 users
-          if (response?.data?.data) {
-            setUsers(response.data.data);
+          const response = await adminService.getUsers(1, 100); // Backend max per_page is 100
+          console.log('Notifications - Full response:', response);
+          
+          // API structure: response = { success, data: [...users], pagination: {...} }
+          // response.data IS the array of users!
+          const usersArray = response?.data;
+          
+          if (Array.isArray(usersArray) && usersArray.length > 0) {
+            console.log('Setting users:', usersArray);
+            setUsers(usersArray);
+          } else {
+            console.log('No users array found or empty:', usersArray);
           }
         } catch (error) {
           console.error('Error fetching users:', error);
@@ -215,16 +216,16 @@ export default function AdminNotificationsPage() {
                 </h3>
               </CardHeader>
               <CardBody>
-                <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-5">
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible md:gap-6 lg:grid-cols-5">
                   {Object.entries(notifStats.by_type).map(([type, count]) => (
                     <div
                       key={type}
-                      className="min-w-max md:min-w-0 rounded-lg border border-gray-200 p-4 text-center"
+                      className="min-w-[180px] snap-center md:min-w-0 rounded-lg border-2 border-[#d71927] bg-gradient-to-br from-[#d71927]/5 to-transparent p-4 text-center transition-all hover:shadow-lg hover:border-[#d71927]"
                     >
-                      <p className="text-sm font-medium text-gray-600 capitalize">
+                      <p className="text-sm font-semibold text-[#d71927] capitalize">
                         {type}
                       </p>
-                      <p className="mt-2 text-2xl font-bold text-gray-900">
+                      <p className="mt-3 text-3xl font-bold text-gray-900">
                         {count}
                       </p>
                     </div>
@@ -245,7 +246,7 @@ export default function AdminNotificationsPage() {
               <CardBody>
                 <div className="space-y-3">
                   {Object.entries(notifStats.by_priority).map(([priority, count]) => (
-                    <div key={priority} className="flex items-center justify-between">
+                    <div key={priority} className="flex items-center justify-between rounded-lg border-l-4 border-l-[#d71927] bg-[#d71927]/5 px-3 py-2">
                       <div className="flex items-center gap-3">
                         <Badge
                           variant={
@@ -275,7 +276,7 @@ export default function AdminNotificationsPage() {
             </Card>
           )}
 
-          {/* Quick Templates */}
+          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -283,33 +284,34 @@ export default function AdminNotificationsPage() {
               </h3>
             </CardHeader>
             <CardBody>
-              <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-3">
-                <Button
-                  variant="primary"
-                  className="min-w-max md:min-w-0"
+              <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible md:gap-4 lg:grid-cols-3">
+                <button
                   onClick={() => {
                     setSendMode('single');
                     setShowSendModal(true);
                   }}
+                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg bg-[#d71927] px-4 py-3 font-medium text-white transition-all hover:bg-[#b01620] hover:shadow-lg focus:ring-2 focus:ring-[#d71927]/50 md:justify-center"
                 >
                   <Send className="h-4 w-4" />
                   Send to User
-                </Button>
-                <Button
-                  variant="primary"
-                  className="min-w-max md:min-w-0"
+                </button>
+                <button
                   onClick={() => {
                     setSendMode('bulk');
                     setShowSendModal(true);
                   }}
+                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg bg-[#d71927] px-4 py-3 font-medium text-white transition-all hover:bg-[#b01620] hover:shadow-lg focus:ring-2 focus:ring-[#d71927]/50 md:justify-center"
                 >
                   <Send className="h-4 w-4" />
                   Send to Multiple
-                </Button>
-                <Button variant="secondary" disabled className="min-w-max md:min-w-0">
+                </button>
+                <button
+                  disabled
+                  className="min-w-max snap-center md:min-w-0 flex items-center gap-2 rounded-lg border-2 border-[#d71927] px-4 py-3 font-medium text-[#d71927] opacity-50 transition-all md:justify-center"
+                >
                   <Edit2 className="h-4 w-4" />
                   Broadcast Campaign
-                </Button>
+                </button>
               </div>
             </CardBody>
           </Card>
@@ -338,23 +340,23 @@ export default function AdminNotificationsPage() {
           title="Send Notification"
         >
           <div className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex gap-2 border-b-2 border-gray-200">
               <button
                 onClick={() => setSendMode('single')}
-                className={`flex-1 rounded-lg px-4 py-2 font-medium transition-colors ${
+                className={`flex-1 rounded-t-lg px-4 py-3 font-medium transition-all ${
                   sendMode === 'single'
-                    ? 'bg-[#a9b7ff] text-[#0a0a0a]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'border-b-2 border-[#d71927] bg-[#d71927]/5 text-[#d71927]'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Single User
               </button>
               <button
                 onClick={() => setSendMode('bulk')}
-                className={`flex-1 rounded-lg px-4 py-2 font-medium transition-colors ${
+                className={`flex-1 rounded-t-lg px-4 py-3 font-medium transition-all ${
                   sendMode === 'bulk'
-                    ? 'bg-[#a9b7ff] text-[#0a0a0a]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'border-b-2 border-[#d71927] bg-[#d71927]/5 text-[#d71927]'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Multiple Users
@@ -370,7 +372,7 @@ export default function AdminNotificationsPage() {
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="w-full flex items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 focus:border-[#a9b7ff] focus:ring-[#a9b7ff] transition"
+                    className="w-full flex items-center justify-between rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:border-[#d71927] focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 transition"
                   >
                     <span>
                       {selectedSingleUser
@@ -388,7 +390,7 @@ export default function AdminNotificationsPage() {
                           placeholder="Search users..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#a9b7ff] focus:ring-2 focus:ring-[#a9b7ff] outline-none"
+                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 outline-none transition"
                           autoFocus
                         />
                       </div>
@@ -418,7 +420,7 @@ export default function AdminNotificationsPage() {
                                   setShowUserDropdown(false);
                                   setSearchQuery('');
                                 }}
-                                className="w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-blue-50 flex items-center justify-between border-b border-gray-100 last:border-b-0 transition"
+                                className="w-full px-3 py-2 text-left text-sm text-gray-900 hover:bg-[#d71927]/5 flex items-center justify-between border-b border-gray-100 last:border-b-0 transition"
                               >
                                 <div>
                                   <p className="font-medium">
@@ -427,7 +429,7 @@ export default function AdminNotificationsPage() {
                                   <p className="text-xs text-gray-500">{u.email}</p>
                                 </div>
                                 {selectedSingleUser?.id === u.id && (
-                                  <div className="h-2 w-2 rounded-full bg-[#4a5ff7]" />
+                                  <div className="h-2 w-2 rounded-full bg-[#d71927]" />
                                 )}
                               </button>
                             ))
@@ -446,7 +448,7 @@ export default function AdminNotificationsPage() {
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="w-full flex items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 focus:border-[#a9b7ff] focus:ring-[#a9b7ff] transition"
+                    className="w-full flex items-center justify-between rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:border-[#d71927] focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 transition"
                   >
                     <span>
                       {selectedBulkUsers.length > 0
@@ -464,7 +466,7 @@ export default function AdminNotificationsPage() {
                           placeholder="Search users..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#a9b7ff] focus:ring-2 focus:ring-[#a9b7ff] outline-none"
+                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 outline-none transition"
                           autoFocus
                         />
                       </div>
@@ -488,7 +490,7 @@ export default function AdminNotificationsPage() {
                             .map((u) => (
                               <label
                                 key={u.id}
-                                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition"
+                                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 hover:bg-[#d71927]/5 border-b border-gray-100 last:border-b-0 cursor-pointer transition"
                               >
                                 <input
                                   type="checkbox"
@@ -521,7 +523,7 @@ export default function AdminNotificationsPage() {
                 {selectedBulkUsers.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {selectedBulkUsers.map((u) => (
-                      <Badge key={u.id} variant="info" className="flex items-center gap-1">
+                      <Badge key={u.id} variant="danger" className="flex items-center gap-1">
                         {u.first_name} {u.last_name}
                         <button
                           type="button"
@@ -565,7 +567,7 @@ export default function AdminNotificationsPage() {
                   setFormData({ ...formData, body: e.target.value })
                 }
                 placeholder="Notification message"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#a9b7ff] focus:ring-[#a9b7ff]"
+                className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 transition"
                 rows={3}
               />
             </div>
@@ -580,7 +582,7 @@ export default function AdminNotificationsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, type: e.target.value })
                   }
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#a9b7ff] focus:ring-[#a9b7ff]"
+                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 transition"
                 >
                   <option value="system">System</option>
                   <option value="transaction">Transaction</option>
@@ -599,7 +601,7 @@ export default function AdminNotificationsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, priority: e.target.value })
                   }
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#a9b7ff] focus:ring-[#a9b7ff]"
+                  className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:ring-2 focus:ring-[#d71927]/20 transition"
                 >
                   <option value="low">Low</option>
                   <option value="normal">Normal</option>
@@ -609,16 +611,14 @@ export default function AdminNotificationsPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button
-                variant="primary"
-                size="md"
+              <button
                 onClick={handleSend}
+                className="flex-1 rounded-lg bg-[#d71927] px-4 py-2 font-medium text-white transition-all hover:bg-[#b01620] focus:ring-2 focus:ring-[#d71927]/50"
               >
                 Send Notification
-              </Button>
-              <Button
-                variant="outline"
-                size="md"
+              </button>
+              <button
+                className="flex-1 rounded-lg border-2 border-[#d71927] px-4 py-2 font-medium text-[#d71927] transition-all hover:bg-[#d71927]/5 focus:ring-2 focus:ring-[#d71927]/50"
                 onClick={() => {
                   setShowSendModal(false);
                   setSendMode('single');
@@ -637,7 +637,7 @@ export default function AdminNotificationsPage() {
                 }}
               >
                 Cancel
-              </Button>
+              </button>
             </div>
           </div>
         </Modal>
