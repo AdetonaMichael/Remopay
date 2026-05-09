@@ -12,9 +12,6 @@ interface PINVerificationModalEnhancedProps {
   isLoading?: boolean;
   title?: string;
   description?: string;
-  isLocked?: boolean;
-  remainingSeconds?: number;
-  failedAttempts?: number;
   maxAttempts?: number;
 }
 
@@ -25,15 +22,13 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
   isLoading = false,
   title = 'Verify PIN',
   description = 'Enter your 4-digit PIN to confirm this transaction',
-  isLocked = false,
-  remainingSeconds = 0,
-  failedAttempts = 0,
   maxAttempts = 3,
 }) => {
   const [pin, setPin] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [lockdownCountdown, setLockdownCountdown] = useState(remainingSeconds);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockdownCountdown, setLockdownCountdown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Countdown timer for lockout
@@ -44,6 +39,7 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
       setLockdownCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
+          setIsLocked(false);
           return 0;
         }
         return prev - 1;
@@ -90,27 +86,52 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
     }
 
     try {
-      await onVerify(fullPin);
+      const result = await onVerify(fullPin);
+      console.log('[PINVerificationModalEnhanced] PIN verified successfully');
       setSuccess(true);
       setTimeout(() => {
         setPin(['', '', '', '']);
         setSuccess(false);
         onClose();
-      }, 1500);
+      }, 1000);
+      return result;
     } catch (err: any) {
-      const errorMsg = err?.message || 'Invalid PIN';
+      console.error('[PINVerificationModalEnhanced] PIN verification error:', err);
       
-      if (errorMsg.includes('INVALID_PIN')) {
-        const remaining = Math.max(0, maxAttempts - (failedAttempts + 1));
-        if (remaining > 0) {
-          setError(`Invalid PIN. ${remaining} attempts remaining`);
+      // Handle PIN_LOCKED error (status 423 or 429)
+      if (err.code === 'PIN_LOCKED' || err.status === 423 || err.status === 429) {
+        const remainingSeconds = err.data?.remaining_seconds || 1800;
+        setIsLocked(true);
+        setLockdownCountdown(remainingSeconds);
+        setError(`Your PIN is locked. Try again in ${formatTime(remainingSeconds)}`);
+        setPin(['', '', '', '']);
+        return;
+      }
+
+      // Handle INVALID_PIN error (status 401)
+      if (err.code === 'INVALID_PIN' || err.status === 401) {
+        const remaining = err.data?.remaining_attempts;
+        if (remaining !== undefined && remaining !== null) {
+          // If this was the last attempt, lock the PIN after this
+          if (remaining === 0) {
+            const lockSeconds = err.data?.remaining_seconds || 1800;
+            setIsLocked(true);
+            setLockdownCountdown(lockSeconds);
+            setError(`Your PIN is now locked for 30 minutes`);
+          } else if (remaining === 1) {
+            setError(`Invalid PIN. 1 attempt remaining - your PIN will be locked after this.`);
+          } else if (remaining === 2) {
+            setError(`Invalid PIN. 2 attempts remaining.`);
+          } else {
+            setError(`Invalid PIN. ${remaining} attempts remaining.`);
+          }
         } else {
-          setError('PIN locked for 30 minutes due to multiple failed attempts');
+          setError(err.message || 'Invalid PIN. Please try again.');
         }
-      } else if (errorMsg === 'PIN_LOCKED') {
-        setError('PIN is locked. Try again later.');
+      } else if (err.code === 'PIN_NOT_SET' || err.status === 400) {
+        setError('PIN not set. Please configure your PIN in settings.');
       } else {
-        setError(errorMsg);
+        setError(err.message || 'Invalid PIN. Please try again.');
       }
 
       setPin(['', '', '', '']);
@@ -125,7 +146,6 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
   };
 
   const pinComplete = pin.every((digit) => digit !== '');
-  const remainingAttempts = maxAttempts - failedAttempts;
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -230,15 +250,6 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
                 <div className="flex items-center gap-2 rounded-[12px] border border-[#fca5a5] bg-[#fef2f2] p-3 mb-4">
                   <AlertCircle className="text-[#dc2626]" size={18} />
                   <p className="text-sm text-[#dc2626]">{error}</p>
-                </div>
-              )}
-
-              {/* Attempt Counter */}
-              {failedAttempts > 0 && !error && (
-                <div className="text-center">
-                  <p className="text-xs text-[#6b7280]">
-                    Attempts remaining: <span className="font-semibold">{remainingAttempts}</span>
-                  </p>
                 </div>
               )}
             </div>

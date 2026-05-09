@@ -39,7 +39,8 @@ export const pinService = {
   },
 
   /**
-   * Verify user's transaction PIN
+   * Verify user's transaction PIN before proceeding with transaction
+   * This is step 1 of the PIN verification flow
    * @param pin - 4-digit PIN to verify
    */
   async verifyPin(pin: string): Promise<any> {
@@ -50,10 +51,19 @@ export const pinService = {
         pin,
       });
 
-      console.log('[PINService] PIN verified:', response);
+      console.log('[PINService] PIN verified successfully:', response);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[PINService] Error verifying PIN:', error);
+      
+      // Enhance error with helpful data from response
+      if (error.response?.data) {
+        const data = error.response.data;
+        error.code = data.code;
+        error.data = data.data || {};
+        error.message = data.message;
+      }
+      
       throw error;
     }
   },

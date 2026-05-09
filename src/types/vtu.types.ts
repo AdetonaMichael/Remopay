@@ -38,14 +38,14 @@ export interface VTUPaymentRequest {
   amount: string | number;
   billersCode?: string;
   country_code?: string;
-  email: string;
+  email?: string;
   operator_id?: string;
   phone: string;
   product_type_id?: string;
   request_id: string;
   serviceID: string;
   variation_code?: string;
-  user_id: number;
+  user_id?: number;
 }
 
 export interface VTUPaymentResponse {

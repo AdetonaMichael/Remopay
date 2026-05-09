@@ -48,30 +48,32 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
   };
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, index) => (
-        <Card key={index}>
-          <CardBody className="space-y-2">
-            <div className="flex items-start justify-between">
-              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-              {stat.icon && (
-                <div className="text-[#a9b7ff]">{stat.icon}</div>
-              )}
-            </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            {stat.change && (
-              <div
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getTrendColor(
-                  stat.change.direction
-                )}`}
-              >
-                {getTrendIcon(stat.change.direction)}
-                {stat.change.value}
+    <div className="mb-6 hidden-scrollbar overflow-x-auto md:overflow-x-visible">
+      <div className="inline-flex w-full gap-4 md:grid md:grid-cols-2 md:w-auto lg:grid-cols-4">
+        {stats.map((stat, index) => (
+          <Card key={index} className="min-w-[calc(100vw-3rem)] md:min-w-0">
+            <CardBody className="space-y-2">
+              <div className="flex items-start justify-between">
+                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                {stat.icon && (
+                  <div className="text-[#a9b7ff]">{stat.icon}</div>
+                )}
               </div>
-            )}
-          </CardBody>
-        </Card>
-      ))}
+              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              {stat.change && (
+                <div
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getTrendColor(
+                    stat.change.direction
+                  )}`}
+                >
+                  {getTrendIcon(stat.change.direction)}
+                  {stat.change.value}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

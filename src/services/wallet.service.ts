@@ -12,7 +12,7 @@ import {
 } from '@/types/api.types';
 
 class WalletService {
-  async getBalance(): Promise<ApiResponse<{ wallet: Wallet }>> {
+  async getBalance(): Promise<ApiResponse<Wallet>> {
     return apiClient.get('/wallet/balance');
   }
 

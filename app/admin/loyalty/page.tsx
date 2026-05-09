@@ -63,19 +63,40 @@ export default function AdminLoyaltyPage() {
 
   if (loading) return <PageSkeleton />;
 
-  const totalUsers =
-    dashboard?.users_per_tier.reduce((sum, tier) => sum + tier.user_count, 0) ||
-    0;
+  if (error) {
+    return (
+      <div className="min-h-screen space-y-8 bg-[#faf7f7] px-4 py-6 text-slate-950 dark:bg-[#090707] dark:text-white">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Convert users_per_tier object to array if needed
+  const tiersArray: Array<{ tier: string; user_count: number; average_multiplier: number }> = dashboard?.users_per_tier
+    ? Array.isArray(dashboard.users_per_tier)
+      ? dashboard.users_per_tier
+      : Object.entries(dashboard.users_per_tier)
+          .filter(([tier]) => tier !== 'None')
+          .map(([tier, count]: [string, any]) => ({
+            tier,
+            user_count: typeof count === 'object' && count !== null ? (count.user_count || 0) : (count || 0),
+            average_multiplier: typeof count === 'object' && count !== null ? (count.average_multiplier || 1.0) : 1.0,
+          }))
+    : [];
+
+  const totalUsers = tiersArray.reduce((sum, tier) => sum + (tier.user_count || 0), 0) || 0;
 
   const averageTierLevel =
-    dashboard && totalUsers > 0
-      ? dashboard.users_per_tier.reduce(
-          (sum, tier, index) => sum + (index + 1) * tier.user_count,
+    totalUsers > 0
+      ? tiersArray.reduce(
+          (sum, tier, index) => sum + (index + 1) * (tier.user_count || 0),
           0,
         ) / totalUsers
       : 0;
 
-  const goldUsers = dashboard?.users_per_tier[2]?.user_count || 0;
+  const goldUsers = tiersArray[2]?.user_count || 0;
 
   return (
     <div className="min-h-screen space-y-8 bg-[#faf7f7] px-4 py-6 text-slate-950 dark:bg-[#090707] dark:text-white sm:px-6 lg:px-8">
@@ -197,7 +218,7 @@ export default function AdminLoyaltyPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {dashboard.users_per_tier.map((tier, index) => {
+              {tiersArray.map((tier, index) => {
                 const tierName = ['Bronze', 'Silver', 'Gold'][
                   index
                 ] as keyof typeof tierMeta;
@@ -252,7 +273,7 @@ export default function AdminLoyaltyPage() {
               </div>
 
               <div className="flex h-8 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-                {dashboard.users_per_tier.map((tier, index) => {
+                {tiersArray.map((tier, index) => {
                   const tierName = ['Bronze', 'Silver', 'Gold'][
                     index
                   ] as keyof typeof tierMeta;

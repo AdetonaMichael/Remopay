@@ -90,8 +90,8 @@ export default function AdminLoyaltyUsersPage() {
 
       const matchesSearch =
         query === '' ||
-        user.email.toLowerCase().includes(query) ||
-        user.id.toString().includes(query);
+        (user.email?.toLowerCase?.().includes(query) ?? false) ||
+        (user.id?.toString?.().includes(query) ?? false);
 
       return matchesTier && matchesSearch;
     });
@@ -99,7 +99,7 @@ export default function AdminLoyaltyUsersPage() {
 
   const totalUsers = users.length;
   const goldUsers = users.filter((user) => user.tier === 'Gold').length;
-  const totalVolume = users.reduce((sum, user) => sum + user.total_volume, 0);
+  const totalVolume = users.reduce((sum, user) => sum + (user.total_volume || 0), 0);
 
   if (isLoading) {
     return <TableSkeleton />;
@@ -273,10 +273,10 @@ export default function AdminLoyaltyUsersPage() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-black text-slate-950 dark:text-white">
-                          #{user.id}
+                          #{user.id || 'N/A'}
                         </p>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          {user.email}
+                          {user.email || 'No email'}
                         </p>
                       </div>
                     </td>
@@ -284,27 +284,27 @@ export default function AdminLoyaltyUsersPage() {
                     <td className="px-6 py-4">
                       <Badge
                         className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          tierColors[user.tier as keyof typeof tierColors]
+                          tierColors[(user.tier as keyof typeof tierColors) || 'Bronze'] || tierColors.Bronze
                         }`}
                       >
-                        {user.tier}
+                        {user.tier || 'Unknown'}
                       </Badge>
                     </td>
 
                     <td className="px-6 py-4 text-right text-sm font-bold text-slate-950 dark:text-white">
-                      {user.transaction_count.toLocaleString()}
+                      {(user.transaction_count || 0).toLocaleString()}
                     </td>
 
                     <td className="px-6 py-4 text-right text-sm font-bold text-slate-950 dark:text-white">
-                      {formatMoney(user.total_volume)}
+                      {formatMoney(user.total_volume || 0)}
                     </td>
 
                     <td className="px-6 py-4 text-right text-sm font-bold text-slate-950 dark:text-white">
-                      {formatMoney(user.total_funding)}
+                      {formatMoney(user.total_funding || 0)}
                     </td>
 
                     <td className="px-6 py-4 text-right text-sm font-bold text-slate-950 dark:text-white">
-                      {user.days_active.toLocaleString()}
+                      {(user.days_active || 0).toLocaleString()}
                     </td>
                   </tr>
                 ))

@@ -24,6 +24,7 @@ import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentService } from '@/services/payment.service';
+import { pinService } from '@/services/pin.service';
 import { formatCurrency } from '@/utils/format.utils';
 import { generateIdempotencyKey } from '@/utils/idempotency.utils';
 
@@ -147,6 +148,13 @@ export default function ElectricityReviewPage() {
     setTransactionStatus('processing');
 
     try {
+      // Step 1: Verify PIN with backend
+      console.log('[BillsReview] Step 1: Verifying PIN...');
+      await pinService.verifyPin(pin);
+      console.log('[BillsReview] Step 1: PIN verified successfully');
+
+      // Step 2: Process transaction (PIN already verified)
+      console.log('[BillsReview] Step 2: Processing electricity transaction...');
       const requestId = generateIdempotencyKey();
 
       const paymentPayload = {
@@ -159,51 +167,18 @@ export default function ElectricityReviewPage() {
         user_email: email,
         payment_method: paymentMethod,
         request_id: requestId,
+        // NOTE: PIN is NOT included here - it was verified in step 1
       };
 
       const paymentResult = await execute(
         paymentService.purchaseElectricity(paymentPayload)
       );
+      console.log('[BillsReview] Transaction response:', paymentResult);
 
-      if (!paymentResult?.success) {
-        const errorCode =
-          (paymentResult as any)?.code || paymentResult?.error_code;
-
-        if (errorCode === 'INSUFFICIENT_USER_BALANCE') {
-          const required = amountValue;
-          const current = (paymentResult as any)?.current_balance || 0;
-          const shortfall = required - current;
-
-          setInsufficientBalance(true);
-          setBalanceInfo({
-            requiredAmount: required,
-            currentBalance: current,
-            shortfall: Math.max(0, shortfall),
-          });
-          setTransactionStatus('error');
-          setShowPINModal(false);
-          return;
-        }
-
-        setTransactionStatus('error');
-        alertError(paymentResult?.message || 'Payment failed');
-        setShowPINModal(false);
-        return;
-      }
-
-      const confirmResult = await execute(
-        paymentService.confirmPayment({
-          request_id: requestId,
-          pin,
-          user_id: user.id,
-        })
-      );
-
-      if (confirmResult?.success) {
+      if (paymentResult?.success) {
         success('Electricity bill payment successful!');
         setTransactionStatus('success');
         setShowPINModal(false);
-
         sessionStorage.removeItem('electricityFormData');
 
         setTimeout(() => {
@@ -213,13 +188,59 @@ export default function ElectricityReviewPage() {
         return;
       }
 
+      const errorCode =
+        (paymentResult as any)?.code || paymentResult?.error_code;
+
+      if (errorCode === 'INSUFFICIENT_USER_BALANCE') {
+        const required = amountValue;
+        const current = (paymentResult as any)?.current_balance || 0;
+        const shortfall = required - current;
+
+        setInsufficientBalance(true);
+        setBalanceInfo({
+          requiredAmount: required,
+          currentBalance: current,
+          shortfall: Math.max(0, shortfall),
+        });
+        setTransactionStatus('error');
+        setShowPINModal(false);
+        return;
+      }
+
       setTransactionStatus('error');
-      alertError(confirmResult?.message || 'Payment confirmation failed');
+      alertError(paymentResult?.message || 'Payment failed');
       setShowPINModal(false);
-    } catch (err: any) {
+    } catch (error: any) {
+      console.error('[BillsReview] Error:', error);
+      setShowPINModal(false);
       setTransactionStatus('error');
-      alertError(err?.message || 'Payment processing failed');
-      setShowPINModal(false);
+
+      // Handle PIN verification errors
+      if (error.code === 'INVALID_PIN') {
+        const remaining = error.data?.remaining_attempts;
+        if (remaining === 0) {
+          alertError('Your PIN is now locked for 30 minutes due to too many failed attempts.');
+        } else {
+          alertError(`Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+        }
+        return;
+      }
+
+      if (error.code === 'PIN_LOCKED') {
+        alertError(
+          `Your PIN is temporarily locked. Try again in ${Math.ceil(
+            error.data?.remaining_seconds / 60
+          )} minutes.`
+        );
+        return;
+      }
+
+      if (error.code === 'PIN_NOT_SET') {
+        alertError('Please set your PIN in settings before making payments.');
+        return;
+      }
+
+      alertError(error.message || 'Transaction failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }

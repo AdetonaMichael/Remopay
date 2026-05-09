@@ -174,6 +174,12 @@ export default function RewardsPage() {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
       `}</style>
 
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-extrabold tracking-tight text-white">Rewards</h1>
+        <p className="mt-2 text-[#667085]">Earn and redeem rewards from your transactions</p>
+      </div>
+
       {eligibility && !eligibility.eligible_for_rewards && (
         <Card className="rounded-[28px] border border-amber-200 bg-amber-50 p-5">
           <div className="flex items-start gap-3">
@@ -209,23 +215,25 @@ export default function RewardsPage() {
         <div className="space-y-6">
           <div className="overflow-x-auto pb-2 scrollbar-hide">
             <div className="flex min-w-min gap-4 md:grid md:min-w-full md:grid-cols-3 md:gap-4">
-              <Card className="relative shrink-0 overflow-hidden rounded-[32px] border border-[#4A5FF7]/20 bg-[#4A5FF7] p-6 text-white shadow-[0_18px_45px_rgba(74,95,247,0.24)] w-full sm:w-80 md:w-auto">
-                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10" />
+              <Card className="relative shrink-0 overflow-hidden rounded-[32px] border border-[#E6E9F5] bg-[#FCFCFF] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] w-full sm:w-80 md:w-auto">
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#d71927]/5" />
                 <div className="relative flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-white/75">
+                    <p className="text-sm font-semibold text-[#667085]">
                       Available Balance
                     </p>
-                    <h2 className="mt-3 text-3xl font-extrabold tracking-tight">
+                    <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
                       {formatCurrency(availableBalance)}
                     </h2>
                     {lockedBalance > 0 && (
-                      <p className="mt-2 text-xs font-medium text-white/70">
+                      <p className="mt-2 text-xs font-medium text-[#98A2B3]">
                         {formatCurrency(lockedBalance)} locked
                       </p>
                     )}
                   </div>
-                  <Wallet className="text-white/35" size={42} />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#d71927]">
+                    <Wallet size={24} />
+                  </div>
                 </div>
               </Card>
 
@@ -239,7 +247,7 @@ export default function RewardsPage() {
                       {formatCurrency(statistics?.total_earned)}
                     </h3>
                   </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#d71927]">
                     <TrendingUp size={24} />
                   </div>
                 </div>
@@ -255,7 +263,7 @@ export default function RewardsPage() {
                       {formatCurrency(statistics?.total_redeemed)}
                     </h3>
                   </div>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#d71927]">
                     <Gift size={24} />
                   </div>
                 </div>
@@ -263,11 +271,11 @@ export default function RewardsPage() {
             </div>
           </div>
 
-          <Card className="rounded-[32px] border border-[#DCE3FF] bg-[#FCFCFF] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:p-8">
+          <Card className="rounded-[32px] border border-[#ffe5e8] bg-[#FCFCFF] p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)] sm:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end">
               <div className="flex-1">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#d71927]">
                     <Wallet size={22} />
                   </div>
                   <div>
@@ -289,7 +297,7 @@ export default function RewardsPage() {
                   }}
                   placeholder="Enter amount"
                   disabled={isRedeeming || availableBalance === 0}
-                  className="h-13 w-full rounded-2xl border border-[#E6E9F5] bg-white px-4 text-base font-semibold text-[#111827] outline-none transition focus:border-[#4A5FF7] focus:ring-4 focus:ring-[#4A5FF7]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-13 w-full rounded-2xl border border-[#E6E9F5] bg-white px-4 text-base font-semibold text-[#111827] outline-none transition focus:border-[#d71927] focus:ring-4 focus:ring-[#d71927]/10 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <p className="mt-2 text-xs font-semibold text-[#667085]">
@@ -301,7 +309,7 @@ export default function RewardsPage() {
                 onClick={handleRedeem}
                 isLoading={isRedeeming}
                 disabled={!canRedeem || availableBalance === 0}
-                className="h-13 rounded-2xl bg-[#4A5FF7] px-8 text-base font-bold text-white shadow-[0_14px_30px_rgba(74,95,247,0.24)] hover:bg-[#3B4FE0] disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-13 rounded-2xl bg-[#d71927] px-8 text-base font-bold text-white shadow-[0_14px_30px_rgba(215,25,39,0.24)] hover:bg-[#b81420] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isRedeeming ? 'Redeeming...' : 'Redeem Rewards'}
               </Button>
@@ -326,11 +334,11 @@ export default function RewardsPage() {
                   {campaigns.map((campaign) => (
                     <Card
                       key={campaign.id}
-                      className="relative shrink-0 rounded-[28px] border border-[#E6E9F5] bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] transition hover:border-[#A9B7FF] hover:shadow-[0_18px_45px_rgba(74,95,247,0.09)] w-full sm:w-96 md:w-auto"
+                      className="relative shrink-0 rounded-[28px] border border-[#E6E9F5] bg-white p-5 shadow-[0_14px_35px_rgba(15,23,42,0.04)] transition hover:border-[#d71927] hover:shadow-[0_18px_45px_rgba(215,25,39,0.09)] w-full sm:w-96 md:w-auto"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4A5FF7]">
+                          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#d71927]">
                             <Trophy size={22} />
                           </div>
 
@@ -351,7 +359,7 @@ export default function RewardsPage() {
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
                             Reward
                           </p>
-                          <p className="mt-2 text-lg font-extrabold text-[#4A5FF7]">
+                          <p className="mt-2 text-lg font-extrabold text-[#d71927]">
                             {formatCurrency(campaign.reward_for_you)}
                           </p>
                         </div>
@@ -436,8 +444,8 @@ export default function RewardsPage() {
               </div>
             )}
 
-            <div className="mt-5 rounded-2xl border border-[#DCE3FF] bg-[#F7F8FF] p-4">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#4A5FF7]">
+            <div className="mt-5 rounded-2xl border border-[#ffe5e8] bg-[#fff1f2] p-4">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#d71927]">
                 <Lock size={13} />
                 Secure Rewards
               </p>

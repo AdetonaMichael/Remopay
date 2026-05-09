@@ -23,6 +23,7 @@ import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
 import { paymentService } from '@/services/payment.service';
+import { pinService } from '@/services/pin.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/ui.store';
 import { formatCurrency } from '@/utils/format.utils';
@@ -126,6 +127,13 @@ export default function DataReviewPage() {
     setTransactionStatus('processing');
 
     try {
+      // Step 1: Verify PIN with backend
+      console.log('[DataReview] Step 1: Verifying PIN...');
+      await pinService.verifyPin(pin);
+      console.log('[DataReview] Step 1: PIN verified successfully');
+
+      // Step 2: Process transaction (PIN already verified)
+      console.log('[DataReview] Step 2: Processing data transaction...');
       const now = new Date();
       const requestId = `${now.getFullYear()}${String(
         now.getMonth() + 1
@@ -142,42 +150,26 @@ export default function DataReviewPage() {
         user_id: user.id?.toString(),
         payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
         request_id: requestId,
+        // NOTE: PIN is NOT included here - it was verified in step 1
       };
 
       const response = await paymentService.purchaseData(dataPayload);
+      console.log('[DataReview] Transaction response:', response);
 
       if (response.success && response.data) {
-        const confirmResponse = await paymentService.confirmDataPurchase(
-          requestId,
-          { pin, request_id: requestId }
-        );
+        setTransactionId(response.data?.transaction_id || requestId);
+        setTransactionStatus('success');
+        setShowPINModal(false);
+        sessionStorage.removeItem('dataFormData');
 
-        if (confirmResponse.success) {
-          setTransactionId(confirmResponse.data?.id || requestId);
-          setTransactionStatus('success');
-          setShowPINModal(false);
-
-          sessionStorage.removeItem('dataFormData');
-
-          addToast({
-            message: 'Data purchased successfully!',
-            type: 'success',
-          });
-
-          setTimeout(() => {
-            router.push('/dashboard/history');
-          }, 2500);
-
-          return;
-        }
-
-        setTransactionStatus('error');
         addToast({
-          message:
-            confirmResponse.message ||
-            'PIN verification failed. Please try again.',
-          type: 'error',
+          message: 'Data purchased successfully!',
+          type: 'success',
         });
+
+        setTimeout(() => {
+          router.push('/dashboard/history');
+        }, 2500);
 
         return;
       }
@@ -201,28 +193,50 @@ export default function DataReviewPage() {
         type: 'error',
       });
     } catch (error: any) {
-      if (error?.isDuplicateError) {
-        addToast({
-          message:
-            'This data purchase has already been processed. Please check your history.',
-          type: 'info',
-        });
-      } else if (error?.isIdempotencyError) {
-        addToast({
-          message: 'Payment system error. Please try again.',
-          type: 'error',
-        });
-      } else {
-        addToast({
-          message:
-            error?.response?.data?.message ||
-            error?.message ||
-            'Failed to process payment. Please try again.',
-          type: 'error',
-        });
+      console.error('[DataReview] Error:', error);
+      setShowPINModal(false);
+      setTransactionStatus('error');
+      setIsProcessing(false);
+
+      // Handle PIN verification errors
+      if (error.code === 'INVALID_PIN') {
+        const remaining = error.data?.remaining_attempts;
+        if (remaining === 0) {
+          addToast({
+            message: 'Your PIN is now locked for 30 minutes due to too many failed attempts.',
+            type: 'error',
+          });
+        } else {
+          addToast({
+            message: `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+            type: 'error',
+          });
+        }
+        return;
       }
 
-      setTransactionStatus('error');
+      if (error.code === 'PIN_LOCKED') {
+        addToast({
+          message: `Your PIN is temporarily locked. Try again in ${Math.ceil(
+            error.data?.remaining_seconds / 60
+          )} minutes.`,
+          type: 'error',
+        });
+        return;
+      }
+
+      if (error.code === 'PIN_NOT_SET') {
+        addToast({
+          message: 'Please set your PIN in settings before making payments.',
+          type: 'error',
+        });
+        return;
+      }
+
+      addToast({
+        message: error.message || 'Transaction failed. Please try again.',
+        type: 'error',
+      });
     } finally {
       setIsProcessing(false);
     }

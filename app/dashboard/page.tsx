@@ -133,8 +133,8 @@ export default function DashboardPage() {
             : Promise.resolve(null),
         ]);
 
-        if (walletRes?.data?.wallet) {
-          setWallet(walletRes.data.wallet);
+        if (walletRes?.data) {
+          setWallet(walletRes.data as WalletData);
         }
 
         if (transactionsRes?.data?.transactions) {

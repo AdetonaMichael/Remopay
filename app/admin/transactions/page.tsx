@@ -3,13 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  CreditCard,
-  Download,
-  Eye,
   Filter,
+  Eye,
 } from 'lucide-react';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -18,7 +13,6 @@ import { AdminStats } from '@/components/admin/AdminStats';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
 import { Button } from '@/components/shared/Button';
-import { Badge } from '@/components/shared/Badge';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
@@ -28,7 +22,7 @@ interface Transaction {
   id: string | number;
   user_id: number;
   transaction_type: string;
-  amount: number;
+  amount: string | number;  // API returns as string
   status: string;
   transaction_date: string;
   reference: string;
@@ -130,73 +124,93 @@ export default function AdminTransactionsPage() {
     try {
       setIsLoading(true);
       const filtersToUse = filterValues || filters;
+      
       const response = await adminService.getAllTransactions(page, 50, filtersToUse);
 
-      if (response?.data) {
-        if (response.data.data) {
-          setTransactions(response.data.data);
-          const pagination = response.data.pagination;
-          setTotalPages(pagination?.last_page || 1);
-        }
+      // The API returns data directly in response.data, not response.data.data
+      const transactionsData = response?.data?.transactions;
+      const paginationData = response?.data?.pagination;
 
-        // Calculate stats
-        if (response.data.data && Array.isArray(response.data.data)) {
-          const total = response.data.data.length;
-          const completed = response.data.data.filter(
-            (t: Transaction) => t.status === 'completed'
-          ).length;
-          const failed = response.data.data.filter(
-            (t: Transaction) => t.status === 'failed'
-          ).length;
-          const pending = response.data.data.filter(
-            (t: Transaction) => t.status === 'pending'
-          ).length;
-          const totalAmount = response.data.data.reduce(
-            (sum: number, t: Transaction) => sum + Number(t.amount),
-            0
-          );
+      if (!response?.data) {
+        setTransactions([]);
+        setStats({});
+        return;
+      }
 
-          setStats({
-            total_transactions: total,
-            total_amount: totalAmount,
-            completed_count: completed,
-            failed_count: failed,
-            pending_count: pending,
-          });
-        }
+      // Set transactions
+      if (Array.isArray(transactionsData)) {
+        setTransactions(transactionsData);
+      } else {
+        setTransactions([]);
+      }
+
+      // Set pagination
+      if (paginationData) {
+        setTotalPages(paginationData.last_page || 1);
+      }
+
+      // Calculate stats
+      if (Array.isArray(transactionsData) && transactionsData.length > 0) {
+        const total = transactionsData.length;
+        const completed = transactionsData.filter(
+          (t: Transaction) => t.status === 'completed'
+        ).length;
+        const failed = transactionsData.filter(
+          (t: Transaction) => t.status === 'failed'
+        ).length;
+        const pending = transactionsData.filter(
+          (t: Transaction) => t.status === 'pending'
+        ).length;
+        const totalAmount = transactionsData.reduce(
+          (sum: number, t: Transaction) => sum + Number(t.amount),
+          0
+        );
+
+        setStats({
+          total_transactions: total,
+          total_amount: totalAmount,
+          completed_count: completed,
+          failed_count: failed,
+          pending_count: pending,
+        });
+      } else {
+        setStats({
+          total_transactions: 0,
+          total_amount: 0,
+          completed_count: 0,
+          failed_count: 0,
+          pending_count: 0,
+        });
       }
     } catch (error) {
-      console.error('Error fetching transactions:', error);
+      console.error('[AdminTransactions] Error fetching transactions:', error);
+      setTransactions([]);
+      setStats({});
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('[AdminTransactions] useEffect triggered with currentPage:', currentPage);
     fetchTransactions(currentPage);
   }, [currentPage]);
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
-      completed: 'success',
-      failed: 'danger',
-      pending: 'warning',
+    const statusStyles: Record<string, { bg: string; text: string }> = {
+      completed: { bg: 'bg-green-100', text: 'text-green-800' },
+      failed: { bg: 'bg-red-100', text: 'text-red-800' },
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+      success: { bg: 'bg-[#f0f2ff]', text: 'text-[#8a96ff]' },
+      delivered: { bg: 'bg-blue-100', text: 'text-blue-800' },
     };
-    const variant = statusMap[status] || 'info';
-    return <Badge variant={variant}>{status}</Badge>;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'failed':
-        return <AlertCircle className="h-5 w-5 text-red-600" />;
-      case 'pending':
-        return <Clock className="h-5 w-5 text-amber-500" />;
-      default:
-        return <CreditCard className="h-5 w-5 text-gray-400" />;
-    }
+    
+    const style = statusStyles[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+    return (
+      <span className={`inline-block font-medium rounded-full ${style.bg} ${style.text} px-3 py-1 caption`}>
+        {status}
+      </span>
+    );
   };
 
   const statsItems = [
@@ -245,7 +259,7 @@ export default function AdminTransactionsPage() {
       key: 'amount',
       label: 'Amount',
       width: '120px',
-      render: (value: number) => formatCurrency(value),
+      render: (value: string | number) => formatCurrency(typeof value === 'string' ? parseFloat(value) : value),
     },
     {
       key: 'status',
@@ -372,7 +386,7 @@ export default function AdminTransactionsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Amount</p>
                 <p className="mt-1 text-base font-semibold text-gray-900">
-                  {formatCurrency(selectedTransaction.amount)}
+                  {formatCurrency(typeof selectedTransaction.amount === 'string' ? parseFloat(selectedTransaction.amount) : selectedTransaction.amount)}
                 </p>
               </div>
               <div>

@@ -131,6 +131,7 @@ class PaymentService {
   /**
    * Purchase airtime with idempotency
    * Automatically includes idempotency key
+   * NOTE: PIN verification happens separately via pinService.verifyPin()
    */
   async purchaseAirtime(
     payload: AirtimePurchaseRequest,
@@ -215,6 +216,7 @@ class PaymentService {
 
   /**
    * Purchase data bundle with idempotency
+   * NOTE: PIN verification happens separately via pinService.verifyPin()
    */
   async purchaseData(
     payload: any,
@@ -374,6 +376,7 @@ class PaymentService {
   /**
    * Purchase electricity bill with idempotency
    * Maps electricity form data to /vtu/pay endpoint
+   * NOTE: PIN verification happens separately via pinService.verifyPin()
    */
   async purchaseElectricity(payload: any, retryCount: number = 0): Promise<ApiResponse<any>> {
     try {

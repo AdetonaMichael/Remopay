@@ -128,7 +128,36 @@ class RewardService {
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch current tier');
     }
-    return response.data!;
+    
+    // Handle nested data structure where actual data might be in response.data.data
+    const data = response.data as any;
+    const tierData = data?.data || data;
+    
+    // Ensure all required fields exist with defaults
+    const result: CurrentTier = {
+      current_tier: tierData?.current_tier || { level: 0, name: 'None' as any },
+      progress_to_next: tierData?.progress_to_next || {
+        next_tier_name: '',
+        next_tier_level: 0,
+        transaction_progress: '0 / 0',
+        volume_progress: '0 / 0',
+        funding_progress: '0 / 0',
+        days_active_progress: '0 / 0',
+      },
+      current_metrics: tierData?.current_metrics || {
+        transactions: 0,
+        total_volume: 0,
+        total_funding: 0,
+        days_active: 0,
+      },
+      benefits: tierData?.benefits || {
+        cashback_multiplier: 1,
+        referral_multiplier: 1,
+        bonus_multiplier: 1,
+      },
+    };
+    
+    return result;
   }
 
   async getAllTiers(): Promise<LoyaltyTier[]> {

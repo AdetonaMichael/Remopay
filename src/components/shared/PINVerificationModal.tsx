@@ -66,8 +66,30 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
     try {
       await onVerify(fullPin);
       // Modal will be closed by parent on success
-    } catch (err) {
-      setError('Invalid PIN. Please try again.');
+    } catch (err: any) {
+      // Handle specific PIN error codes
+      if (err.code === 'INVALID_PIN') {
+        const remaining = err.data?.remaining_attempts;
+        if (remaining !== undefined && remaining !== null) {
+          if (remaining === 0) {
+            setError('Your PIN is now locked for 30 minutes due to too many failed attempts.');
+          } else if (remaining === 1) {
+            setError(`Invalid PIN. 1 attempt remaining - your PIN will be locked after this.`);
+          } else {
+            setError(`Invalid PIN. ${remaining} attempts remaining.`);
+          }
+        } else {
+          setError('Invalid PIN. Please try again.');
+        }
+      } else if (err.code === 'PIN_LOCKED') {
+        const mins = Math.ceil((err.data?.remaining_seconds || 1800) / 60);
+        setError(`Your PIN is locked. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
+      } else if (err.code === 'PIN_NOT_SET') {
+        setError('PIN not set. Please configure your PIN in settings.');
+      } else {
+        setError(err.message || 'Invalid PIN. Please try again.');
+      }
+      
       setPin(['', '', '', '']);
       inputRefs.current[0]?.focus();
     }
