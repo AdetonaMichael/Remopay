@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse } from '@/types/api.types';
+import { debug } from '@/utils/debug.utils';
 import {
   generateIdempotencyKey,
   getStoredIdempotencyKey,
@@ -42,7 +43,7 @@ const PAYMENT_OPERATIONS = [
   '/transactions/withdraw',
 ];
 
-console.log('[ApiClient] Initializing API Client with:', {
+debug.log('[ApiClient] Initializing API Client with:', {
   API_BASE_URL,
   env: process.env.NEXT_PUBLIC_API_URL,
   isProduction: process.env.NODE_ENV === 'production',
@@ -97,26 +98,14 @@ class ApiClient {
       (config: ExtendedAxiosRequestConfig) => {
         const token = this.getToken();
         
-        console.log('[ApiClient] ===== REQUEST INTERCEPTOR =====');
-        console.log('[ApiClient] Making request:', {
-          method: config.method?.toUpperCase(),
-          url: config.url,
-          fullUrl: `${config.baseURL}${config.url}`,
-          hasToken: !!token,
-          tokenPreview: token ? `${token.substring(0, 20)}...` : 'NO_TOKEN',
-          timestamp: new Date().toISOString(),
-        });
+        debug.log('[ApiClient] ===== REQUEST INTERCEPTOR =====');
+        debug.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data);
         
         if (token && token.length > 0) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('[ApiClient] ✓ Authorization token added to request');
+          debug.log('[ApiClient] ✓ Authorization token added to request');
         } else {
-          console.warn('[ApiClient] ⚠️ No valid token found - request will be unauthenticated');
-          console.warn('[ApiClient] Token value:', token);
-          // Log all localStorage keys for debugging
-          if (typeof window !== 'undefined') {
-            console.warn('[ApiClient] Available localStorage keys:', Object.keys(localStorage));
-          }
+          debug.warn('[ApiClient] ⚠️ No valid token found - request will be unauthenticated');
         }
 
         // Add idempotency key for payment operations
@@ -137,15 +126,15 @@ class ApiClient {
 
           // Add idempotency key header
           config.headers['Idempotency-Key'] = idempotencyKey;
-          console.log(`[ApiClient] Added Idempotency-Key: ${idempotencyKey} for ${url}`);
+          debug.log('[ApiClient] Added Idempotency-Key for payment operation');
         }
         
         config.retry = config.retry || 0;
-        console.log('[ApiClient] Request interceptor completed');
+        debug.log('[ApiClient] Request interceptor completed');
         return config;
       },
       (error) => {
-        console.error('[ApiClient] Request interceptor error:', error);
+        debug.error('[ApiClient] Request interceptor error:', error);
         return Promise.reject(error);
       }
     );
@@ -153,15 +142,8 @@ class ApiClient {
     // Response interceptor
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        console.log('[ApiClient] ===== RESPONSE RECEIVED =====');
-        console.log('[ApiClient] Response success:', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.config.url,
-          data: response.data,
-          headers: response.headers,
-          timestamp: new Date().toISOString(),
-        });
+        debug.log('[ApiClient] ===== RESPONSE RECEIVED =====');
+        debug.logResponse(response.status, response.config.url || '', response.data);
 
         // Transform backend response format to match ApiResponse interface
         // Backend returns { status, message, data } but frontend expects { success, message, data }
@@ -184,18 +166,14 @@ class ApiClient {
         return response;
       },
       async (error: AxiosError) => {
-        console.error('[ApiClient] ===== RESPONSE ERROR =====');
+        debug.error('[ApiClient] ===== RESPONSE ERROR =====');
         const endpoint = error.config?.url || 'unknown';
-        console.error('[ApiClient] Axios error details:', {
+        debug.error('[ApiClient] Axios error details:', {
           message: error.message,
           code: error.code,
           status: error.response?.status,
           statusText: error.response?.statusText,
           url: error.config?.url,
-          fullUrl: `${error.config?.baseURL}${error.config?.url}`,
-          responseData: error.response?.data,
-          responseHeaders: error.response?.headers,
-          timestamp: new Date().toISOString(),
         });
 
         // Track the API error
@@ -211,12 +189,11 @@ class ApiClient {
           const idempotencyError = parseIdempotencyError(error as AxiosError<any>);
           const action = getErrorAction(idempotencyError);
           
-          console.error('[Idempotency] Error details:', {
+          debug.error('[Idempotency] Error details:', {
             type: idempotencyError.type,
             message: idempotencyError.message,
             isRetryable: idempotencyError.isRetryable,
             action,
-            timestamp: new Date().toISOString(),
           });
 
           // Clear operation key on duplicate/invalid errors
@@ -245,14 +222,14 @@ class ApiClient {
         // Retry logic for network errors
         if (error.response?.status !== 401 && config && config.retry! < this.maxRetries) {
           config.retry = (config.retry || 0) + 1;
-          console.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
+          debug.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
           await this.delay(this.retryDelay * config.retry);
           return this.axiosInstance(config);
         }
 
         // Handle 401 - Unauthorized (session expired or invalid token)
         if (error.response?.status === 401) {
-          console.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
+          debug.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
           if (typeof window !== 'undefined') {
             // Clear token and auth store immediately
             this.clearToken();
@@ -260,7 +237,7 @@ class ApiClient {
               sessionStorage.removeItem('auth-store');
               localStorage.removeItem('auth-store');
             } catch (e) {
-              console.warn('[ApiClient] Error clearing auth store:', e);
+              debug.warn('[ApiClient] Error clearing auth store');
             }
             // Redirect to landing page
             window.location.href = '/';
@@ -270,7 +247,7 @@ class ApiClient {
 
         // Handle 403 - Forbidden access
         if (error.response?.status === 403) {
-          console.error('[ApiClient] Got 403 - access forbidden');
+          debug.error('[ApiClient] Got 403 - access forbidden');
           const formattedError = this.formatError(error);
           // Store 403 error in session for error modal to display
           if (typeof window !== 'undefined') {
@@ -283,7 +260,7 @@ class ApiClient {
           return Promise.reject(formattedError);
         }
 
-        console.error('[ApiClient] Request failed - no retry', error);
+        debug.error('[ApiClient] Request failed - no retry');
         return Promise.reject(this.formatError(error));
       }
     );

@@ -6,7 +6,7 @@ import { AuthInitializer } from '@/components/AuthInitializer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
 import { Error403Modal } from '@/components/Error403Modal';
-import { initializeDebugLogging } from '@/utils/debug.utils';
+import { debug, initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
 import { initializeIdempotencyMaintenance } from '@/utils/idempotency-maintenance.utils';
 
@@ -18,15 +18,15 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
   useEffect(() => {
     // Initialize comprehensive error tracking
     initializeErrorTracking();
-    console.log('[Providers] Error tracking initialized');
+    debug.log('[Providers] Error tracking initialized');
     
-    // Initialize debug logging for mobile error tracking
+    // Initialize debug logging & security measures (DevTools detection, error capture)
     initializeDebugLogging();
-    console.log('[Providers] Debug logging initialized');
+    debug.log('[Providers] Debug & security measures initialized');
 
     // Initialize idempotency maintenance (cleanup expired keys, periodic tasks)
     initializeIdempotencyMaintenance();
-    console.log('[Providers] Idempotency maintenance initialized');
+    debug.log('[Providers] Idempotency maintenance initialized');
   }, []);
 
   return (
