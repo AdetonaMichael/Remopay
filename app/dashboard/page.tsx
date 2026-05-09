@@ -271,21 +271,42 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              {/* Bottom Left - Dedicated Account (if exists) */}
+              {/* Account Details - if exists */}
               {dedicatedAccount && (
-                <div className="col-span-2 border-t border-white/10 pt-3 space-y-2">
-                  <div>
-                    <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">Account</p>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <p className="font-mono text-sm font-bold text-white">
-                        {dedicatedAccount.account_number}
+                <div className="col-span-2 border-t border-white/10 pt-3 space-y-2.5">
+                  <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">Account</p>
+                  
+                  {/* Account Number */}
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-mono text-sm font-bold text-white">
+                      {dedicatedAccount.account_number}
+                    </p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(dedicatedAccount.account_number);
+                      }}
+                      className="inline-flex items-center justify-center rounded-md bg-white/15 p-1 text-white/70 hover:bg-white/25 transition-colors flex-shrink-0"
+                      title="Copy account number"
+                    >
+                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z" />
+                        <path d="M2 6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5a.5.5 0 0 0-1 0V16a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.5a.5.5 0 0 0 0-1H2z" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Account Name */}
+                  {dedicatedAccount.account_name && (
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-white/80">
+                        {dedicatedAccount.account_name}
                       </p>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(dedicatedAccount.account_number);
+                          navigator.clipboard.writeText(dedicatedAccount.account_name);
                         }}
                         className="inline-flex items-center justify-center rounded-md bg-white/15 p-1 text-white/70 hover:bg-white/25 transition-colors flex-shrink-0"
-                        title="Copy account number"
+                        title="Copy account name"
                       >
                         <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z" />
@@ -293,7 +314,9 @@ export default function DashboardPage() {
                         </svg>
                       </button>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Bank Name */}
                   <p className="text-xs text-white/50 font-semibold">{dedicatedAccount.bank_name}</p>
                 </div>
               )}
