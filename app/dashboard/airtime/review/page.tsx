@@ -46,6 +46,7 @@ export default function AirtimeReviewPage() {
   const [transactionStatus, setTransactionStatus] =
     useState<TransactionStatus>('idle');
   const [transactionId, setTransactionId] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const savedData = sessionStorage.getItem('airtimeFormData');
@@ -135,40 +136,51 @@ export default function AirtimeReviewPage() {
         message: responseData?.message || 'Transaction failed. Please try again.',
         type: 'error',
       });
+      setErrorMessage(responseData?.message || 'Please review your wallet balance or try again.');
     } catch (error: any) {
       console.error('[AirtimeReview] Error:', error);
       setShowPINModal(false);
       setTransactionStatus('error');
       setIsProcessing(false);
 
+      // Check if there's an originalMessage from backend (idempotency errors)
+      if (error.originalMessage) {
+        setErrorMessage(error.originalMessage);
+        addToast({
+          message: error.originalMessage,
+          type: 'error',
+        });
+        return;
+      }
+
       // Handle PIN verification errors
       if (error.code === 'INVALID_PIN') {
         const remaining = error.data?.remaining_attempts;
-        if (remaining === 0) {
-          addToast({
-            message: 'Your PIN is now locked for 30 minutes due to too many failed attempts.',
-            type: 'error',
-          });
-        } else {
-          addToast({
-            message: `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
-            type: 'error',
-          });
-        }
+        const pinErrorMsg = remaining === 0
+          ? 'Your PIN is now locked for 30 minutes due to too many failed attempts.'
+          : `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`;
+        setErrorMessage(pinErrorMsg);
+        addToast({
+          message: pinErrorMsg,
+          type: 'error',
+        });
         return;
       }
 
       if (error.code === 'PIN_LOCKED') {
+        const lockMsg = `Your PIN is temporarily locked. Try again in ${Math.ceil(
+          error.data?.remaining_seconds / 60
+        )} minutes.`;
+        setErrorMessage(lockMsg);
         addToast({
-          message: `Your PIN is temporarily locked. Try again in ${Math.ceil(
-            error.data?.remaining_seconds / 60
-          )} minutes.`,
+          message: lockMsg,
           type: 'error',
         });
         return;
       }
 
       if (error.code === 'PIN_NOT_SET') {
+        setErrorMessage('Please set your PIN in settings before making payments.');
         addToast({
           message: 'Please set your PIN in settings before making payments.',
           type: 'error',
@@ -176,8 +188,10 @@ export default function AirtimeReviewPage() {
         return;
       }
 
+      const errorMsg = error.message || 'Transaction failed. Please try again.';
+      setErrorMessage(errorMsg);
       addToast({
-        message: error.message || 'Transaction failed. Please try again.',
+        message: errorMsg,
         type: 'error',
       });
     } finally {
@@ -429,9 +443,11 @@ export default function AirtimeReviewPage() {
                     <p className="text-sm font-extrabold text-red-900">
                       Transaction failed
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-red-700">
-                      Please review your wallet balance or try again.
-                    </p>
+                    {errorMessage && (
+                      <p className="mt-1 text-xs leading-5 text-red-700">
+                        {errorMessage}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

@@ -57,6 +57,7 @@ export default function ElectricityReviewPage() {
   const [transactionStatus, setTransactionStatus] =
     useState<TransactionStatus>('idle');
   const [insufficientBalance, setInsufficientBalance] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [balanceInfo, setBalanceInfo] = useState<{
     requiredAmount: number;
     currentBalance: number;
@@ -199,38 +200,49 @@ export default function ElectricityReviewPage() {
 
       setTransactionStatus('error');
       alertError(responseData?.message || 'Payment failed');
+      setErrorMessage(responseData?.message || 'Please review your wallet balance or try again.');
       setShowPINModal(false);
     } catch (error: any) {
       console.error('[BillsReview] Error:', error);
       setShowPINModal(false);
       setTransactionStatus('error');
 
+      // Check if there's an originalMessage from backend (idempotency errors)
+      if (error.originalMessage) {
+        setErrorMessage(error.originalMessage);
+        alertError(error.originalMessage);
+        return;
+      }
+
       // Handle PIN verification errors
       if (error.code === 'INVALID_PIN') {
         const remaining = error.data?.remaining_attempts;
-        if (remaining === 0) {
-          alertError('Your PIN is now locked for 30 minutes due to too many failed attempts.');
-        } else {
-          alertError(`Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
-        }
+        const pinErrorMsg = remaining === 0
+          ? 'Your PIN is now locked for 30 minutes due to too many failed attempts.'
+          : `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`;
+        setErrorMessage(pinErrorMsg);
+        alertError(pinErrorMsg);
         return;
       }
 
       if (error.code === 'PIN_LOCKED') {
-        alertError(
-          `Your PIN is temporarily locked. Try again in ${Math.ceil(
-            error.data?.remaining_seconds / 60
-          )} minutes.`
-        );
+        const lockMsg = `Your PIN is temporarily locked. Try again in ${Math.ceil(
+          error.data?.remaining_seconds / 60
+        )} minutes.`;
+        setErrorMessage(lockMsg);
+        alertError(lockMsg);
         return;
       }
 
       if (error.code === 'PIN_NOT_SET') {
+        setErrorMessage('Please set your PIN in settings before making payments.');
         alertError('Please set your PIN in settings before making payments.');
         return;
       }
 
-      alertError(error.message || 'Transaction failed. Please try again.');
+      const errorMsg = error.message || 'Transaction failed. Please try again.';
+      setErrorMessage(errorMsg);
+      alertError(errorMsg);
     } finally {
       setIsProcessing(false);
     }
