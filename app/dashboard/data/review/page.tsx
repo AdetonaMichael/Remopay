@@ -15,7 +15,6 @@ import {
   Wallet,
   Wifi,
 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
@@ -23,7 +22,6 @@ import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
 import { paymentService } from '@/services/payment.service';
-import { pinService } from '@/services/pin.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/ui.store';
 import { formatCurrency } from '@/utils/format.utils';
@@ -127,20 +125,8 @@ export default function DataReviewPage() {
     setTransactionStatus('processing');
 
     try {
-      // Step 1: Verify PIN with backend
-      console.log('[DataReview] Step 1: Verifying PIN...');
-      await pinService.verifyPin(pin);
-      console.log('[DataReview] Step 1: PIN verified successfully');
-
-      // Step 2: Process transaction (PIN already verified)
-      console.log('[DataReview] Step 2: Processing data transaction...');
-      const now = new Date();
-      const requestId = `${now.getFullYear()}${String(
-        now.getMonth() + 1
-      ).padStart(2, '0')}${String(now.getDate()).padStart(
-        2,
-        '0'
-      )}${Date.now()}${uuidv4().slice(0, 8)}`;
+      // Process data transaction with PIN included
+      console.log('[DataReview] Processing data transaction with PIN...');
 
       const dataPayload = {
         service_id: formData.provider,
@@ -149,15 +135,17 @@ export default function DataReviewPage() {
         phone_number: phoneNumber.replace(/\s/g, ''),
         user_id: user.id?.toString(),
         payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
-        request_id: requestId,
-        // NOTE: PIN is NOT included here - it was verified in step 1
+        pin, // Include PIN directly with request
       };
 
       const response = await paymentService.purchaseData(dataPayload);
       console.log('[DataReview] Transaction response:', response);
 
-      if (response.success && response.data) {
-        setTransactionId(response.data?.transaction_id || requestId);
+      // API client returns the backend response directly (not wrapped in data property)
+      const responseData = response as any;
+      if (responseData?.success && responseData?.status === 'completed') {
+        // Use backend-generated request_id from response
+        setTransactionId(responseData?.request_id || responseData?.vtu_reference || responseData?.reference);
         setTransactionStatus('success');
         setShowPINModal(false);
         sessionStorage.removeItem('dataFormData');
@@ -177,11 +165,9 @@ export default function DataReviewPage() {
       setShowPINModal(false);
       setTransactionStatus('error');
 
-      if (response.error_code === 'INSUFFICIENT_USER_BALANCE') {
-        const balanceData = response.data as any;
-
+      if (responseData?.error_code === 'INSUFFICIENT_USER_BALANCE') {
         addToast({
-          message: `Insufficient wallet balance. You need ₦${balanceData?.required_amount}, but your balance is ₦${balanceData?.current_balance}. Please top up your wallet and try again.`,
+          message: `Insufficient wallet balance. You need ₦${responseData?.required_amount}, but your balance is ₦${responseData?.current_balance}. Please top up your wallet and try again.`,
           type: 'error',
         });
 
@@ -189,7 +175,7 @@ export default function DataReviewPage() {
       }
 
       addToast({
-        message: response.message || 'Transaction failed. Please try again.',
+        message: responseData?.message || 'Transaction failed. Please try again.',
         type: 'error',
       });
     } catch (error: any) {

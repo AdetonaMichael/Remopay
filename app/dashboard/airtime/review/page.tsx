@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
@@ -85,13 +84,6 @@ export default function AirtimeReviewPage() {
     try {
       // Process airtime transaction with PIN
       console.log('[AirtimeReview] Processing airtime transaction with PIN...');
-      const now = new Date();
-      const requestId = `${now.getFullYear()}${String(
-        now.getMonth() + 1
-      ).padStart(2, '0')}${String(now.getDate()).padStart(
-        2,
-        '0'
-      )}${Date.now()}${uuidv4().slice(0, 8)}`;
 
       const airtimePayload = {
         provider: formData.provider,
@@ -99,15 +91,17 @@ export default function AirtimeReviewPage() {
         amount: parseInt(formData.amount, 10),
         user_id: user.id?.toString(),
         payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
-        request_id: requestId,
         pin, // Include PIN directly with payment request
       };
 
       const response = await paymentService.purchaseAirtime(airtimePayload);
       console.log('[AirtimeReview] Transaction response:', response);
 
-      if (response.success && response.data) {
-        setTransactionId(response.data?.transaction_id || requestId);
+      // API client returns the backend response directly (not wrapped in data property)
+      const responseData = response as any;
+      if (responseData?.success && responseData?.status === 'completed') {
+        // Use backend-generated request_id from response
+        setTransactionId(responseData?.request_id || responseData?.vtu_reference || responseData?.reference);
         setTransactionStatus('success');
         setShowPINModal(false);
         sessionStorage.removeItem('airtimeFormData');
@@ -128,11 +122,9 @@ export default function AirtimeReviewPage() {
       setShowPINModal(false);
       setTransactionStatus('error');
 
-      if (response.error_code === 'INSUFFICIENT_USER_BALANCE') {
-        const balanceData = response.data as any;
-
+      if (responseData?.error_code === 'INSUFFICIENT_USER_BALANCE') {
         addToast({
-          message: `Insufficient wallet balance. You need ₦${balanceData?.required_amount}, but your balance is ₦${balanceData?.current_balance}. Please top up your wallet and try again.`,
+          message: `Insufficient wallet balance. You need ₦${responseData?.required_amount}, but your balance is ₦${responseData?.current_balance}. Please top up your wallet and try again.`,
           type: 'error',
         });
 
@@ -140,7 +132,7 @@ export default function AirtimeReviewPage() {
       }
 
       addToast({
-        message: response.message || 'Transaction failed. Please try again.',
+        message: responseData?.message || 'Transaction failed. Please try again.',
         type: 'error',
       });
     } catch (error: any) {

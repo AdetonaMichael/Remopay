@@ -24,9 +24,7 @@ import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentService } from '@/services/payment.service';
-import { pinService } from '@/services/pin.service';
 import { formatCurrency } from '@/utils/format.utils';
-import { generateIdempotencyKey } from '@/utils/idempotency.utils';
 
 interface ElectricityFormData {
   serviceID: string;
@@ -148,14 +146,8 @@ export default function ElectricityReviewPage() {
     setTransactionStatus('processing');
 
     try {
-      // Step 1: Verify PIN with backend
-      console.log('[BillsReview] Step 1: Verifying PIN...');
-      await pinService.verifyPin(pin);
-      console.log('[BillsReview] Step 1: PIN verified successfully');
-
-      // Step 2: Process transaction (PIN already verified)
-      console.log('[BillsReview] Step 2: Processing electricity transaction...');
-      const requestId = generateIdempotencyKey();
+      // Process electricity transaction with PIN included
+      console.log('[BillsReview] Processing electricity transaction with PIN...');
 
       const paymentPayload = {
         serviceID: formData.serviceID,
@@ -166,16 +158,15 @@ export default function ElectricityReviewPage() {
         user_id: user.id,
         user_email: email,
         payment_method: paymentMethod,
-        request_id: requestId,
-        // NOTE: PIN is NOT included here - it was verified in step 1
+        pin, // Include PIN directly with request
       };
 
-      const paymentResult = await execute(
-        paymentService.purchaseElectricity(paymentPayload)
-      );
-      console.log('[BillsReview] Transaction response:', paymentResult);
+      const response = await paymentService.payBill(paymentPayload as any);
+      console.log('[BillsReview] Transaction response:', response);
 
-      if (paymentResult?.success) {
+      // API client returns the backend response directly (not wrapped in data property)
+      const responseData = response as any;
+      if (responseData?.success && responseData?.status === 'completed') {
         success('Electricity bill payment successful!');
         setTransactionStatus('success');
         setShowPINModal(false);
@@ -188,12 +179,11 @@ export default function ElectricityReviewPage() {
         return;
       }
 
-      const errorCode =
-        (paymentResult as any)?.code || paymentResult?.error_code;
+      const errorCode = responseData?.error_code;
 
       if (errorCode === 'INSUFFICIENT_USER_BALANCE') {
         const required = amountValue;
-        const current = (paymentResult as any)?.current_balance || 0;
+        const current = responseData?.current_balance || 0;
         const shortfall = required - current;
 
         setInsufficientBalance(true);
@@ -208,7 +198,7 @@ export default function ElectricityReviewPage() {
       }
 
       setTransactionStatus('error');
-      alertError(paymentResult?.message || 'Payment failed');
+      alertError(responseData?.message || 'Payment failed');
       setShowPINModal(false);
     } catch (error: any) {
       console.error('[BillsReview] Error:', error);

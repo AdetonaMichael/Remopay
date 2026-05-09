@@ -24,6 +24,7 @@ import { Badge } from '@/components/shared/Badge';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
+import { customerService, DedicatedAccount } from '@/services/customer.service';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency, formatRelativeTime } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES } from '@/utils/constants';
@@ -106,7 +107,9 @@ export default function DashboardPage() {
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
+  const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accountLoading, setAccountLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -117,6 +120,29 @@ export default function DashboardPage() {
     perPage: 10,
   });
 
+  // Fetch customer dedicated account info
+  useEffect(() => {
+    const fetchAccountInfo = async () => {
+      if (!user?.email) return;
+
+      try {
+        setAccountLoading(true);
+        const response = await customerService.getCurrentUserAccount(user.email);
+        if (response.data?.customer?.dedicatedAccount) {
+          setDedicatedAccount(response.data.customer.dedicatedAccount);
+        }
+      } catch (err) {
+        console.error('Error fetching dedicated account info:', err);
+        // Don't set error state for this - it's optional information
+      } finally {
+        setAccountLoading(false);
+      }
+    };
+
+    fetchAccountInfo();
+  }, [user?.email]);
+
+  // Fetch wallet and transactions
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -204,8 +230,8 @@ export default function DashboardPage() {
         <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#d71927]/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[#ff737b]/10 blur-3xl" />
 
-        <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div>
+        <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+          <div className="hidden lg:block">
             <p className="caption font-semibold text-[#ff737b]">Welcome back</p>
 
             <h1 className="mt-2 h2">
@@ -236,13 +262,42 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
-            <p className="caption font-semibold text-white/55">Available Balance</p>
-            <h2 className="mt-2 display-md font-black">
-              {wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00'}
-            </h2>
-            <p className="mt-2 body-sm text-white/55">
-              Ready for airtime, data and bill payments.
-            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Top Left - Balance */}
+              <div className="col-span-2">
+                <p className="caption font-semibold text-white/55">Available Balance</p>
+                <h2 className="mt-1.5 text-3xl font-black">
+                  {wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00'}
+                </h2>
+              </div>
+
+              {/* Bottom Left - Dedicated Account (if exists) */}
+              {dedicatedAccount && (
+                <div className="col-span-2 border-t border-white/10 pt-3 space-y-2">
+                  <div>
+                    <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">Account</p>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <p className="font-mono text-sm font-bold text-white">
+                        {dedicatedAccount.account_number}
+                      </p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(dedicatedAccount.account_number);
+                        }}
+                        className="inline-flex items-center justify-center rounded-md bg-white/15 p-1 text-white/70 hover:bg-white/25 transition-colors flex-shrink-0"
+                        title="Copy account number"
+                      >
+                        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z" />
+                          <path d="M2 6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5a.5.5 0 0 0-1 0V16a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.5a.5.5 0 0 0 0-1H2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/50 font-semibold">{dedicatedAccount.bank_name}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

@@ -39,7 +39,6 @@ interface AirtimePurchaseRequest {
   user_id?: string;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
   recipient_name?: string;
-  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
   pin?: string;
 }
 
@@ -49,7 +48,6 @@ interface DataPurchaseRequest {
   plan_id: string;
   amount: number;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
-  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
   pin?: string;
 }
 
@@ -60,7 +58,6 @@ interface BillPaymentRequest {
   amount: number;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
   is_estimate?: boolean;
-  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
   pin?: string;
 }
 
