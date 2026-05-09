@@ -39,7 +39,8 @@ interface AirtimePurchaseRequest {
   user_id?: string;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
   recipient_name?: string;
-  request_id?: string;
+  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
+  pin?: string;
 }
 
 interface DataPurchaseRequest {
@@ -48,7 +49,8 @@ interface DataPurchaseRequest {
   plan_id: string;
   amount: number;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
-  request_id?: string;
+  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
+  pin?: string;
 }
 
 interface BillPaymentRequest {
@@ -58,7 +60,8 @@ interface BillPaymentRequest {
   amount: number;
   payment_method?: 'wallet' | 'card' | 'mobile_money';
   is_estimate?: boolean;
-  request_id?: string;
+  request_id?: string; // Used for operation tracking (Idempotency-Key added by API interceptor)
+  pin?: string;
 }
 
 interface PINVerificationRequest {
@@ -129,9 +132,9 @@ class PaymentService {
   }
 
   /**
-   * Purchase airtime with idempotency
-   * Automatically includes idempotency key
-   * NOTE: PIN verification happens separately via pinService.verifyPin()
+   * Purchase airtime with PIN
+   * NOTE: PIN is sent directly with the payment request
+   * Idempotency-Key is automatically added as REQUEST HEADER by the API interceptor
    */
   async purchaseAirtime(
     payload: AirtimePurchaseRequest,
@@ -152,6 +155,7 @@ class PaymentService {
         amount: payload.amount,
         ...(payload.user_id && { user_id: payload.user_id }),
         ...(payload.payment_method && { payment_method: payload.payment_method }),
+        ...(payload.pin && { pin: payload.pin }),
       };
 
       const response = await apiClient.post('/vtu/pay', apiPayload);
@@ -215,8 +219,9 @@ class PaymentService {
   }
 
   /**
-   * Purchase data bundle with idempotency
-   * NOTE: PIN verification happens separately via pinService.verifyPin()
+   * Purchase data bundle with PIN
+   * NOTE: PIN is sent directly with the payment request
+   * Idempotency-Key is automatically added as REQUEST HEADER by the API interceptor
    */
   async purchaseData(
     payload: any,
@@ -238,7 +243,7 @@ class PaymentService {
         variation_code: payload.variation_code,
         ...(payload.user_id && { user_id: payload.user_id }),
         ...(payload.payment_method && { payment_method: payload.payment_method }),
-        ...(payload.request_id && { request_id: payload.request_id }),
+        ...(payload.pin && { pin: payload.pin }),
       };
 
       const response = await apiClient.post('/vtu/pay', apiPayload);
@@ -302,9 +307,11 @@ class PaymentService {
   }
 
   /**
-   * Pay bills with idempotency
+   * Pay bills with PIN
+   * NOTE: PIN is sent directly with the payment request
+   * Idempotency-Key is automatically added as REQUEST HEADER by the API interceptor
    */
-  async payBill(payload: BillPaymentRequest, retryCount: number = 0): Promise<ApiResponse<any>> {
+  async payBill(payload: BillPaymentRequest & { pin?: string }, retryCount: number = 0): Promise<ApiResponse<any>> {
     try {
       console.log('[PaymentService] Paying bill:', {
         billType: payload.bill_type,
@@ -313,7 +320,13 @@ class PaymentService {
         retryCount,
       });
 
-      const response = await apiClient.post('/transactions/bills/pay', payload);
+      // Include pin in payload if provided
+      const billPayload = {
+        ...payload,
+        ...(payload.pin && { pin: payload.pin }),
+      };
+
+      const response = await apiClient.post('/transactions/bills/pay', billPayload);
 
       console.log('[PaymentService] Bill payment successful:', response);
       return response;

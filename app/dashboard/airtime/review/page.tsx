@@ -83,13 +83,8 @@ export default function AirtimeReviewPage() {
     setTransactionStatus('processing');
 
     try {
-      // Step 1: Verify PIN with backend
-      console.log('[AirtimeReview] Step 1: Verifying PIN...');
-      await pinService.verifyPin(pin);
-      console.log('[AirtimeReview] Step 1: PIN verified successfully');
-
-      // Step 2: Proceed with transaction (PIN is already verified, don't send it again)
-      console.log('[AirtimeReview] Step 2: Processing airtime transaction...');
+      // Process airtime transaction with PIN
+      console.log('[AirtimeReview] Processing airtime transaction with PIN...');
       const now = new Date();
       const requestId = `${now.getFullYear()}${String(
         now.getMonth() + 1
@@ -105,7 +100,7 @@ export default function AirtimeReviewPage() {
         user_id: user.id?.toString(),
         payment_method: paymentMethod as 'wallet' | 'card' | 'mobile_money',
         request_id: requestId,
-        // NOTE: PIN is NOT included here - it was verified in step 1
+        pin, // Include PIN directly with payment request
       };
 
       const response = await paymentService.purchaseAirtime(airtimePayload);
