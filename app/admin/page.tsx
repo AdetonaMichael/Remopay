@@ -218,19 +218,12 @@ export default function AdminDashboardPage() {
         setLoading(true);
         setError(null);
         
-        console.log('[AdminDashboard] Fetching dashboard data...');
         
         // Use adminService to fetch dashboard data
         const response = await adminService.getDashboard();
 
-        console.log('[AdminDashboard] Response received:', {
-          success: response.success,
-          hasData: !!response.data,
-          dataKeys: response.data ? Object.keys(response.data) : [],
-        });
 
         if (response.success && response.data) {
-          console.log('[AdminDashboard] Setting dashboard data');
           
           // Transform API response to match DashboardData structure
           const apiData = response.data as any;
@@ -353,12 +346,9 @@ export default function AdminDashboardPage() {
         setLoading(true);
         setError(null);
         
-        console.log('[AdminDashboard] Retrying dashboard fetch...');
-        
         const response = await adminService.getDashboard();
 
         if (response.success && response.data) {
-          console.log('[AdminDashboard] Retry successful');
           setData(response.data as unknown as DashboardData);
         } else {
           throw new Error(response.message || 'Invalid dashboard response');

@@ -35,22 +35,18 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
 
     const initializeAuth = async () => {
       try {
-        console.log('[AuthInitializer] Starting auth initialization...');
         setIsLoading(true);
         
-        console.log('[AuthInitializer] Checking for token in storage...');
         let token: string | null = null;
         
         try {
           token = typeof window !== 'undefined' ? safeGetItem('token') : null;
-          console.log('[AuthInitializer] Token found:', !!token);
         } catch (storageError: any) {
           console.error('[AuthInitializer] Storage error while getting token:', storageError);
           token = null;
         }
 
         if (token) {
-          console.log('[AuthInitializer] Found token in localStorage, session restored via Zustand persistence');
           // Token exists - Zustand persistence middleware will restore user state automatically
           // Token validation will occur on first API call via auth interceptor (401 handling)
         } else {

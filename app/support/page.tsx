@@ -22,8 +22,6 @@ export default function SupportPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log(formData);
     alert('Thank you for reaching out. We\'ll respond shortly.');
     setFormData({ name: '', email: '', category: 'general', subject: '', message: '' });
   };

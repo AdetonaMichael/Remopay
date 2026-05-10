@@ -36,41 +36,20 @@ class VTUService {
    */
   async getServiceProviders(serviceId: string): Promise<VTUProvider[] | null> {
     try {
-      console.log('[VTUService] Fetching providers for:', serviceId);
       const endpoint = `/vtu/service/${serviceId}`;
       const response = await apiClient.get<any>(endpoint);
       
-      console.log('[VTUService] ===== RAW RESPONSE DEBUG =====');
-      console.log('[VTUService] Full response object:', response);
-      console.log('[VTUService] Response type:', typeof response);
-      console.log('[VTUService] Response keys:', Object.keys(response || {}));
-      console.log('[VTUService] response.content:', response?.content);
-      console.log('[VTUService] response.data:', response?.data);
-      console.log('[VTUService] response.success:', response?.success);
-      console.log('[VTUService] response.message:', response?.message);
-      console.log('[VTUService] response.response_description:', response?.response_description);
-      console.log('[VTUService] JSON stringify:', JSON.stringify(response));
       
       // API returns: { response_description: "000", content: [...] }
       // The apiClient.get() returns res.data which is the API response body
       let providers: any = response?.content || response?.data;
       
-      console.log('[VTUService] After first check - providers:', {
-        isArray: Array.isArray(providers),
-        value: providers,
-      });
-      
+
       // Check if data is nested (some endpoints might wrap it further)
       if (providers && typeof providers === 'object' && !Array.isArray(providers) && 'data' in providers) {
-        console.log('[VTUService] Detected nested response structure, extracting nested data');
         providers = providers.data;
       }
-      
-      console.log('[VTUService] Final providers check:', {
-        isArray: Array.isArray(providers),
-        count: Array.isArray(providers) ? providers.length : 0,
-        providers: Array.isArray(providers) ? providers.slice(0, 1) : 'NOT_ARRAY',
-      });
+
       
       return Array.isArray(providers) ? providers : null;
     } catch (error) {
@@ -85,7 +64,6 @@ class VTUService {
    */
   async getVariations(serviceId: string): Promise<VTUVariationResponse | null> {
     try {
-      console.log('[VTUService] Fetching variations for:', serviceId);
       const response = await apiClient.get<any>(
         `/vtu/variations/${serviceId}`
       );

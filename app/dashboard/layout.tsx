@@ -83,7 +83,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/history', label: 'History', icon: Activity },
     { href: '/dashboard/rewards', label: 'Rewards', icon: Gift },
     { href: '/dashboard/loyalty', label: 'Loyalty Tier', icon: Award },
-    { href: '/dashboard/referral/milestones', label: 'Referrals', icon: Users },
+    { href: '/dashboard/referral', label: 'Referrals', icon: Users },
     { href: '/dashboard/streaks', label: 'Streaks', icon: Flame },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];

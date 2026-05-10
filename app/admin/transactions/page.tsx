@@ -192,7 +192,6 @@ export default function AdminTransactionsPage() {
   };
 
   useEffect(() => {
-    console.log('[AdminTransactions] useEffect triggered with currentPage:', currentPage);
     fetchTransactions(currentPage);
   }, [currentPage]);
 

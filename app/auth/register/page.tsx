@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   ArrowRight,
   ArrowLeft,
@@ -16,8 +18,8 @@ import {
   CheckCircle2,
   Gift,
 } from 'lucide-react';
-import { useState } from 'react';
 
+import { Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
 import { AuthProtected } from '@/components/AuthProtected';
@@ -153,6 +155,7 @@ function PasswordInput({
 
 function RegisterPageContent() {
   const { register: registerUser, isLoading } = useAuth();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
 
   const {
@@ -160,10 +163,19 @@ function RegisterPageContent() {
     handleSubmit,
     trigger,
     formState: { errors },
+    setValue,
   } = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
   });
+
+  // Populate referral code from URL query parameter
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      setValue('referral_code', refCode);
+    }
+  }, [searchParams, setValue]);
 
   const stepFields: Record<number, (keyof RegisterSchema)[]> = {
     1: ['first_name', 'last_name', 'email'],
@@ -376,10 +388,23 @@ function RegisterPageContent() {
   );
 }
 
+function RegisterPageFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#100303] to-black">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-[#d71927] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   return (
     <AuthProtectedRoute requireUnauthenticated={true} redirectTo="/dashboard">
-      <RegisterPageContent />
+      <Suspense fallback={<RegisterPageFallback />}>
+        <RegisterPageContent />
+      </Suspense>
     </AuthProtectedRoute>
   );
 }

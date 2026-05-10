@@ -65,7 +65,6 @@ class RewardService {
       throw new Error(response.message || 'Failed to fetch transactions');
     }
     const data = response.data || [];
-    console.log('[RewardService] Transactions data:', { response, data, isArray: Array.isArray(data) });
     return Array.isArray(data) ? data : [];
   }
 
@@ -77,7 +76,6 @@ class RewardService {
       throw new Error(response.message || 'Failed to fetch campaigns');
     }
     const data = response.data || [];
-    console.log('[RewardService] Campaigns data:', { response, data, isArray: Array.isArray(data) });
     return Array.isArray(data) ? data : [];
   }
 
@@ -96,12 +94,10 @@ class RewardService {
     const response = await this.apiClient.get<EligibilityCheck>(
       '/rewards/eligibility-check'
     );
-    console.log('[RewardService] Eligibility response:', response);
     if (!response.success) {
       throw new Error(response.message || 'Failed to check eligibility');
     }
     const eligibilityData = response.data!;
-    console.log('[RewardService] Eligibility data:', eligibilityData);
     // Ensure eligibility_messages is always an array
     if (!Array.isArray(eligibilityData.eligibility_messages)) {
       eligibilityData.eligibility_messages = [];

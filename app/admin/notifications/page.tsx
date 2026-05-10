@@ -85,14 +85,12 @@ export default function AdminNotificationsPage() {
         try {
           setLoadingUsers(true);
           const response = await adminService.getUsers(1, 100); // Backend max per_page is 100
-          console.log('Notifications - Full response:', response);
           
           // API structure: response = { success, data: [...users], pagination: {...} }
           // response.data IS the array of users!
           const usersArray = response?.data;
           
           if (Array.isArray(usersArray) && usersArray.length > 0) {
-            console.log('Setting users:', usersArray);
             setUsers(usersArray);
           } else {
             console.log('No users array found or empty:', usersArray);

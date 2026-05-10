@@ -87,7 +87,6 @@ export const PINVerificationModalEnhanced: React.FC<PINVerificationModalEnhanced
 
     try {
       const result = await onVerify(fullPin);
-      console.log('[PINVerificationModalEnhanced] PIN verified successfully');
       setSuccess(true);
       setTimeout(() => {
         setPin(['', '', '', '']);
