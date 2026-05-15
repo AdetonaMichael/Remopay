@@ -15,7 +15,6 @@ export const pinService = {
     currentPin?: string
   ): Promise<any> {
     try {
-      console.log('[PINService] Setting PIN...');
 
       const payload: any = {
         new_pin: newPin,
@@ -30,7 +29,6 @@ export const pinService = {
 
       const response = await apiClient.post('/wallet/pin/set', payload);
 
-      console.log('[PINService] PIN set successfully:', response);
       return response;
     } catch (error) {
       console.error('[PINService] Error setting PIN:', error);
@@ -45,13 +43,11 @@ export const pinService = {
    */
   async verifyPin(pin: string): Promise<any> {
     try {
-      console.log('[PINService] Verifying PIN...');
 
       const response = await apiClient.post('/wallet/pin/verify', {
         pin,
       });
 
-      console.log('[PINService] PIN verified successfully:', response);
       return response;
     } catch (error: any) {
       console.error('[PINService] Error verifying PIN:', error);

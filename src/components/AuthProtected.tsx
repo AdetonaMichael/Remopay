@@ -44,13 +44,11 @@ export const AuthProtected: React.FC<AuthProtectedProps> = ({
       if (requireAuth) {
         // Page requires authentication
         if (!isAuthenticated) {
-          console.log('[AuthProtected] User not authenticated, redirecting to login');
           router.replace('/auth/login');
         }
       } else {
         // Page requires NO authentication (auth pages)
         if (isAuthenticated) {
-          console.log('[AuthProtected] User is authenticated, redirecting from auth page to dashboard');
           router.replace('/dashboard');
         }
       }

@@ -50,13 +50,11 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
           // Token exists - Zustand persistence middleware will restore user state automatically
           // Token validation will occur on first API call via auth interceptor (401 handling)
         } else {
-          console.log('[AuthInitializer] No token in localStorage');
           // No token - user is not authenticated
         }
       } catch (error: any) {
         console.error('[AuthInitializer] Auth initialization error:', error);
       } finally {
-        console.log('[AuthInitializer] Auth initialization complete');
         setIsLoading(false);
       }
     };

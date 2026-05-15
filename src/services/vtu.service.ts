@@ -67,18 +67,15 @@ class VTUService {
       const response = await apiClient.get<any>(
         `/vtu/variations/${serviceId}`
       );
-      console.log('[VTUService] Variations response:', response);
       
       // Check for content property first, then fall back to data
       let variations = response?.content || response?.data || null;
       
       // Check if data is nested
       if (variations && typeof variations === 'object' && !Array.isArray(variations) && 'data' in variations) {
-        console.log('[VTUService] Detected nested response structure for variations, extracting nested data');
         variations = variations.data;
       }
       
-      console.log('[VTUService] Variations extracted:', variations);
       return variations;
     } catch (error) {
       console.error('[VTUService] getVariations error:', error);
@@ -92,23 +89,19 @@ class VTUService {
    */
   async processPayment(paymentData: VTUPaymentRequest): Promise<VTUPaymentResponse | null> {
     try {
-      console.log('[VTUService] Processing payment with data:', paymentData);
       const response = await apiClient.post<any>(
         '/vtu/pay',
         paymentData
       );
-      console.log('[VTUService] Payment response:', response);
       
       // Check for content property first, then fall back to data
       let result = response?.content || response?.data || null;
       
       // Check if data is nested
       if (result && typeof result === 'object' && !Array.isArray(result) && 'data' in result) {
-        console.log('[VTUService] Detected nested response structure for payment, extracting nested data');
         result = result.data;
       }
       
-      console.log('[VTUService] Payment result extracted:', result);
       return result;
     } catch (error) {
       console.error('[VTUService] processPayment error:', error);
@@ -121,24 +114,11 @@ class VTUService {
    * Convenience method for airtime flow
    */
   async getAirtimeProviders(): Promise<VTUProvider[] | null> {
-    console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
-    console.log('[VTUService] ║ getAirtimeProviders() ENTRY POINT                     ║');
-    console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
     try {
-      console.log('[VTUService] Calling getServiceProviders("airtime")...');
       const result = await this.getServiceProviders('airtime');
-      
-      console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
-      console.log('[VTUService] ║ getAirtimeProviders() FINAL CHECK                     ║');
-      console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
-      console.log('[VTUService] Result value:', result);
-      console.log('[VTUService] Result type:', typeof result);
-      console.log('[VTUService] Is array?:', Array.isArray(result));
-      console.log('[VTUService] Result length:', Array.isArray(result) ? result.length : 'NOT AN ARRAY');
-      
+ 
       if (Array.isArray(result) && result.length > 0) {
-        console.log('[VTUService] ✅ SUCCESS: Returning array with', result.length, 'providers');
-        console.log('[VTUService] First provider:', result[0]);
+        //
       } else if (result === null) {
         console.warn('[VTUService] ⚠️  WARNING: Result is null');
       } else if (!Array.isArray(result)) {
@@ -168,21 +148,10 @@ class VTUService {
    * Convenience method for data purchase flow
    */
   async getDataProviders(): Promise<VTUProvider[] | null> {
-    console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
-    console.log('[VTUService] ║ getDataProviders() ENTRY POINT                        ║');
-    console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
+   //
     try {
-      console.log('[VTUService] Calling getServiceProviders("data")...');
       const result = await this.getServiceProviders('data');
-      
-      console.log('[VTUService] ╔════════════════════════════════════════════════════════╗');
-      console.log('[VTUService] ║ getDataProviders() FINAL CHECK                        ║');
-      console.log('[VTUService] ╚════════════════════════════════════════════════════════╝');
-      console.log('[VTUService] Result:', {
-        isArray: Array.isArray(result),
-        count: Array.isArray(result) ? result.length : 0,
-        sample: Array.isArray(result) ? result[0] : null,
-      });
+ 
       
       return result;
     } catch (error) {
@@ -196,7 +165,6 @@ class VTUService {
    * @param serviceId - Service ID (e.g., 'airtel-data', 'mtn-data')
    */
   async getDataVariations(serviceId: string): Promise<VTUVariationResponse | null> {
-    console.log('[VTUService] Fetching data variations for:', serviceId);
     return this.getVariations(serviceId);
   }
 
@@ -205,13 +173,8 @@ class VTUService {
    * Convenience method for electricity bill payment flow
    */
   async getElectricityProviders(): Promise<VTUProvider[] | null> {
-    console.log('[VTUService] Fetching electricity providers...');
     try {
       const result = await this.getServiceProviders('electricity-bill');
-      console.log('[VTUService] Electricity providers loaded:', {
-        isArray: Array.isArray(result),
-        count: Array.isArray(result) ? result.length : 0,
-      });
       return result;
     } catch (error) {
       console.error('[VTUService] Error fetching electricity providers:', error);
@@ -224,7 +187,6 @@ class VTUService {
    * @param serviceId - Service ID (e.g., 'ikeja-electric')
    */
   async getElectricityVariations(serviceId: string): Promise<VTUVariationResponse | null> {
-    console.log('[VTUService] Fetching electricity variations for:', serviceId);
     return this.getVariations(serviceId);
   }
 
@@ -240,19 +202,12 @@ class VTUService {
     serviceID: string
   ): Promise<any> {
     try {
-      console.log('[VTUService] Verifying meter number:', {
-        billersCode,
-        meterNumber,
-        serviceID,
-      });
-
       const response = await apiClient.post('/vtu/merchant-verify', {
         billersCode,
         serviceID: serviceID,
         Meter_Number: meterNumber,
       });
 
-      console.log('[VTUService] Meter verification response:', response);
       return response;
     } catch (error) {
       console.error('[VTUService] Meter verification failed:', error);
@@ -265,13 +220,8 @@ class VTUService {
    * Convenience method for TV subscription flow
    */
   async getTVProviders(): Promise<VTUProvider[] | null> {
-    console.log('[VTUService] Fetching TV providers...');
     try {
       const result = await this.getServiceProviders('tv-subscription');
-      console.log('[VTUService] TV providers loaded:', {
-        isArray: Array.isArray(result),
-        count: Array.isArray(result) ? result.length : 0,
-      });
       return result;
     } catch (error) {
       console.error('[VTUService] Error fetching TV providers:', error);
@@ -284,7 +234,6 @@ class VTUService {
    * @param serviceId - Service ID (e.g., 'dstv', 'gotv', 'startimes')
    */
   async getTVVariations(serviceId: string): Promise<VTUVariationResponse | null> {
-    console.log('[VTUService] Fetching TV variations for:', serviceId);
     return this.getVariations(serviceId);
   }
 
@@ -298,17 +247,11 @@ class VTUService {
     serviceID: string
   ): Promise<any> {
     try {
-      console.log('[VTUService] Verifying smartcard:', {
-        smartcardNumber: smartcardNumber.slice(0, 4) + '****',
-        serviceID,
-      });
-
       const response = await apiClient.post('/vtu/merchant-verify', {
         billersCode: smartcardNumber,
         serviceID: serviceID,
       });
 
-      console.log('[VTUService] Smartcard verification response:', response);
       return response;
     } catch (error) {
       console.error('[VTUService] Smartcard verification failed:', error);

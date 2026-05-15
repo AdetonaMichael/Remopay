@@ -15,30 +15,18 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
       try {
-        console.log('[useAuth] Login attempt for:', data.email);
         const response = await authService.login(data);
-        console.log('[useAuth] Login response:', {
-          success: response.success,
-          hasToken: !!response.data?.token,
-          tokenLength: response.data?.token?.length || 0,
-          hasUser: !!response.data?.user,
-          message: response.message,
-        });
 
         if (response.success && response.data) {
-          console.log('[useAuth] Login successful, setting user and token');
           setUser(response.data.user);
           setAuthToken(response.data.token);
-          console.log('[useAuth] Token set in auth store');
           addToast({ type: 'success', message: 'Login successful!' });
 
           // Check if email is verified
           const isEmailVerified = response.data.user?.isEmailVerified === true;
-          console.log('[useAuth] Email verification status:', isEmailVerified);
           
           if (!isEmailVerified) {
             // Redirect to email verification page
-            console.log('[useAuth] Email not verified - redirecting to verification page');
             router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
             return;
           }
@@ -46,7 +34,6 @@ export const useAuth = () => {
           // Email is verified - redirect based on primary role (admin > agent > user)
           const roles = response.data.user.roles || [];
           const primaryRole = getPrimaryRole(roles);
-          console.log('[useAuth] Primary role determined:', primaryRole);
           
           if (primaryRole === 'admin') {
             router.push('/admin');

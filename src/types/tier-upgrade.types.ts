@@ -1,15 +1,38 @@
 /**
  * Tier Upgrade Type Definitions
  * Complete data structures for user tier progression
+ * Updated: May 10, 2026 - Individual tier endpoints
  */
 
 // ============= TIER LEVELS =============
-export type TierLevel = 0 | 1 | 2 | 3;
-export type TierName = 'None' | 'Bronze' | 'Silver' | 'Gold';
+export type TierLevel = 'TIER_ZERO' | 'TIER_ONE' | 'TIER_TWO';
+export type TierStatus = 'pending' | 'PENDING' | 'ACTIVE' | 'rejected';
+export type IdentityDocumentType = 'nin' | 'passport' | 'drivers_license' | 'voters_card';
 
-export type IdentityDocumentType = 'NIN' | 'Passport' | 'Driver_License' | 'Voters_Card';
+// ============= HELPER FUNCTIONS =============
+/**
+ * Convert tier level number to TierLevel type
+ * @param level - Tier level (0, 1, 2)
+ * @returns TierLevel type
+ */
+export const getTierLevelFromNumber = (level: number): TierLevel => {
+  switch (level) {
+    case 0:
+      return 'TIER_ZERO';
+    case 1:
+      return 'TIER_ONE';
+    case 2:
+      return 'TIER_TWO';
+    default:
+      return 'TIER_ZERO';
+  }
+};
 
-// ============= TIER 0 - BRONZE (BASIC PROFILE) =============
+// ============= TIER 0 - BASIC ENROLLMENT =============
+/**
+ * Tier 0: POST /api/v1/payment/customers/tier-zero
+ * Initial customer profile creation
+ */
 export interface Tier0UpgradeData {
   first_name: string;
   last_name: string;
@@ -19,88 +42,124 @@ export interface Tier0UpgradeData {
 
 export interface Tier0UpgradeRequest extends Tier0UpgradeData {}
 
-// ============= TIER 1 - SILVER (PERSONAL & ADDRESS INFO) =============
-export interface PhoneNumber {
-  country_code: string; // e.g., "+234"
-  number: string; // 10-11 digits
+// ============= TIER 1 - BRONZE UPGRADE =============
+/**
+ * Tier 1: PATCH /api/v1/payment/customers/tier-one
+ * Personal details + BVN verification
+ * Prerequisites: Must complete Tier 0 first
+ */
+export interface PhoneData {
+  phone_country_code?: string;
+  phone_number?: string;
 }
 
-export interface Address {
-  street_address: string;
-  street_address_2?: string; // optional
-  city: string;
-  state_province: string;
-  country: string;
-  postal_code: string;
+export interface AddressData {
+  street?: string;
+  street2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
 }
 
-export interface Tier1UpgradeData extends Tier0UpgradeData {
-  date_of_birth: string; // format: DD-MM-YYYY
-  phone_number: PhoneNumber;
-  address: Address;
-  identification_number: string; // BVN/NIN - 11 characters
-  profile_photo: string; // base64 encoded image
+export interface Tier1UpgradeData {
+  dob: string; // DD-MM-YYYY format
+  phone: PhoneData;
+  address: AddressData;
+  identification_number: string; // BVN - exactly 11 digits
+  photo: string; // required: image URL from Cloudinary upload
 }
 
 export interface Tier1UpgradeRequest extends Tier1UpgradeData {}
 
-// ============= TIER 2 - GOLD (IDENTITY VERIFICATION) =============
-export interface IdentityDocument {
+// ============= TIER 2 - SILVER UPGRADE =============
+/**
+ * Tier 2: PATCH /api/v1/payment/customers/tier-two
+ * Identity document verification
+ * Prerequisites: Must complete Tier 1 first
+ */
+export interface IdentityDocumentData {
   type: IdentityDocumentType;
-  document_image: string; // base64 encoded
-  document_number: string;
-  country_of_issue: string;
+  image: string; // base64 encoded image
+  number: string; // document number
+  country: string; // 2-letter country code
 }
 
-export interface Tier2UpgradeData extends Tier1UpgradeData {
-  identity_document: IdentityDocument;
+export interface Tier2UpgradeData {
+  identity: IdentityDocumentData;
 }
 
 export interface Tier2UpgradeRequest extends Tier2UpgradeData {}
 
 // ============= TIER UPGRADE RESPONSES =============
+/**
+ * API Response structure from backend
+ */
+export interface MapleradCustomerData {
+  id: number;
+  maplerad_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  tier: TierLevel;
+  status: TierStatus;
+  dob?: string;
+  phone?: PhoneData;
+  address?: AddressData;
+  identification_number?: string;
+  identity_type?: string;
+  identity_number?: string;
+  identity_verified?: boolean;
+  verification_level?: string;
+  identity_verification_status?: string;
+  virtual_account_created?: boolean;
+}
+
 export interface TierUpgradeResponse {
   success: boolean;
   message: string;
   data?: {
-    tier_level: TierLevel;
-    tier_name: TierName;
-    upgrade_date: string;
-    next_tier_requirements?: string[];
+    customer: {
+      id: number;
+      user_id: number;
+      customerable_id: number;
+      customerable_type: string;
+    };
+    maplerad_customer: MapleradCustomerData;
+    user?: {
+      id: number;
+      first_name: string;
+      last_name: string;
+      email: string;
+      dob?: string;
+    };
   };
 }
 
 // ============= TIER STATUS =============
-export interface CurrentTierInfo {
-  name: TierName;
-  level: TierLevel;
-  status: 'active' | 'inactive' | 'pending';
-}
-
-export interface NextTierRequirements {
-  dob?: string;
-  phone?: PhoneNumber;
-  address?: Address;
-  identification_number?: string;
-  photo?: string;
-  identity_document?: IdentityDocument;
+export interface TierInfo {
+  level: number;
+  name: string;
+  status: string;
 }
 
 export interface NextTierInfo {
-  name: TierName;
-  level: TierLevel;
-  requirements: NextTierRequirements;
+  level: number;
+  name: string;
+  requirements: {
+    [key: string]: string;
+  };
 }
 
 export interface VerificationStatus {
   tier_zero_complete: boolean;
   tier_one_complete: boolean;
   tier_two_complete: boolean;
-  tier_three_complete: boolean;
+  tier_three_complete?: boolean;
 }
 
-export interface TierStatus {
-  current_tier: CurrentTierInfo;
+export interface TierStatusInfo {
+  current_tier: TierInfo;
   next_tier: NextTierInfo;
   verification_status: VerificationStatus;
 }
@@ -110,11 +169,32 @@ export type TierUpgradeStep = 'tier0' | 'tier1' | 'tier2' | 'review' | 'success'
 
 export interface TierUpgradeFormState {
   step: TierUpgradeStep;
-  data: Partial<Tier2UpgradeData>;
+  tier0Data?: Tier0UpgradeData;
+  tier1Data?: Tier1UpgradeData;
+  tier2Data?: Tier2UpgradeData;
   errors: Record<string, string>;
   isSubmitting: boolean;
+  isLoading: boolean;
   currentTier: TierLevel;
-  targetTier: TierLevel;
+  mapleradId?: string;
+  successMessage?: string;
+}
+
+// ============= BVN VERIFICATION =============
+export interface BvnVerificationRequest {
+  bvn: string; // exactly 11 digits
+}
+
+export interface BvnVerificationResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    bvn: string;
+    first_name: string;
+    last_name: string;
+    date_of_birth: string;
+    phone_number: string;
+  };
 }
 
 // ============= VALIDATION =============

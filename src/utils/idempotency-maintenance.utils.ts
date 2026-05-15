@@ -7,33 +7,28 @@ import { cleanupExpiredKeys, clearAllIdempotencyKeys, getAllStoredKeys } from '@
 export const initializeIdempotencyMaintenance = (): void => {
   if (typeof window === 'undefined') return;
 
-  console.log('[IdempotencyMaintenance] Initializing idempotency maintenance...');
 
   // Clean up expired keys immediately on startup
   cleanupExpiredKeys();
 
   // Set up periodic cleanup task (every 5 minutes)
   const cleanupInterval = setInterval(() => {
-    console.log('[IdempotencyMaintenance] Running periodic cleanup of expired idempotency keys');
     cleanupExpiredKeys();
   }, 5 * 60 * 1000); // 5 minutes
 
   // Set up cleanup on before unload (e.g., tab close)
   window.addEventListener('beforeunload', () => {
-    console.log('[IdempotencyMaintenance] Page unloading, cleaning up idempotency data');
     clearInterval(cleanupInterval);
     // Optionally clear all keys on logout, but keep them for session persistence
     // clearAllIdempotencyKeys();
   });
 
-  console.log('[IdempotencyMaintenance] ✓ Idempotency maintenance initialized');
 };
 
 /**
  * Cleanup idempotency system (e.g., on logout)
  */
 export const cleanupIdempotencyOnLogout = (): void => {
-  console.log('[IdempotencyMaintenance] Cleaning up idempotency system on logout');
   clearAllIdempotencyKeys();
 };
 
@@ -71,17 +66,17 @@ export const resetIdempotencySystem = (): void => {
  * Log idempotency system status
  * Useful for debugging
  */
-export const logIdempotencyStatus = (): void => {
-  const stats = getIdempotencyStats();
-  const keys = getAllStoredKeys();
+// export const logIdempotencyStatus = (): void => {
+//   const stats = getIdempotencyStats();
+//   const keys = getAllStoredKeys();
 
-  console.group('[IdempotencyMaintenance] System Status');
-  console.log('Stats:', stats);
-  console.log('Stored Keys:', keys.map((k) => ({
-    operationId: k.operationId,
-    keyPreview: k.key.substring(0, 20) + '...',
-    age: Math.round((Date.now() - k.timestamp) / 1000) + 's',
-    expiresIn: Math.round((k.expiresAt - Date.now()) / 1000) + 's',
-  })));
-  console.groupEnd();
-};
+//   console.group('[IdempotencyMaintenance] System Status');
+//   console.log('Stats:', stats);
+//   console.log('Stored Keys:', keys.map((k) => ({
+//     operationId: k.operationId,
+//     keyPreview: k.key.substring(0, 20) + '...',
+//     age: Math.round((Date.now() - k.timestamp) / 1000) + 's',
+//     expiresIn: Math.round((k.expiresAt - Date.now()) / 1000) + 's',
+//   })));
+//   console.groupEnd();
+// };

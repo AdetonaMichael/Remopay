@@ -49,7 +49,7 @@ export interface ExportResponse {
 }
 
 class ReportService {
-  private baseUrl = '/api/v1/admin/reports';
+  private baseUrl = '/admin/reports';
 
   async getReports(params: Record<string, any> = {}) {
     try {

@@ -7,8 +7,6 @@ import { apiClient } from '@/services/api-client';
  */
 export const handleLogout = async (): Promise<void> => {
   try {
-    console.log('[Logout] Initiating logout...');
-
     // Clear all stored idempotency keys on logout
     clearAllIdempotencyKeys();
 
@@ -32,7 +30,6 @@ export const handleLogout = async (): Promise<void> => {
       }
     });
 
-    console.log('[Logout] All session data cleared');
 
     // Redirect to login
     window.location.href = '/auth/login';

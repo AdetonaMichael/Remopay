@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/shared/Button';
 import { AuthProtected } from '@/components/AuthProtected';
 import { AuthProtectedRoute } from '@/components/AuthProtectedRoute';
+import { PhoneInput } from '@/components/shared/PhoneInput';
 import { registerSchema, type RegisterSchema } from '@/utils/validation.utils';
 
 const STEPS = [
@@ -162,6 +163,7 @@ function RegisterPageContent() {
     register,
     handleSubmit,
     trigger,
+    control,
     formState: { errors },
     setValue,
   } = useForm<RegisterSchema>({
@@ -275,18 +277,16 @@ function RegisterPageContent() {
 
               {currentStep === 2 && (
                 <div className="space-y-5">
-                  <FieldWrapper
-                    label="Phone Number"
-                    icon={<Phone size={16} />}
-                    error={errors.phone_number?.message}
-                  >
-                    <input
-                      {...register('phone_number')}
-                      type="tel"
-                      placeholder="08102300935"
-                      className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-10 pr-3 body-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#ff4b55]"
+                  <div className="rip-input-wrapper">
+                    <PhoneInput
+                      control={control as any}
+                      name="phone_number"
+                      label="Phone Number"
+                      defaultCountry="NG"
+                      placeholder="Enter your phone number"
+                      required={true}
                     />
-                  </FieldWrapper>
+                  </div>
 
                   <FieldWrapper label="Referral Code (Optional)" icon={<Gift size={16} />}>
                     <input

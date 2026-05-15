@@ -1,7 +1,12 @@
 /**
  * Tier Upgrade Service
- * Handles tier upgrade requests and tier status retrieval
+ * Handles tier upgrade requests using individual tier endpoints
  * Backend API: https://api.remopay.com/api/v1/payment/customers
+ * 
+ * Updated: May 10, 2026
+ * - Tier 0: PATCH /tier-zero (Basic enrollment)
+ * - Tier 1: PATCH /tier-one (Bronze with personal details)
+ * - Tier 2: PATCH /tier-two (Silver with identity documents)
  */
 
 import { apiClient } from './api-client';
@@ -10,63 +15,137 @@ import {
   Tier1UpgradeRequest,
   Tier2UpgradeRequest,
   TierUpgradeResponse,
-  TierStatus,
+  TierStatusInfo,
+  BvnVerificationRequest,
+  BvnVerificationResponse,
   ApiResponse,
 } from '@/types/index';
 
 class TierUpgradeService {
   /**
-   * Enroll customer (Tier 0 - Basic Profile)
-   * POST /v1/payment/customers/enroll
+   * Upgrade to Tier 0 - Basic Enrollment
+   * PATCH /v1/payment/customers/tier-zero
+   * 
+   * Initial customer profile creation with basic information.
+   * No prerequisites - this is the first step.
+   * 
+   * Returns: maplerad_id for use in subsequent tiers
    */
-  async enrollCustomer(
+  async upgradeToTierZero(
     data: Tier0UpgradeRequest
   ): Promise<ApiResponse<TierUpgradeResponse>> {
-    return apiClient.post('/payment/customers/enroll', data);
+    return apiClient.patch('/payment/customers/tier-zero', data);
   }
 
   /**
-   * Upgrade user to Tier 1 (Bronze) - Personal & Address Info
+   * Upgrade to Tier 1 - Bronze Tier
    * PATCH /v1/payment/customers/tier-one
+   * 
+   * Personal details + BVN verification
+   * Prerequisites: Must complete Tier 0 first
+   * 
+   * Data format:
+   * - dob: DD-MM-YYYY format
+   * - phone: { phone_country_code: "+234", phone_number: "8123456789" }
+   * - address: { street, city, state, country, postal_code, ...}
+   * - identification_number: BVN (exactly 11 digits)
    */
-  async upgradeTierOne(
+  async upgradeToTierOne(
     data: Tier1UpgradeRequest
   ): Promise<ApiResponse<TierUpgradeResponse>> {
     return apiClient.patch('/payment/customers/tier-one', data);
   }
 
   /**
-   * Upgrade user to Tier 2 (Silver) - Identity Verification
+   * Upgrade to Tier 2 - Silver Tier
    * PATCH /v1/payment/customers/tier-two
+   * 
+   * Identity document verification
+   * Prerequisites: Must complete Tier 1 first
+   * 
+   * Data format:
+   * - identity: { type, image (base64), number, country }
+   * - Supported types: 'nin', 'passport', 'drivers_license', 'voters_card'
    */
-  async upgradeTierTwo(
+  async upgradeToTierTwo(
     data: Tier2UpgradeRequest
   ): Promise<ApiResponse<TierUpgradeResponse>> {
     return apiClient.patch('/payment/customers/tier-two', data);
   }
 
   /**
-   * Verify BVN before Tier 1 upgrade (optional but recommended)
+   * Verify BVN (Optional but recommended)
    * POST /v1/payment/identity/bvn-verify
+   * 
+   * Validate BVN before attempting Tier 1 upgrade
+   * No authentication required (public endpoint)
+   * 
+   * @param bvn 11-digit BVN number
+   * @returns BVN details if valid
    */
-  async verifyBVN(bvn: string): Promise<ApiResponse<any>> {
-    return apiClient.post('/payment/identity/bvn-verify', { bvn });
+  async verifyBVN(bvn: string): Promise<ApiResponse<BvnVerificationResponse>> {
+    return apiClient.post('/payment/identity/bvn-verify', { bvn } as BvnVerificationRequest);
   }
 
   /**
-   * Get current tier status and progress
-   * GET /v1/customers/tier-status
+   * Upload profile image for Tier 1 upgrade
+   * POST /api/v1/profile/upload-image
+   *
+   * Expects multipart/form-data with an image file.
+   * Returns a secure Cloudinary image URL to include in the tier upgrade request.
    */
-  async getTierStatus(): Promise<ApiResponse<TierStatus>> {
+  async uploadProfileImage(file: File): Promise<ApiResponse<{ image_url: string; public_id: string; width: number; height: number; size: number; uploaded_at: string }>> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return apiClient.post('/profile/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  }
+
+  /**
+   * Get current tier status
+   * GET /v1/customers/tier-status
+   * 
+   * Returns current tier, status, and requirements for next tier
+   */
+  async getTierStatus(): Promise<ApiResponse<TierStatusInfo>> {
     return apiClient.get('/customers/tier-status');
   }
 
   /**
-   * Get tier upgrade requirements
-   * GET /v1/customers/tier-requirements/:tier
+   * Legacy: Enroll customer (Deprecated)
+   * ❌ DO NOT USE - Use upgradeToTierZero instead
+   * 
+   * @deprecated Use upgradeToTierZero instead
    */
-  async getTierRequirements(tier: number): Promise<ApiResponse<any>> {
-    return apiClient.get(`/customers/tier-requirements/${tier}`);
+  async enrollCustomer(
+    data: Tier0UpgradeRequest
+  ): Promise<ApiResponse<TierUpgradeResponse>> {
+    console.warn('enrollCustomer is deprecated. Use upgradeToTierZero instead.');
+    return this.upgradeToTierZero(data);
+  }
+
+  /**
+   * Legacy: Upgrade user to Tier 1
+   * @deprecated Use upgradeToTierOne instead
+   */
+  async upgradeTierOne(
+    data: Tier1UpgradeRequest
+  ): Promise<ApiResponse<TierUpgradeResponse>> {
+    return this.upgradeToTierOne(data);
+  }
+
+  /**
+   * Legacy: Upgrade user to Tier 2
+   * @deprecated Use upgradeToTierTwo instead
+   */
+  async upgradeTierTwo(
+    data: Tier2UpgradeRequest
+  ): Promise<ApiResponse<TierUpgradeResponse>> {
+    return this.upgradeToTierTwo(data);
   }
 }
 

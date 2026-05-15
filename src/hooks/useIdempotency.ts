@@ -65,7 +65,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
     const storedKey = getStoredIdempotencyKey(operationId);
 
     if (storedKey && validateIdempotencyKeyFormat(storedKey)) {
-      console.log('[useIdempotency] Retrieved existing key for retry:', operationId);
       setState((prev) => ({
         ...prev,
         key: storedKey,
@@ -75,7 +74,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
       // Generate new key
       const newKey = generateIdempotencyKey();
       storeIdempotencyKey(newKey, operationId);
-      console.log('[useIdempotency] Generated new key for operation:', operationId);
       setState((prev) => ({
         ...prev,
         key: newKey,
@@ -101,12 +99,10 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
       isProcessing: true,
       error: null,
     }));
-    console.log('[useIdempotency] Marked as processing:', operationId);
   }, [operationId]);
 
   // Mark operation as successful
   const markSuccess = useCallback(() => {
-    console.log('[useIdempotency] Operation successful:', operationId);
     setState((prev) => ({
       ...prev,
       isProcessing: false,
@@ -116,7 +112,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
     // Clear key after success (5-minute grace period for retries)
     setTimeout(() => {
       clearIdempotencyKey(operationId);
-      console.log('[useIdempotency] Cleared idempotency key after success:', operationId);
     }, 5 * 60 * 1000);
 
     if (onSuccess) {
@@ -143,7 +138,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
 
   // Retry operation with same key
   const retry = useCallback(async (retryFn: () => Promise<any>) => {
-    console.log('[useIdempotency] Retrying operation:', operationId);
     markProcessing();
 
     try {
@@ -162,7 +156,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
 
   // Reset idempotency state (generates new key)
   const reset = useCallback(() => {
-    console.log('[useIdempotency] Resetting idempotency for new operation:', operationId);
     clearIdempotencyKey(operationId);
     const newKey = generateIdempotencyKey();
     storeIdempotencyKey(newKey, operationId);
@@ -177,7 +170,6 @@ export const useIdempotency = (options: UseIdempotencyOptions) => {
 
   // Clear key immediately (for special cases)
   const clear = useCallback(() => {
-    console.log('[useIdempotency] Clearing idempotency key:', operationId);
     clearIdempotencyKey(operationId);
     setState((prev) => ({
       ...prev,

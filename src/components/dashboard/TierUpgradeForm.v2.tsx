@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Upload, X, Phone, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Upload, X, Phone, AlertCircle, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Select } from '@/components/shared/Select';
 import { DatePicker } from '@/components/shared/DatePicker';
+import { Spinner } from '@/components/shared/Spinner';
 import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
 import { tierUpgradeService } from '@/services/tier-upgrade.service';
@@ -24,6 +25,34 @@ import {
   getIdentityDocumentTypeOptions,
   getFieldErrorMessage,
 } from '@/utils/tier-upgrade-validation.utils';
+
+// Country data
+interface Country {
+  code: string;
+  name: string;
+  flag: string;
+  dialCode: string;
+}
+
+const getCountryFlag = (code: string): string => {
+  return code
+    .toUpperCase()
+    .split('')
+    .map((char: string) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join('');
+};
+
+const COUNTRIES: Country[] = [
+  { code: 'NG', name: 'Nigeria', flag: getCountryFlag('NG'), dialCode: '+234' },
+  { code: 'GB', name: 'United Kingdom', flag: getCountryFlag('GB'), dialCode: '+44' },
+  { code: 'US', name: 'United States', flag: getCountryFlag('US'), dialCode: '+1' },
+  { code: 'CA', name: 'Canada', flag: getCountryFlag('CA'), dialCode: '+1' },
+  { code: 'ZA', name: 'South Africa', flag: getCountryFlag('ZA'), dialCode: '+27' },
+  { code: 'GH', name: 'Ghana', flag: getCountryFlag('GH'), dialCode: '+233' },
+  { code: 'KE', name: 'Kenya', flag: getCountryFlag('KE'), dialCode: '+254' },
+  { code: 'IN', name: 'India', flag: getCountryFlag('IN'), dialCode: '+91' },
+  { code: 'AE', name: 'United Arab Emirates', flag: getCountryFlag('AE'), dialCode: '+971' },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 interface InitialFormData {
   first_name?: string;
@@ -72,6 +101,43 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   const { success, error: alertError } = useAlert();
   const { execute } = useApi();
 
+  // Phone input state
+  const [phoneDropdownOpen, setPhoneDropdownOpen] = useState(false);
+  const [phoneSearchQuery, setPhoneSearchQuery] = useState('');
+  const [selectedPhoneCountry, setSelectedPhoneCountry] = useState(
+    COUNTRIES.find(c => c.code === 'NG') || COUNTRIES[0]
+  );
+  const phoneDropdownRef = useRef<HTMLDivElement>(null);
+  const phoneSearchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredPhoneCountries = useMemo(() => {
+    if (!phoneSearchQuery.trim()) {
+      return COUNTRIES;
+    }
+    
+    const query = phoneSearchQuery.toLowerCase();
+    return COUNTRIES.filter(country =>
+      country.name.toLowerCase().includes(query) ||
+      country.code.toLowerCase().includes(query) ||
+      country.dialCode.includes(query)
+    );
+  }, [phoneSearchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (phoneDropdownRef.current && !phoneDropdownRef.current.contains(event.target as Node)) {
+        setPhoneDropdownOpen(false);
+      }
+    };
+
+    if (phoneDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      setTimeout(() => phoneSearchInputRef.current?.focus(), 0);
+    }
+    
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [phoneDropdownOpen]);
+
   // Form state
   const [formState, setFormState] = useState<TierFormState>({
     tier0: initialData ? {
@@ -79,7 +145,19 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       last_name: initialData.last_name || '',
       email: initialData.email || '',
     } : {},
-    tier1: {},
+    tier1: {
+      phone: {
+        phone_country_code: '+234', // Default to Nigeria
+        phone_number: '',
+      },
+      address: {
+        street: '',
+        city: '',
+        state: '',
+        country: 'NG',
+        postal_code: '',
+      },
+    },
     tier2: {},
   });
 
@@ -90,7 +168,18 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   });
 
   const [previewImage, setPreviewImage] = useState<{ [key: string]: string }>({});
-  const [activeTier, setActiveTier] = useState<ActiveTier>(currentTier === 0 ? 0 : currentTier === 1 ? 1 : null);
+  const [photoUploadStatus, setPhotoUploadStatus] = useState<'idle' | 'uploading' | 'uploaded' | 'error'>('idle');
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null);
+  const getTierNumber = (tier: TierLevel | string): number => {
+    if (tier === 'TIER_ZERO') return 0;
+    if (tier === 'TIER_ONE') return 1;
+    if (tier === 'TIER_TWO') return 2;
+    return 0;
+  };
+
+  const [activeTier, setActiveTier] = useState<ActiveTier>(
+    currentTier === 'TIER_ZERO' ? 0 : currentTier === 'TIER_ONE' ? 1 : null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bvnVerified, setBvnVerified] = useState(false);
   const [submitState, setSubmitState] = useState<{ tier: TierLevel; success: boolean } | null>(null);
@@ -99,7 +188,8 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
   const updateTierField = useCallback((tier: 0 | 1 | 2, fieldPath: string, value: any) => {
     setFormState((prev) => {
-      const newData = JSON.parse(JSON.stringify(prev[`tier${tier}` as keyof TierFormState]));
+      const currentData = prev[`tier${tier}` as keyof TierFormState] || {};
+      const newData = JSON.parse(JSON.stringify(currentData));
       const keys = fieldPath.split('.');
       let current = newData;
 
@@ -127,7 +217,7 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   }, []);
 
   const handleImageUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>, fieldPath: string) => {
+    async (e: React.ChangeEvent<HTMLInputElement>, fieldPath: string) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -142,19 +232,46 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       }
 
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const base64String = event.target?.result as string;
-        const tier = parseInt(fieldPath.split('.')[0]) as 0 | 1 | 2;
-        updateTierField(tier, fieldPath, base64String);
         setPreviewImage((prev) => ({
           ...prev,
-          [fieldPath]: base64String,
+          [tier === 1 && fieldPath === 'tier1.photo' ? 'photo' : fieldPath]: base64String,
         }));
+
+        const tierMatch = fieldPath.match(/^tier(\d+)\./);
+        if (!tierMatch) return;
+        const tier = parseInt(tierMatch[1]) as 0 | 1 | 2;
+
+        if (fieldPath === 'tier1.photo') {
+          setPhotoUploadStatus('uploading');
+          setPhotoUploadError(null);
+
+          try {
+            const response = await tierUpgradeService.uploadProfileImage(file);
+            const imageUrl = response?.data?.image_url;
+
+            if (!imageUrl) {
+              throw new Error('Image upload failed. Please try again.');
+            }
+
+            updateTierField(tier, 'photo', imageUrl);
+            setPhotoUploadStatus('uploaded');
+            success('Profile photo uploaded successfully.');
+          } catch (uploadError: any) {
+            const message = uploadError?.message || 'Image upload failed. Please try again.';
+            setPhotoUploadStatus('error');
+            setPhotoUploadError(message);
+            alertError(message);
+          }
+        } else {
+          updateTierField(tier, fieldPath, base64String);
+        }
       };
 
       reader.readAsDataURL(file);
     },
-    [updateTierField, alertError]
+    [updateTierField, alertError, success]
   );
 
   // ============= BVN VERIFICATION =============
@@ -172,11 +289,6 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       if (response?.data) {
         setBvnVerified(true);
         success('BVN verified successfully!');
-        // Pre-fill name if available
-        if (response.data.first_name && response.data.last_name) {
-          updateTierField(1, 'first_name', response.data.first_name);
-          updateTierField(1, 'last_name', response.data.last_name);
-        }
       } else {
         alertError('BVN verification failed. Please check and try again.');
       }
@@ -205,9 +317,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       const response = await execute(tierUpgradeService.enrollCustomer(formState.tier0 as Tier0UpgradeData));
       
       if (response?.data) {
-        setSubmitState({ tier: 0, success: true });
+        setSubmitState({ tier: 'TIER_ZERO', success: true });
         success('Successfully enrolled! You can now upgrade to Bronze.');
-        onSuccess?.(0);
+        onSuccess?.('TIER_ZERO');
       } else {
         alertError('Enrollment failed. Please try again.');
       }
@@ -219,8 +331,16 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   };
 
   const handleSubmitTier1 = async () => {
+    if (photoUploadStatus === 'uploading') {
+      alertError('Please wait for your profile photo to finish uploading before submitting.');
+      return;
+    }
+
+    console.log('Tier 1 form data:', formState.tier1);
+
     const validation = validateTier1(formState.tier1);
     if (!validation.isValid) {
+      console.log('Validation errors:', validation.errors);
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((err) => {
         errorMap[err.field] = err.message;
@@ -236,16 +356,18 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
     try {
       setIsSubmitting(true);
+      console.log('Sending tier 1 data:', formState.tier1);
       const response = await execute(tierUpgradeService.upgradeTierOne(formState.tier1 as Tier1UpgradeData));
       
       if (response?.data) {
-        setSubmitState({ tier: 1, success: true });
+        setSubmitState({ tier: 'TIER_ONE', success: true });
         success('Successfully upgraded to Bronze! You can now upgrade to Silver.');
-        onSuccess?.(1);
+        onSuccess?.('TIER_ONE');
       } else {
         alertError('Tier 1 upgrade failed. Please try again.');
       }
     } catch (err: any) {
+      console.error('Tier 1 submission error:', err);
       alertError(err.message || 'Tier 1 upgrade failed');
     } finally {
       setIsSubmitting(false);
@@ -268,9 +390,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       const response = await execute(tierUpgradeService.upgradeTierTwo(formState.tier2 as Tier2UpgradeData));
       
       if (response?.data) {
-        setSubmitState({ tier: 2, success: true });
+        setSubmitState({ tier: 'TIER_TWO', success: true });
         success('Successfully upgraded to Silver! Maximum account tier reached.');
-        onSuccess?.(2);
+        onSuccess?.('TIER_TWO');
       } else {
         alertError('Tier 2 upgrade failed. Please try again.');
       }
@@ -343,48 +465,115 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       {/* Date of Birth */}
       <DatePicker
         label="Date of Birth"
-        value={formState.tier1.date_of_birth || ''}
-        onChange={(value) => updateTierField(1, 'date_of_birth', value)}
+        value={formState.tier1.dob || ''}
+        onChange={(value) => updateTierField(1, 'dob', value)}
         helperText="You must be at least 18 years old"
-        error={errors.tier1.date_of_birth}
+        error={errors.tier1.dob}
         required
       />
 
       {/* Phone Number */}
       <div>
         <h4 className="font-semibold text-[#111] mb-4">Phone Number</h4>
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] gap-3 items-end">
-          <Select
-            label="Code"
-            options={getPhoneCountryCodeOptions()}
-            value={formState.tier1.phone_number?.country_code || ''}
-            onChange={(e) => updateTierField(1, 'phone_number.country_code', e.target.value)}
-            error={errors.tier1['phone_number.country_code']}
-            required
-          />
-          <div>
-            <label className="block text-sm font-black text-[#111] mb-2">
-              Number
-              <span className="text-[#d71927] ml-1">*</span>
-            </label>
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 pointer-events-none">
-                <Phone size={18} />
-              </div>
-              <input
-                type="tel"
-                placeholder="10-11 digits"
-                value={formState.tier1.phone_number?.number || ''}
-                onChange={(e) => updateTierField(1, 'phone_number.number', e.target.value)}
-                className={`w-full pl-12 pr-4 py-3 rounded-2xl border-2 bg-white text-[#111] text-sm font-medium outline-none transition placeholder:text-black/35
-                  ${errors.tier1['phone_number.number'] ? 'border-[#d71927] focus:ring-4 focus:ring-[#d71927]/10' : 'border-black/10 focus:border-[#d71927] focus:ring-4 focus:ring-[#d71927]/10'}
-                  hover:border-black/20`}
-              />
+        <div className="w-full">
+          <div className="flex items-center w-full rounded-2xl border-2 border-black/10 bg-white hover:border-black/20 focus-within:border-[#d71927] focus-within:ring-4 focus-within:ring-[#d71927]/10 transition-all" style={{ zIndex: phoneDropdownOpen ? 40 : 'auto' }}>
+            {/* Country Selector */}
+            <div className="relative" ref={phoneDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setPhoneDropdownOpen(!phoneDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-3 hover:bg-black/5 transition-colors border-r-2 border-black/10 min-w-fit flex-shrink-0"
+                disabled={false}
+              >
+                <span className="text-xl leading-none">{selectedPhoneCountry?.flag}</span>
+                <span className="text-sm font-semibold text-[#111] hidden sm:inline">{selectedPhoneCountry?.code}</span>
+                <ChevronDown 
+                  size={16} 
+                  className={`text-black/40 transition-transform duration-200 ${phoneDropdownOpen ? 'rotate-180' : ''}`} 
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {phoneDropdownOpen && (
+                <div 
+                  className="absolute top-full left-0 mt-2 w-80 bg-white border-2 border-black/10 rounded-2xl shadow-xl z-50"
+                >
+                  {/* Search Header */}
+                  <div className="sticky top-0 p-3 border-b-2 border-black/10 bg-gradient-to-b from-black/2 to-white rounded-t-2xl">
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
+                      <input
+                        ref={phoneSearchInputRef}
+                        type="text"
+                        placeholder="Search country..."
+                        value={phoneSearchQuery}
+                        onChange={(e) => setPhoneSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border-2 border-black/10 rounded-lg text-sm focus:outline-none focus:border-[#d71927] focus:ring-4 focus:ring-[#d71927]/10 transition-all"
+                      />
+                      {phoneSearchQuery && (
+                        <button
+                          onClick={() => setPhoneSearchQuery('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-black/5 rounded transition-colors"
+                        >
+                          <X size={14} className="text-black/40" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Countries List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {filteredPhoneCountries.length > 0 ? (
+                      filteredPhoneCountries.map((country) => (
+                        <button
+                          key={country.code}
+                          onClick={() => {
+                            setSelectedPhoneCountry(country);
+                            setPhoneDropdownOpen(false);
+                            setPhoneSearchQuery('');
+                            updateTierField(1, 'phone.phone_country_code', country.dialCode);
+                          }}
+                          type="button"
+                          className={`w-full px-4 py-3 text-left text-sm transition-all flex items-center gap-3 border-l-4 hover:bg-black/2 focus:outline-none ${
+                            country.code === selectedPhoneCountry?.code 
+                              ? 'bg-red-50 border-l-[#d71927]' 
+                              : 'border-l-transparent hover:border-l-black/20'
+                          }`}
+                        >
+                          <span className="text-lg leading-none flex-shrink-0">{country.flag}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-[#111]">{country.name}</div>
+                            <div className="text-xs text-black/50">{country.dialCode}</div>
+                          </div>
+                          {country.code === selectedPhoneCountry?.code && (
+                            <div className="w-2 h-2 rounded-full bg-[#d71927] flex-shrink-0" />
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-12 text-center">
+                        <div className="text-2xl mb-2">🔍</div>
+                        <p className="text-sm text-black/60">No countries found</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            {errors.tier1['phone_number.number'] && (
-              <p className="mt-2 text-sm font-semibold text-[#d71927]">{errors.tier1['phone_number.number']}</p>
-            )}
+
+            {/* Phone Number Input */}
+            <input
+              type="tel"
+              placeholder="Enter phone number"
+              value={formState.tier1.phone?.phone_number || ''}
+              onChange={(e) => updateTierField(1, 'phone.phone_number', e.target.value)}
+              className={`flex-1 px-4 py-3 text-[#111] text-sm font-medium outline-none transition placeholder:text-black/35 bg-transparent
+                ${errors.tier1['phone.phone_number'] ? 'text-[#d71927] placeholder:text-[#d71927]/40' : ''}`}
+            />
           </div>
+          {errors.tier1['phone.phone_number'] && (
+            <p className="mt-2 text-sm font-semibold text-[#d71927]">{errors.tier1['phone.phone_number']}</p>
+          )}
         </div>
       </div>
 
@@ -395,9 +584,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
           label="Street Address"
           type="text"
           placeholder="Street address"
-          value={formState.tier1.address?.street_address || ''}
-          onChange={(e) => updateTierField(1, 'address.street_address', e.target.value)}
-          error={errors.tier1['address.street_address']}
+          value={formState.tier1.address?.street || ''}
+          onChange={(e) => updateTierField(1, 'address.street', e.target.value)}
+          error={errors.tier1['address.street']}
           required
         />
 
@@ -405,8 +594,8 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
           label="Street Address 2 (Optional)"
           type="text"
           placeholder="Apartment, suite, etc."
-          value={formState.tier1.address?.street_address_2 || ''}
-          onChange={(e) => updateTierField(1, 'address.street_address_2', e.target.value)}
+          value={formState.tier1.address?.street2 || ''}
+          onChange={(e) => updateTierField(1, 'address.street2', e.target.value)}
           className="mt-4"
         />
 
@@ -424,9 +613,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
             label="State / Province"
             type="text"
             placeholder="State or province"
-            value={formState.tier1.address?.state_province || ''}
-            onChange={(e) => updateTierField(1, 'address.state_province', e.target.value)}
-            error={errors.tier1['address.state_province']}
+            value={formState.tier1.address?.state || ''}
+            onChange={(e) => updateTierField(1, 'address.state', e.target.value)}
+            error={errors.tier1['address.state']}
             required
           />
         </div>
@@ -478,6 +667,12 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
             </Button>
           </div>
         </div>
+        {!bvnVerified && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">BVN verification is required before upgrading. Click the "Verify" button above to proceed.</p>
+          </div>
+        )}
       </div>
 
       {/* Profile Photo */}
@@ -489,14 +684,14 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => handleImageUpload(e, 'tier1.profile_photo')}
+            onChange={(e) => handleImageUpload(e, 'tier1.photo')}
             className="hidden"
             id="profile-photo-input"
           />
           <label htmlFor="profile-photo-input" className="cursor-pointer">
-            {previewImage['tier1.profile_photo'] ? (
+            {previewImage['photo'] ? (
               <div className="space-y-2">
-                <img src={previewImage['tier1.profile_photo']} alt="Profile" className="w-24 h-24 rounded-lg mx-auto object-cover" />
+                <img src={previewImage['photo']} alt="Profile" className="w-24 h-24 rounded-lg mx-auto object-cover" />
                 <p className="text-sm text-gray-600">Click to change</p>
               </div>
             ) : (
@@ -507,15 +702,27 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
             )}
           </label>
         </div>
+        {photoUploadStatus === 'uploading' && (
+          <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#111]">
+            <Spinner size="sm" className="text-[#6b7280]" />
+            Uploading photo…
+          </div>
+        )}
+        {photoUploadStatus === 'uploaded' && (
+          <p className="mt-3 text-sm font-medium text-green-600">Photo uploaded successfully.</p>
+        )}
+        {photoUploadError && (
+          <p className="mt-3 text-sm font-medium text-[#d71927]">{photoUploadError}</p>
+        )}
       </div>
 
       <Button
         onClick={handleSubmitTier1}
-        disabled={isSubmitting}
+        disabled={isSubmitting || !bvnVerified}
         isLoading={isSubmitting}
-        className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
+        className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Upgrade to Bronze
+        {!bvnVerified ? 'Verify BVN First' : 'Upgrade to Bronze'}
       </Button>
     </div>
   );
@@ -528,9 +735,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       <Select
         label="Identity Document Type"
         options={getIdentityDocumentTypeOptions()}
-        value={formState.tier2.identity_document?.type || ''}
-        onChange={(e) => updateTierField(2, 'identity_document.type', e.target.value)}
-        error={errors.tier2['identity_document.type']}
+        value={formState.tier2.identity?.type || ''}
+        onChange={(e) => updateTierField(2, 'identity.type', e.target.value)}
+        error={errors.tier2['identity.type']}
         required
       />
 
@@ -539,9 +746,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
         label="Document Number"
         type="text"
         placeholder="Document number"
-        value={formState.tier2.identity_document?.document_number || ''}
-        onChange={(e) => updateTierField(2, 'identity_document.document_number', e.target.value)}
-        error={errors.tier2['identity_document.document_number']}
+        value={formState.tier2.identity?.number || ''}
+        onChange={(e) => updateTierField(2, 'identity.number', e.target.value)}
+        error={errors.tier2['identity.number']}
         required
       />
 
@@ -549,9 +756,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       <Select
         label="Country of Issue"
         options={getCountryOptions()}
-        value={formState.tier2.identity_document?.country_of_issue || ''}
-        onChange={(e) => updateTierField(2, 'identity_document.country_of_issue', e.target.value)}
-        error={errors.tier2['identity_document.country_of_issue']}
+        value={formState.tier2.identity?.country || ''}
+        onChange={(e) => updateTierField(2, 'identity.country', e.target.value)}
+        error={errors.tier2['identity.country']}
         required
       />
 
@@ -564,14 +771,14 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => handleImageUpload(e, 'tier2.identity_document.document_image')}
+            onChange={(e) => handleImageUpload(e, 'tier2.identity.image')}
             className="hidden"
             id="document-input"
           />
           <label htmlFor="document-input" className="cursor-pointer">
-            {previewImage['tier2.identity_document.document_image'] ? (
+            {previewImage['tier2.identity.image'] ? (
               <div className="space-y-2">
-                <img src={previewImage['tier2.identity_document.document_image']} alt="Document" className="w-24 h-24 rounded-lg mx-auto object-cover" />
+                <img src={previewImage['tier2.identity.image']} alt="Document" className="w-24 h-24 rounded-lg mx-auto object-cover" />
                 <p className="text-sm text-gray-600">Click to change</p>
               </div>
             ) : (
@@ -604,15 +811,20 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
           <CheckCircle2 className="w-8 h-8 text-green-600" />
         </div>
         <div>
-          <h3 className="text-2xl font-black text-[#111]">Tier {submitState.tier} Complete!</h3>
+          <h3 className="text-2xl font-black text-[#111]">Tier {getTierNumber(submitState.tier)} Complete!</h3>
           <p className="text-sm text-black/50 mt-2">Your tier has been successfully upgraded.</p>
         </div>
 
-        {submitState.tier < 2 && (
+        {getTierNumber(submitState.tier) < 2 && (
           <Button
             onClick={() => {
               setSubmitState(null);
-              setActiveTier((submitState.tier + 1) as ActiveTier);
+              const tierMap: Record<string, ActiveTier> = {
+                'TIER_ZERO': 1,
+                'TIER_ONE': 2,
+                'TIER_TWO': 2,
+              };
+              setActiveTier(tierMap[submitState.tier] || 0);
             }}
             className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
           >
@@ -636,9 +848,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   return (
     <div className="space-y-6">
       {/* Tier Selection */}
-      {activeTier === null && currentTier > 0 && (
+      {activeTier === null && getTierNumber(currentTier) > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {currentTier === 1 && (
+          {getTierNumber(currentTier) === 1 && (
             <button
               onClick={() => setActiveTier(1)}
               className="p-6 rounded-2xl border-2 border-[#d71927] bg-[#fff1f2] hover:bg-[#ffe6e8] transition text-left"
@@ -647,7 +859,7 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
               <p className="text-sm text-black/50 mt-1">Add personal information</p>
             </button>
           )}
-          {currentTier <= 1 && (
+          {getTierNumber(currentTier) <= 1 && (
             <button
               onClick={() => setActiveTier(2)}
               className="p-6 rounded-2xl border-2 border-black/10 bg-[#f8f8f8] hover:bg-white transition text-left"

@@ -14,3 +14,9 @@ export * from './vtu.types';
 
 // Tier Upgrade types
 export * from './tier-upgrade.types';
+
+// Notification types
+export * from './notification.types';
+
+// Customer types
+export * from './customer.types';

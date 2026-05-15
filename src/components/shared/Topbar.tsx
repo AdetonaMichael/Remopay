@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
 import { RoleSwitcher } from './RoleSwitcher';
+import { NotificationBell } from '@/components/dashboard/NotificationBell';
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -77,6 +78,9 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Role Switcher - Only shows if user has multiple roles */}
           <RoleSwitcher />
+
+          {/* Notification Bell */}
+          <NotificationBell className="mr-2" />
 
           {/* User Profile Menu */}
           {user && isMounted ? (
