@@ -257,25 +257,41 @@ const CustomPhoneInputComponent = React.forwardRef<
     }, [isDropdownOpen]);
 
     const handleCountrySelect = (country: typeof ALL_COUNTRIES[0], fieldOnChange?: any) => {
+      const previousCountry = selectedCountry;
       setSelectedCountry(country);
       setIsDropdownOpen(false);
       setSearchQuery('');
       
       if (inputRef.current) {
         const currentValue = inputRef.current.value;
-        const numberOnly = currentValue.replace(/^\+\d+\s*/, '');
-        const newValue = `${country.dialCode} ${numberOnly}`.trim();
+        const digitsOnly = currentValue.replace(/\D/g, '');
+        let normalizedNumber = digitsOnly;
+
+        if (previousCountry) {
+          const previousDialCode = previousCountry.dialCode.replace('+', '');
+          if (normalizedNumber.startsWith(previousDialCode)) {
+            normalizedNumber = normalizedNumber.slice(previousDialCode.length);
+          }
+        }
+
+        if (normalizedNumber.startsWith('0')) {
+          normalizedNumber = normalizedNumber.slice(1);
+        }
+
+        const newValue = `${country.dialCode}${normalizedNumber}`;
         inputRef.current.value = newValue;
-        
+
         if (fieldOnChange) {
           fieldOnChange(newValue);
         }
-        
+
         inputRef.current.focus();
       }
     };
 
     const handlePhoneInputChange = (newValue: string, fieldOnChange?: any) => {
+      newValue = newValue.replace(/\s+/g, '');
+
       const dialCodeMatch = newValue.match(/^\+(\d+)/);
       if (dialCodeMatch) {
         const dialCode = `+${dialCodeMatch[1]}`;
@@ -401,9 +417,9 @@ const CustomPhoneInputComponent = React.forwardRef<
                 defaultValue=""
                 onChange={(e) => {
                   let newValue = e.target.value.trim();
-                  // If value doesn't start with + or 0, prepend dial code
+                  // If value doesn't start with + or 0, prepend dial code without adding a space
                   if (newValue && !newValue.startsWith('+') && !newValue.startsWith('0')) {
-                    newValue = `${selectedCountry?.dialCode} ${newValue}`.trim();
+                    newValue = `${selectedCountry?.dialCode}${newValue}`.trim();
                   }
                   handlePhoneInputChange(newValue);
                 }}
@@ -537,9 +553,9 @@ const CustomPhoneInputComponent = React.forwardRef<
                   value={field.value || ''}
                   onChange={(e) => {
                     let newValue = e.target.value.trim();
-                    // If value doesn't start with + or 0, prepend dial code
+                    // If value doesn't start with + or 0, prepend dial code without adding a space
                     if (newValue && !newValue.startsWith('+') && !newValue.startsWith('0')) {
-                      newValue = `${selectedCountry?.dialCode} ${newValue}`.trim();
+                      newValue = `${selectedCountry?.dialCode}${newValue}`.trim();
                     }
                     handlePhoneInputChange(newValue, field.onChange);
                   }}
