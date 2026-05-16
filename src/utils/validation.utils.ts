@@ -9,7 +9,10 @@ export const registerSchema = z
     email: z.string().email('Invalid email address'),
     phone_number: z
       .string()
-      .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format (e.g., +234XXXXXXXXXX) or local format (e.g., 08XXXXXXXXXX)'),
+      .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
+      .refine(val => E164_PHONE_REGEX.test(val), {
+        message: 'Phone number must be in E.164 format (e.g., +234XXXXXXXXXX) or local format (e.g., 08XXXXXXXXXX)',
+      }),
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -62,7 +65,10 @@ export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(255).optional(),
   phone: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)')
+    .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
+    .refine(val => E164_PHONE_REGEX.test(val), {
+      message: 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)',
+    })
     .optional(),
   bio: z.string().max(500, 'Bio must be less than 500 characters').optional(),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format').optional(),
@@ -79,7 +85,10 @@ export const purchaseAirtimeSchema = z.object({
   provider: z.string().min(1, 'Provider is required'),
   phone_number: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)'),
+    .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
+    .refine(val => E164_PHONE_REGEX.test(val), {
+      message: 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)',
+    }),
   amount: z.number().positive('Amount must be positive'),
   payment_method: z.enum(['wallet', 'card', 'mobile_money']),
   recipient_name: z.string().optional(),
@@ -89,7 +98,10 @@ export const purchaseDataSchema = z.object({
   provider: z.string().min(1, 'Provider is required'),
   phone_number: z
     .string()
-    .regex(E164_PHONE_REGEX, 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)'),
+    .transform(val => val.replace(/\s+/g, '')) // Remove all spaces
+    .refine(val => E164_PHONE_REGEX.test(val), {
+      message: 'Phone number must be in E.164 format or local format (e.g., 08XXXXXXXXXX)',
+    }),
   plan_id: z.string().min(1, 'Plan is required'),
   amount: z.number().positive('Amount must be positive'),
   payment_method: z.enum(['wallet', 'card', 'mobile_money']),

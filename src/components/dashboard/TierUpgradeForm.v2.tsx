@@ -177,9 +177,18 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
     return 0;
   };
 
-  const [activeTier, setActiveTier] = useState<ActiveTier>(
-    currentTier === 'TIER_ZERO' ? 0 : currentTier === 'TIER_ONE' ? 1 : null
-  );
+  // Set to the NEXT tier (not current tier)
+  // If user is at TIER_ZERO, show TIER_ONE form
+  // If user is at TIER_ONE, show TIER_TWO form
+  // If user is at TIER_TWO, show nothing (already at max)
+  const getNextTier = (): ActiveTier => {
+    const currentTierNum = getTierNumber(currentTier);
+    if (currentTierNum === 0) return 1; // Show tier 1 form for tier 0 users
+    if (currentTierNum === 1) return 2; // Show tier 2 form for tier 1 users
+    return null; // No form for tier 2 users (already maxed out)
+  };
+
+  const [activeTier, setActiveTier] = useState<ActiveTier>(getNextTier());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bvnVerified, setBvnVerified] = useState(false);
   const [submitState, setSubmitState] = useState<{ tier: TierLevel; success: boolean } | null>(null);

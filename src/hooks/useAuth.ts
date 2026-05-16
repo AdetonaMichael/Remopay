@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { authService } from '@/services/auth.service';
 import { LoginSchema, RegisterSchema, VerifyEmailSchema } from '@/utils/validation.utils';
+import { RegisterRequest } from '@/types/api.types';
 import { useRouter } from 'next/navigation';
 
 export const useAuth = () => {
@@ -64,7 +65,7 @@ export const useAuth = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await authService.register(data);
+        const response = await authService.register(data as RegisterRequest);
 
         if (response.success) {
           addToast({

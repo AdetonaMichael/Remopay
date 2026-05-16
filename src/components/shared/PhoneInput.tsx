@@ -397,9 +397,16 @@ const CustomPhoneInputComponent = React.forwardRef<
               <input
                 ref={inputRef}
                 type="tel"
-                placeholder={placeholder}
-                defaultValue={`${selectedCountry?.dialCode} `}
-                onChange={(e) => handlePhoneInputChange(e.target.value)}
+                placeholder={placeholder || `${selectedCountry?.dialCode} 123456789`}
+                defaultValue=""
+                onChange={(e) => {
+                  let newValue = e.target.value.trim();
+                  // If value doesn't start with + or 0, prepend dial code
+                  if (newValue && !newValue.startsWith('+') && !newValue.startsWith('0')) {
+                    newValue = `${selectedCountry?.dialCode} ${newValue}`.trim();
+                  }
+                  handlePhoneInputChange(newValue);
+                }}
                 className="flex-1 px-3 py-3 outline-none text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                 disabled={disabled}
               />
@@ -526,9 +533,16 @@ const CustomPhoneInputComponent = React.forwardRef<
                 <input
                   ref={inputRef}
                   type="tel"
-                  placeholder={placeholder}
-                  value={field.value || `${selectedCountry?.dialCode} `}
-                  onChange={(e) => handlePhoneInputChange(e.target.value, field.onChange)}
+                  placeholder={placeholder || `${selectedCountry?.dialCode} 123456789`}
+                  value={field.value || ''}
+                  onChange={(e) => {
+                    let newValue = e.target.value.trim();
+                    // If value doesn't start with + or 0, prepend dial code
+                    if (newValue && !newValue.startsWith('+') && !newValue.startsWith('0')) {
+                      newValue = `${selectedCountry?.dialCode} ${newValue}`.trim();
+                    }
+                    handlePhoneInputChange(newValue, field.onChange);
+                  }}
                   onBlur={field.onBlur}
                   className="flex-1 px-3 py-3 outline-none text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                   disabled={disabled}

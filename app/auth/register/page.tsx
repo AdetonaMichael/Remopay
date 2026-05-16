@@ -158,6 +158,7 @@ function RegisterPageContent() {
   const { register: registerUser, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
+  const [validationError, setValidationError] = useState<string>('');
 
   const {
     register,
@@ -166,6 +167,7 @@ function RegisterPageContent() {
     control,
     formState: { errors },
     setValue,
+    getValues,
   } = useForm<RegisterSchema>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
@@ -186,11 +188,36 @@ function RegisterPageContent() {
   };
 
   const handleNext = async () => {
+    setValidationError('');
     const valid = await trigger(stepFields[currentStep]);
-    if (valid) setCurrentStep((step) => Math.min(step + 1, STEPS.length));
+    
+    if (!valid) {
+      // Get field errors for current step
+      const stepFieldsForCurrentStep = stepFields[currentStep];
+      const fieldErrors = stepFieldsForCurrentStep
+        .map(field => errors[field]?.message)
+        .filter(Boolean);
+      
+      if (fieldErrors.length > 0) {
+        setValidationError(fieldErrors[0] as string);
+      }
+      return;
+    }
+    
+    // Validate that required fields have values
+    const values = getValues();
+    const missingFields = stepFields[currentStep].filter(field => !values[field]);
+    
+    if (missingFields.length > 0) {
+      setValidationError(`Please fill in all required fields`);
+      return;
+    }
+    
+    setCurrentStep((step) => Math.min(step + 1, STEPS.length));
   };
 
   const handleBack = () => {
+    setValidationError('');
     setCurrentStep((step) => Math.max(step - 1, 1));
   };
 
@@ -336,6 +363,12 @@ function RegisterPageContent() {
                 </div>
               )}
 
+              {validationError && (
+                <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-300">
+                  {validationError}
+                </div>
+              )}
+
               <div className={`mt-7 flex gap-3 ${currentStep > 1 ? '' : 'flex-col'}`}>
                 {currentStep > 1 && (
                   <button
@@ -352,7 +385,7 @@ function RegisterPageContent() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#d71927] py-3 button-md text-white shadow-lg shadow-[#d71927]/30 transition hover:bg-[#b91420]"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#d71927] py-3 button-md text-white shadow-lg shadow-[#d71927]/30 transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue
                     <ArrowRight size={15} />

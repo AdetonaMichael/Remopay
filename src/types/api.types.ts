@@ -42,6 +42,7 @@ export interface User {
   isPhoneVerified: boolean;
   isEmailVerified: boolean;
   profile_complete_status: boolean;
+  profile_photo_url: string | null;
   created_at: string;
   roles: string[];
   permissions: string[];
