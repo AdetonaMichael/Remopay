@@ -5,6 +5,7 @@ import { Toast } from '@/components/shared/Toast';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
+import { PhoneVerificationEnforcer } from '@/components/PhoneVerificationEnforcer';
 import { Error403Modal } from '@/components/Error403Modal';
 import { debug, initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
@@ -33,11 +34,13 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
     <ErrorBoundary>
       <AuthInitializer>
         <EmailVerificationEnforcer>
-          <>
-            {children}
-            <Toast />
-            <Error403Modal />
-          </>
+          <PhoneVerificationEnforcer>
+            <>
+              {children}
+              <Toast />
+              <Error403Modal />
+            </>
+          </PhoneVerificationEnforcer>
         </EmailVerificationEnforcer>
       </AuthInitializer>
     </ErrorBoundary>

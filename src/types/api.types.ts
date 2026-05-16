@@ -102,6 +102,25 @@ export interface VerifyEmailWithOTPRequest {
   otp: string;
 }
 
+// ============= Phone Verification Types =============
+export interface SendPhoneVerificationOTPRequest {
+  phone_number: string;
+  method: 'sms' | 'call';
+}
+
+export interface SendPhoneVerificationOTPResponse {
+  verification_id: number;
+  phone_number: string; // Masked: **********0935
+  method: 'sms' | 'call';
+  expires_in_minutes: number;
+  message: string;
+}
+
+export interface VerifyPhoneWithOTPRequest {
+  verification_id: number;
+  otp: string;
+}
+
 export interface VerifyPhoneRequest {
   phone: string;
   code: string;

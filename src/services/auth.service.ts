@@ -5,6 +5,9 @@ import {
   RegisterRequest,
   LoginRequest,
   VerifyEmailRequest,
+  SendPhoneVerificationOTPRequest,
+  SendPhoneVerificationOTPResponse,
+  VerifyPhoneWithOTPRequest,
   VerifyPhoneRequest,
   RequestPhoneVerificationRequest,
   ChangePasswordRequest,
@@ -37,6 +40,18 @@ class AuthService {
 
   async resendEmailVerificationOTP(email: string): Promise<ApiResponse<void>> {
     return apiClient.post('/auth/resend-email-verification-otp', { email });
+  }
+
+  async sendPhoneVerificationOTP(
+    data: SendPhoneVerificationOTPRequest
+  ): Promise<ApiResponse<SendPhoneVerificationOTPResponse>> {
+    return apiClient.post('/auth/send-phone-verification-otp', data);
+  }
+
+  async verifyPhoneWithOTP(
+    data: VerifyPhoneWithOTPRequest
+  ): Promise<ApiResponse<{ user: User }>> {
+    return apiClient.post('/auth/verify-phone-with-otp', data);
   }
 
   async forgotPassword(data: ForgotPasswordRequest): Promise<ApiResponse<{ email: string }>> {
