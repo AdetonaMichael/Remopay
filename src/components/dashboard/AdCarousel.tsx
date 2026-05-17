@@ -24,6 +24,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
   autoPlayInterval = 6000,
   onAdClick,
 }) => {
+  // All hooks must be called unconditionally at the top
   const { ads, loading, error, trackClick } = useAdvertisements({
     autoFetch: true,
     platform,
@@ -33,6 +34,33 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlay);
 
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prevIndex) => (prevIndex === 0 ? (ads?.length ?? 1) - 1 : prevIndex - 1));
+    setIsAutoPlaying(false);
+  }, [ads?.length]);
+
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prevIndex) => (prevIndex === (ads?.length ?? 1) - 1 ? 0 : prevIndex + 1));
+    setIsAutoPlaying(false);
+  }, [ads?.length]);
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentIndex(index);
+    setIsAutoPlaying(false);
+  }, []);
+
+  // Auto-play effect - called unconditionally
+  useEffect(() => {
+    if (!isAutoPlaying || !ads || ads.length <= 1) return;
+
+    const timer = setTimeout(() => {
+      setCurrentIndex((prevIndex) => (prevIndex === ads.length - 1 ? 0 : prevIndex + 1));
+    }, autoPlayInterval);
+
+    return () => clearTimeout(timer);
+  }, [isAutoPlaying, ads, autoPlayInterval, currentIndex]);
+
+  // Early returns after all hooks
   if (loading) {
     return (
       <div className="w-full h-40 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg animate-pulse flex items-center justify-center">
@@ -44,32 +72,6 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
   if (error || !ads || ads.length === 0) {
     return null;
   }
-
-  const goToPrevious = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === 0 ? ads.length - 1 : prevIndex - 1));
-    setIsAutoPlaying(false);
-  };
-
-  const goToNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex === ads.length - 1 ? 0 : prevIndex + 1));
-    setIsAutoPlaying(false);
-  };
-
-  const goToSlide = (index: number) => {
-    setCurrentIndex(index);
-    setIsAutoPlaying(false);
-  };
-
-  // Auto-play effect
-  useEffect(() => {
-    if (!isAutoPlaying || ads.length <= 1) return;
-
-    const timer = setTimeout(() => {
-      setCurrentIndex((prevIndex) => (prevIndex === ads.length - 1 ? 0 : prevIndex + 1));
-    }, autoPlayInterval);
-
-    return () => clearTimeout(timer);
-  }, [isAutoPlaying, ads.length, autoPlayInterval, currentIndex]);
 
   const currentAd = ads[currentIndex];
 
