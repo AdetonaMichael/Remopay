@@ -90,8 +90,16 @@ export const Topbar: React.FC<TopbarProps> = ({
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-100"
               >
-                <div className="h-8 w-8 rounded-full bg-[#d71927] flex items-center justify-center text-xs font-bold text-white">
-                  {userInitials}
+                <div className="h-8 w-8 rounded-full overflow-hidden bg-[#d71927] flex items-center justify-center text-xs font-bold text-white">
+                  {user.profile_photo_url ? (
+                    <img
+                      src={user.profile_photo_url}
+                      alt={`${user.first_name} ${user.last_name}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{userInitials}</span>
+                  )}
                 </div>
                 <span className="hidden sm:inline">{user.first_name}</span>
                 <ChevronDown

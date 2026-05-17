@@ -1,28 +1,34 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 
 /**
  * PhoneVerificationEnforcer Component
  * 
- * REDIRECT-BASED ENFORCEMENT: Explicitly redirects unverified users away from protected routes.
+ * Prevents users from accessing protected routes until they verify their phone.
+ * Works in conjunction with phone verification flow.
  * 
- * This is more aggressive than modal-based blocking and ensures users CANNOT access
- * protected content without phone verification.
+ * - If user is authenticated but phone not verified, silently redirect to /auth/verify-phone
+ * - If on a protected route without phone verification, immediately redirect
+ * - Uses router.replace() to prevent back button navigation
+ * - Uses ref to prevent multiple redirects
  */
 export function PhoneVerificationEnforcer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isPhoneVerified } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
+  const hasRedirectedRef = useRef(false);
 
-  // Public routes that don't require phone verification
-  const PUBLIC_ROUTES = [
+  // Routes that don't require phone verification
+  const publicRoutes = [
     '/auth/login',
     '/auth/register',
     '/auth/forgot-password',
     '/auth/verify-email',
+    '/auth/verify-phone',
     '/auth',
     '/',
     '/about',
@@ -33,44 +39,47 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
   ];
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const isPublicRoute = publicRoutes.some((route) => {
+    const normalizedPathname = pathname || '';
+    return normalizedPathname.startsWith(route);
+  });
+
+  // Main enforcement logic
+  useEffect(() => {
+    if (!isClient) return;
     if (!pathname) return;
 
-    // Check if current route is public
-    const isPublicRoute = PUBLIC_ROUTES.some(route => pathname.startsWith(route));
-
-    // Check if user is authenticated
-    const isLoggedIn = isAuthenticated && user;
-
-    // Check if phone is verified
-    const isPhoneVerified = user?.isPhoneVerified === true;
-
-    console.log('[PhoneVerificationEnforcer] Route Check:', {
-      pathname,
-      isPublicRoute,
-      isLoggedIn,
-      isPhoneVerified,
-      phoneVerifiedAt: user?.phone_verified_at,
-      shouldRedirect: isLoggedIn && !isPublicRoute && !isPhoneVerified,
-    });
-
-    // If user is logged in, on protected route, but phone not verified → REDIRECT
-    if (isLoggedIn && !isPublicRoute && !isPhoneVerified) {
-      console.warn('[PhoneVerificationEnforcer] ❌ REDIRECTING - Phone verification required!', {
-        from: pathname,
-        reason: 'Phone not verified',
-        userPhone: user?.phone_number,
-      });
-
-      // Redirect to phone verification page
-      router.replace(`/auth/verify-phone?next=${encodeURIComponent(pathname)}`);
+    // Only enforce on protected routes
+    if (isPublicRoute) {
+      hasRedirectedRef.current = false; // Reset when on public route
       return;
     }
 
-    // All other cases: allow normal access
-    console.log('[PhoneVerificationEnforcer] ✅ Access allowed');
+    // User is not authenticated - no enforcement needed
+    if (!isAuthenticated || !user) return;
 
-  }, [pathname, isAuthenticated, user, router]);
+    // User has verified phone - allow access, reset redirect flag
+    if (isPhoneVerified) {
+      hasRedirectedRef.current = false;
+      return;
+    }
 
-  // Render children (will be replaced by redirect if needed)
+    // User is on protected route without phone verification - redirect
+    // Use ref to ensure we only redirect once per unverified state
+    if (!hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
+      console.warn(
+        '[PhoneVerificationEnforcer] Blocking unverified user from accessing:',
+        pathname,
+        '- Redirecting to verify-phone'
+      );
+      router.replace(`/auth/verify-phone?next=${encodeURIComponent(pathname)}`);
+    }
+  }, [isClient, pathname, isPublicRoute, isAuthenticated, isPhoneVerified, user, router]);
+
+  // Render children normally - enforcement happens via redirect above
   return <>{children}</>;
 }

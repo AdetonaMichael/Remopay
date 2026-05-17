@@ -22,6 +22,7 @@ import {
 import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
+import { AdCarousel } from '@/components/dashboard/AdCarousel';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
@@ -373,6 +374,11 @@ export default function DashboardPage() {
             </div>
           </div>
         </Card>
+      </section>
+
+      {/* Advertisements Carousel */}
+      <section>
+        <AdCarousel platform="web" limit={10} autoPlay={true} autoPlayInterval={6000} />
       </section>
 
       <section>

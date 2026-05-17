@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Award,
   AlertCircle,
+  Zap,
   LogOut,
   X,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ const adminNavItems = [
   { label: 'Loyalty Users', href: '/admin/loyalty/users', icon: Users },
   { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
   { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle },
+  { label: 'Advertisements', href: '/admin/advertisements', icon: Zap },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', href: '/admin/reports', icon: FileText },
@@ -49,38 +51,51 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isActive = (href: string) => pathname === href;
 
+  // Wait for hydration
   useEffect(() => {
-    // Check if user is admin
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
+    setIsMounted(true);
+  }, []);
 
-    // Check if email is verified
-    if (!user.isEmailVerified) {
-      console.warn('[AdminLayout] User email not verified, redirecting to verification page');
-      router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
-      return;
-    }
+  useEffect(() => {
+    if (!isMounted) return;
 
-    const isAdmin = user.roles?.some((r) => r === 'admin');
-    if (!isAdmin) {
-      router.push('/dashboard');
-      return;
-    }
+    // Add small delay to ensure Zustand persist has hydrated from localStorage
+    const timer = setTimeout(() => {
+      // Check if user is admin
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
 
-    // If user has multiple roles but activeRole is not admin, redirect to appropriate dashboard
-    if (activeRole && activeRole !== 'admin') {
-      const path = activeRole === 'agent' ? '/agent' : '/dashboard';
-      router.push(path);
-      return;
-    }
+      // Check if email is verified
+      if (!user.isEmailVerified) {
+        console.warn('[AdminLayout] User email not verified, redirecting to verification page');
+        router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
+        return;
+      }
 
-    setLoading(false);
-  }, [user, activeRole, router]);
+      const isAdmin = user.roles?.some((r) => r === 'admin');
+      if (!isAdmin) {
+        router.push('/dashboard');
+        return;
+      }
+
+      // If user has multiple roles but activeRole is not admin, redirect to appropriate dashboard
+      if (activeRole && activeRole !== 'admin') {
+        const path = activeRole === 'agent' ? '/agent' : '/dashboard';
+        router.push(path);
+        return;
+      }
+
+      setLoading(false);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isMounted, user, activeRole, router]);
 
   if (loading) {
     return <PageSkeleton />;

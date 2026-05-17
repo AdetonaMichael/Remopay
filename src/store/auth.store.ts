@@ -19,6 +19,7 @@ interface AuthStore {
   pinStatus: PINStatus | null;
   activeRole: string | null;
   isEmailVerified: boolean;
+  isPhoneVerified: boolean;
   emailVerificationCooldown: number;
   
   setUser: (user: User | null) => void;
@@ -28,6 +29,7 @@ interface AuthStore {
   setPinStatus: (status: PINStatus | null) => void;
   setActiveRole: (role: string) => void;
   setEmailVerificationCooldown: (seconds: number) => void;
+  setPhoneVerified: (verified: boolean) => void;
   getPrimaryRole: (roles?: string[]) => string | null;
   logout: () => void;
   reset: () => void;
@@ -76,6 +78,7 @@ export const useAuthStore = create<AuthStore>()(
       pinStatus: null,
       activeRole: null,
       isEmailVerified: false,
+      isPhoneVerified: false,
       emailVerificationCooldown: 0,
 
       setUser: (user) => {
@@ -96,6 +99,7 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: !!user,
           error: null,
           isEmailVerified: user?.isEmailVerified || false,
+          isPhoneVerified: user?.isPhoneVerified || false,
           // Set activeRole to primary role (admin > agent > customer/user)
           activeRole: primaryRole,
         });
@@ -116,6 +120,8 @@ export const useAuthStore = create<AuthStore>()(
       setActiveRole: (role) => set({ activeRole: role }),
 
       setEmailVerificationCooldown: (seconds) => set({ emailVerificationCooldown: seconds }),
+
+      setPhoneVerified: (verified) => set({ isPhoneVerified: verified }),
 
       getPrimaryRole: (roles?: string[]) => {
         const rolesToCheck = roles || [];
@@ -140,6 +146,7 @@ export const useAuthStore = create<AuthStore>()(
           pinStatus: null,
           activeRole: null,
           isEmailVerified: false,
+          isPhoneVerified: false,
           emailVerificationCooldown: 0,
         });
       },
@@ -153,6 +160,7 @@ export const useAuthStore = create<AuthStore>()(
           pinStatus: null,
           activeRole: null,
           isEmailVerified: false,
+          isPhoneVerified: false,
           emailVerificationCooldown: 0,
         });
       },

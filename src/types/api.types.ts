@@ -647,3 +647,127 @@ export interface ReferralCommission {
   earned_at: string;
   paid_at?: string | null;
 }
+
+// ============= Advertisement Types =============
+export type ActionType = 'navigation' | 'deepLink' | 'externalUrl' | 'customAction';
+export type Platform = 'mobile' | 'web' | 'all';
+export type AdStatus = 'active' | 'inactive' | 'expired';
+
+export interface Advertisement {
+  id: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+  buttonText: string;
+  actionType: ActionType;
+  actionValue: string;
+  image: {
+    url: string;
+    fallbackColor: string;
+  };
+  gradient: {
+    start: string;
+    end: string;
+  };
+  displayDuration: number;
+  isActive: boolean;
+  displayOrder: number;
+  analytics: {
+    impressions: number;
+    clicks: number;
+    ctr: number;
+  };
+  validFrom: string;
+  validUntil: string;
+  platform?: Platform;
+}
+
+export interface AdvertisementAdmin extends Advertisement {
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  updated_by?: string;
+}
+
+export interface AdvertisementResponse {
+  advertisements: Advertisement[];
+  meta: {
+    total: number;
+    active: number;
+    cached: boolean;
+    cacheExpiresAt: string;
+  };
+}
+
+export interface CreateAdvertisementRequest {
+  title: string;
+  subtitle: string;
+  icon: string;
+  button_text: string;
+  action_type: ActionType;
+  action_value: string;
+  image_url: string;
+  fallback_color: string;
+  gradient_start: string;
+  gradient_end: string;
+  display_duration: number;
+  display_order: number;
+  is_active: boolean;
+  platform: Platform;
+  valid_from: string;
+  valid_until: string;
+  notes?: string;
+}
+
+export interface UpdateAdvertisementRequest {
+  title?: string;
+  subtitle?: string;
+  icon?: string;
+  button_text?: string;
+  action_type?: ActionType;
+  action_value?: string;
+  image_url?: string;
+  fallback_color?: string;
+  gradient_start?: string;
+  gradient_end?: string;
+  display_duration?: number;
+  display_order?: number;
+  is_active?: boolean;
+  platform?: Platform;
+  valid_from?: string;
+  valid_until?: string;
+  notes?: string;
+}
+
+export interface AdvertisementAnalytics {
+  ad_id: string;
+  title: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  created_at: string;
+  valid_from: string;
+  valid_until: string;
+}
+
+export interface AdvertisementAnalyticsSummary {
+  total_ads: number;
+  active_ads: number;
+  total_impressions: number;
+  total_clicks: number;
+  average_ctr: number;
+  top_performing: Advertisement[];
+}
+
+export interface BulkReorderRequest {
+  ads: Array<{
+    id: number;
+    display_order: number;
+  }>;
+}
+
+export interface BulkToggleStatusRequest {
+  ad_ids: number[];
+  is_active: boolean;
+}

@@ -698,10 +698,18 @@ export default function AdminUsersPage() {
                       {/* User */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
-                            {u.first_name.charAt(0)}
-                            {u.last_name.charAt(0)}
-                          </div>
+                          {u.profile_photo_url ? (
+                            <img
+                              src={u.profile_photo_url}
+                              alt={`${u.first_name} ${u.last_name}`}
+                              className="h-11 w-11 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#eef2ff] text-sm font-bold text-[#4a5ff7]">
+                              {u.first_name.charAt(0)}
+                              {u.last_name.charAt(0)}
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-semibold text-[#111827]">
                               {u.first_name} {u.last_name}
