@@ -79,6 +79,10 @@ class AuthService {
   async changePassword(data: ChangePasswordRequest): Promise<ApiResponse<void>> {
     return apiClient.put('/users/change-password', data);
   }
+
+  async getProfile(): Promise<ApiResponse<User>> {
+    return apiClient.get('/auth/profile');
+  }
 }
 
 class UserService {

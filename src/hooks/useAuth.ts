@@ -23,6 +23,13 @@ export const useAuth = () => {
           setAuthToken(response.data.token);
           addToast({ type: 'success', message: 'Login successful!' });
 
+          console.log('[useAuth] Login response user:', {
+            email: response.data.user?.email,
+            isEmailVerified: response.data.user?.isEmailVerified,
+            isPhoneVerified: response.data.user?.isPhoneVerified,
+            phone_verified_at: response.data.user?.phone_verified_at,
+          });
+
           // Check if email is verified
           const isEmailVerified = response.data.user?.isEmailVerified === true;
           
