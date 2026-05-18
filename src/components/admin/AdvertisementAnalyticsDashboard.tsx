@@ -154,7 +154,6 @@ export const AdvertisementAnalyticsDashboard: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900">{ad.title}</p>
-                  <p className="text-sm text-gray-600">{ad.subtitle}</p>
                 </div>
                 <div className="text-right">
                   <div className="flex gap-4">

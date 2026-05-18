@@ -28,6 +28,10 @@ export const usePhoneVerification = (onVerified?: () => void) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [maskedPhoneNumber, setMaskedPhoneNumber] = useState<string>('');
 
+  // Cooldown state - prevents rapid OTP resend requests (60 seconds)
+  const [sendCooldown, setSendCooldown] = useState(0);
+  const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Current step: 'phone-input' | 'otp-input' | 'success'
   const [step, setStep] = useState<'phone-input' | 'otp-input' | 'success'>('phone-input');
 
@@ -36,6 +40,9 @@ export const usePhoneVerification = (onVerified?: () => void) => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+      }
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
       }
     };
   }, []);
@@ -69,6 +76,37 @@ export const usePhoneVerification = (onVerified?: () => void) => {
       }
     };
   }, [expiresIn]);
+
+  // Cooldown timer effect - prevents rapid OTP resend requests
+  useEffect(() => {
+    if (sendCooldown <= 0) {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+      return;
+    }
+
+    cooldownTimerRef.current = setInterval(() => {
+      setSendCooldown((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          if (cooldownTimerRef.current) {
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+      }
+    };
+  }, [sendCooldown]);
 
   // Format phone number for display (E.164 or local format)
   const formatPhoneNumber = useCallback((phone: string): string => {
@@ -118,6 +156,22 @@ export const usePhoneVerification = (onVerified?: () => void) => {
       return;
     }
 
+    // Security: Verify that the phone number matches the authenticated user's phone
+    if (user?.phone_number) {
+      const formattedInput = formatPhoneNumber(phoneNumber);
+      const formattedStored = formatPhoneNumber(user.phone_number);
+      
+      if (formattedInput !== formattedStored) {
+        console.error('[usePhoneVerification] Phone number mismatch - potential tampering detected', {
+          input: formattedInput,
+          stored: formattedStored,
+        });
+        setError('Phone number does not match your account. Please refresh and try again.');
+        addToast({ type: 'error', message: 'Phone number verification failed. Please refresh the page.' });
+        return;
+      }
+    }
+
     setIsLoading(true);
 
     try {
@@ -141,6 +195,7 @@ export const usePhoneVerification = (onVerified?: () => void) => {
         setExpiresIn(expires_in_minutes * 60); // Convert to seconds
         setStep('otp-input');
         setOtp('');
+        setSendCooldown(60); // 60-second cooldown before resend allowed
         
         console.log('[usePhoneVerification] OTP sent successfully:', {
           verificationId: verification_id,
@@ -301,6 +356,7 @@ export const usePhoneVerification = (onVerified?: () => void) => {
     expiresIn,
     isExpired: expiresIn === 0 && step === 'otp-input' && verificationId !== null,
     maskedPhoneNumber,
+    sendCooldown,
 
     // Actions
     sendOTP,

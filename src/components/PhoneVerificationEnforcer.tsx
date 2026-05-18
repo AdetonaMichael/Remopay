@@ -44,13 +44,25 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
 
   const isPublicRoute = publicRoutes.some((route) => {
     const normalizedPathname = pathname || '';
-    return normalizedPathname.startsWith(route);
+    // Exact match for '/' or starts with route followed by '/' or '?'
+    if (route === '/') {
+      return normalizedPathname === '/';
+    }
+    return normalizedPathname.startsWith(route + '/') || normalizedPathname === route;
   });
 
   // Main enforcement logic
   useEffect(() => {
     if (!isClient) return;
     if (!pathname) return;
+
+    console.log('[PhoneVerificationEnforcer]', {
+      pathname,
+      isPublicRoute,
+      isAuthenticated,
+      isPhoneVerified,
+      userId: user?.id,
+    });
 
     // Only enforce on protected routes
     if (isPublicRoute) {
@@ -59,11 +71,15 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     }
 
     // User is not authenticated - no enforcement needed
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !user) {
+      console.log('[PhoneVerificationEnforcer] User not authenticated, skipping enforcement');
+      return;
+    }
 
     // User has verified phone - allow access, reset redirect flag
     if (isPhoneVerified) {
       hasRedirectedRef.current = false;
+      console.log('[PhoneVerificationEnforcer] Phone is verified, allowing access');
       return;
     }
 
@@ -74,7 +90,8 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
       console.warn(
         '[PhoneVerificationEnforcer] Blocking unverified user from accessing:',
         pathname,
-        '- Redirecting to verify-phone'
+        '- Redirecting to verify-phone',
+        { isPhoneVerified, userId: user?.id }
       );
       router.replace(`/auth/verify-phone?next=${encodeURIComponent(pathname)}`);
     }

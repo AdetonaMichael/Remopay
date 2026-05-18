@@ -27,6 +27,7 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
     '/auth/register',
     '/auth/forgot-password',
     '/auth/verify-email',
+    '/auth/verify-phone',  // Allow access to phone verification
     '/auth',
     '/',
     '/about',
@@ -42,7 +43,11 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
 
   const isPublicRoute = publicRoutes.some((route) => {
     const normalizedPathname = pathname || '';
-    return normalizedPathname.startsWith(route);
+    // Exact match for '/' or starts with route followed by '/' or '?'
+    if (route === '/') {
+      return normalizedPathname === '/';
+    }
+    return normalizedPathname.startsWith(route + '/') || normalizedPathname === route;
   });
 
   const isEmailVerified = user?.isEmailVerified === true;

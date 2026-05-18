@@ -32,7 +32,17 @@ export const useAuth = () => {
             return;
           }
 
-          // Email is verified - redirect based on primary role (admin > agent > user)
+          // Email is verified - now check if phone is verified
+          const isPhoneVerified = response.data.user?.isPhoneVerified === true;
+          
+          if (!isPhoneVerified) {
+            // Redirect to phone verification page
+            const phoneNumber = response.data.user?.phone_number || '';
+            router.push(`/auth/verify-phone?phone=${encodeURIComponent(phoneNumber)}`);
+            return;
+          }
+
+          // Both email and phone are verified - redirect based on primary role (admin > agent > user)
           const roles = response.data.user.roles || [];
           const primaryRole = getPrimaryRole(roles);
           

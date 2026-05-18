@@ -222,6 +222,9 @@ export default function AdminDashboardPage() {
         // Use adminService to fetch dashboard data
         const response = await adminService.getDashboard();
 
+        // Console log the API response
+        console.log('[AdminDashboard] API Response:', response);
+        console.log('[AdminDashboard] Response Data:', response.data);
 
         if (response.success && response.data) {
           
@@ -347,6 +350,10 @@ export default function AdminDashboardPage() {
         setError(null);
         
         const response = await adminService.getDashboard();
+        
+        // Console log the API response
+        console.log('[AdminDashboard] API Response (Retry):', response);
+        console.log('[AdminDashboard] Response Data (Retry):', response.data);
 
         if (response.success && response.data) {
           setData(response.data as unknown as DashboardData);

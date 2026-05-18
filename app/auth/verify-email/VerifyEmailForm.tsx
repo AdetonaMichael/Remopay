@@ -62,11 +62,12 @@ export function VerifyEmailForm() {
       setCountdown(emailVerificationCooldown);
       const interval = setInterval(() => {
         setCountdown((prev) => {
-          if (prev <= 1) {
+          const next = prev - 1;
+          if (next <= 0) {
             clearInterval(interval);
             return 0;
           }
-          return prev - 1;
+          return next;
         });
       }, 1000);
       return () => clearInterval(interval);

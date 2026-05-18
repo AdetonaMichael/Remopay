@@ -1,18 +1,28 @@
-import { PhoneVerificationModal } from '@/components/PhoneVerificationModal';
+'use client';
 
-/**
- * Phone Verification Page
- * 
- * Users are redirected here when trying to access protected routes
- * without completing phone verification.
- * 
- * Once verified, they're redirected back to their intended page via
- * the `next` query parameter.
- */
+import { Suspense } from 'react';
+import { VerifyPhoneForm } from './VerifyPhoneForm';
+import { AuthProtectedRoute } from '@/components/AuthProtectedRoute';
+
 export default function VerifyPhonePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <PhoneVerificationModal />
-    </div>
+    <AuthProtectedRoute requireUnauthenticated={false} redirectTo="/dashboard">
+      <div
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className="min-h-screen"
+      >
+        <style jsx global>{`
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+          * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+          }
+        `}</style>
+
+        <Suspense fallback={null}>
+          <VerifyPhoneForm />
+        </Suspense>
+      </div>
+    </AuthProtectedRoute>
   );
 }

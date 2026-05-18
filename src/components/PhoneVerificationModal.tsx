@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { usePhoneVerification } from '@/hooks/usePhoneVerification';
 import { CheckCircle2, Phone, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -13,8 +14,12 @@ import { CheckCircle2, Phone, AlertCircle, Loader2 } from 'lucide-react';
  * 3. Success - confirmation of verified phone number
  * 
  * This is a modal overlay that prevents user interaction outside of it.
+ * Supports pre-filling phone number from query params.
  */
 export function PhoneVerificationModal({ onVerified }: { onVerified?: () => void }) {
+  const searchParams = useSearchParams();
+  const prefilledPhone = searchParams.get('phone') || '';
+
   const {
     phoneNumber,
     setPhoneNumber,
@@ -36,13 +41,27 @@ export function PhoneVerificationModal({ onVerified }: { onVerified?: () => void
     formatTimeRemaining,
   } = usePhoneVerification(onVerified);
 
-  // Auto-focus on phone input when component mounts
+  // Auto-populate phone number from query params and trigger OTP send
   useEffect(() => {
-    const phoneInput = document.getElementById('phone-number-input');
-    if (phoneInput) {
-      (phoneInput as HTMLInputElement).focus();
+    if (prefilledPhone && !phoneNumber && step === 'phone-input') {
+      setPhoneNumber(prefilledPhone);
     }
-  }, []);
+  }, [prefilledPhone, phoneNumber, setPhoneNumber, step]);
+
+  // Auto-send OTP if phone is prefilled (from login redirect)
+  useEffect(() => {
+    // Only auto-send if:
+    // 1. Phone number is prefilled from query params
+    // 2. We're still on phone-input step
+    // 3. Phone number matches what was set
+    if (prefilledPhone && phoneNumber === prefilledPhone && step === 'phone-input' && !isLoading) {
+      // Small delay to ensure state is updated
+      const timer = setTimeout(() => {
+        sendOTP();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [prefilledPhone, phoneNumber, step, isLoading, sendOTP]);
 
   // Auto-focus on OTP input when step changes to otp-input
   useEffect(() => {
@@ -53,6 +72,16 @@ export function PhoneVerificationModal({ onVerified }: { onVerified?: () => void
       }
     }
   }, [step]);
+
+  // Auto-focus on phone input when component mounts (if no prefilled phone)
+  useEffect(() => {
+    if (!prefilledPhone) {
+      const phoneInput = document.getElementById('phone-number-input');
+      if (phoneInput && step === 'phone-input') {
+        (phoneInput as HTMLInputElement).focus();
+      }
+    }
+  }, [prefilledPhone, step]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -164,7 +193,7 @@ export function PhoneVerificationModal({ onVerified }: { onVerified?: () => void
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {method === 'sms' ? '📱 SMS' : '📞 Voice Call'}
+                      {method === 'sms' ? 'SMS' : ' Voice Call'}
                     </button>
                   ))}
                 </div>
