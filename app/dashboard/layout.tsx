@@ -15,7 +15,6 @@ import {
   Tv,
   Wifi,
   X,
-  TrendingUp,
   Award,
   Flame,
   Users,
@@ -47,32 +46,34 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       return;
     }
 
-    // Check if email is verified
+    // Email verification is now handled by AuthInitializer at app level
+    // This is just a safety check for edge cases
     if (!user.isEmailVerified) {
       router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
       return;
     }
 
-    const hasAdminRole = user.roles?.includes('admin');
-    const hasAgentRole = user.roles?.includes('agent');
+    // Dashboard-specific pages should not trigger admin/agent redirect
+    const dashboardSpecificPages = [
+      '/dashboard/wallet-statistics',
+      '/dashboard/vtu-statistics',
+    ];
+    const isDashboardSpecificPage = dashboardSpecificPages.some(page => pathname?.startsWith(page));
 
-    if (activeRole) {
-      if (activeRole === 'admin' && hasAdminRole) {
-        router.push('/admin');
-        return;
-      }
-
-      if (activeRole === 'agent' && hasAgentRole) {
-        router.push('/agent');
-        return;
-      }
-    } else if (hasAdminRole || hasAgentRole) {
-      router.push(hasAdminRole ? '/admin' : '/agent');
+    // If on dashboard-specific page, allow it to render
+    if (isDashboardSpecificPage) {
+      setLoading(false);
       return;
     }
 
+    // NOTE: Role-based redirects (admin/agent) are now handled by AuthInitializer
+    // at app level during initialization, not here. This prevents race conditions.
+    // Dashboard layout only handles:
+    // 1. Email verification safety check (above)
+    // 2. Renders dashboard UI for customers with verified email
+    
     setLoading(false);
-  }, [user, activeRole, router]);
+  }, [user, router, pathname]);
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -163,9 +164,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     </>
   );
 
-  if (loading) {
-    return <PageSkeleton />;
-  }
 
   return (
     <AuthProtected requireAuth>

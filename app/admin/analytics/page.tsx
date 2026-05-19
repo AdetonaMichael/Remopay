@@ -3,456 +3,531 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Wallet,
-  CreditCard,
-  TrendingUp,
-  Users2,
+  AlertCircle,
+  ArrowUpRight,
+  BarChart3,
   CheckCircle2,
-  Smartphone,
+  RefreshCw,
   Shield,
+  TrendingUp,
+  Users,
+  Wallet,
+  Zap,
 } from 'lucide-react';
 
-import { Card } from '@/components/shared/Card';
+import { Card, CardBody, CardHeader } from '@/components/shared/Card';
+import { Button } from '@/components/shared/Button';
+import { Badge } from '@/components/shared/Badge';
 import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
-import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
+import { AdminStatisticsData } from '@/types/vtu.types';
 import { formatCurrency } from '@/utils/format.utils';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface WalletStats {
-  total_balance_all_users: number;
-  active_wallets: number;
-  average_balance: number;
-  total_transactions: number;
-  transaction_success_rate: number;
-  daily_volume?: { count: number; value: number };
-}
-
-interface VTUStats {
-  total_transactions: number;
-  successful_transactions: number;
-  failed_transactions: number;
-  success_rate: number;
-  total_volume: number;
-  total_commission: number;
-  average_transaction: number;
-  by_network?: Record<string, { count: number; volume: number; success_rate?: number }>;
-}
-
-interface UserStats {
-  total_users: number;
-  verified_users: number;
-  unverified_users: number;
-  active_users_30days: number;
-  new_users_this_month: number;
-  new_users_this_week: number;
-  email_verified_users: number;
-  verification_rate: number;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatCompactCurrency(value: number): string {
-  if (value >= 1_000_000) {
-    return `₦${(value / 1_000_000).toFixed(1)}M`;
-  }
-  if (value >= 1_000) {
-    return `₦${(value / 1_000).toFixed(0)}K`;
-  }
-  return `₦${value.toLocaleString()}`;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
-  const [vtuStats, setVTUStats] = useState<VTUStats | null>(null);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [data, setData] = useState<AdminStatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
 
-  // ── Auth guard ──────────────────────────────────────────────────────────────
+  const isAdmin = useMemo(() => {
+    return Boolean(user?.roles?.some((role) => role === 'admin'));
+  }, [user]);
 
-  const isAdmin = useMemo(
-    () => Boolean(user?.roles?.some((role) => role === 'admin')),
-    [user]
-  );
+  const verifiedRate = useMemo(() => {
+    if (!data?.users.total) return '0.0';
+    return ((data.users.verified / data.users.total) * 100).toFixed(1);
+  }, [data]);
+
+  const commissionRate = useMemo(() => {
+    if (!data?.vtu.summary.total_amount) return '0.00';
+
+    return (
+      (data.vtu.summary.total_commission / data.vtu.summary.total_amount) *
+      100
+    ).toFixed(2);
+  }, [data]);
 
   useEffect(() => {
-    if (user && !isAdmin) router.push('/dashboard');
+    if (user && !isAdmin) {
+      router.push('/dashboard');
+    }
   }, [user, isAdmin, router]);
 
-  // ── Data fetching ───────────────────────────────────────────────────────────
-
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const [walletResponse, vtuResponse, userResponse] = await Promise.all([
-          adminService.getWalletStatistics().catch(() => null),
-          adminService.getVTUTransactionStats().catch(() => null),
-          adminService.getUserStats?.().catch(() => null),
-        ]);
 
-        if (walletResponse?.data) setWalletStats(walletResponse.data);
-        if (vtuResponse?.data) setVTUStats(vtuResponse.data);
-        if (userResponse?.data) setUserStats(userResponse.data);
-      } catch (err) {
-        console.error('Error fetching analytics:', err);
-        setError('Failed to load analytics data');
+        const response =
+          await adminService.getAdminDashboardComprehensive(selectedPeriod);
+
+        if (response.success && response.data) {
+          setData(response.data);
+        } else {
+          setError(response.message || 'Failed to fetch analytics');
+        }
+      } catch (err: any) {
+        setError(err.message || 'An error occurred while fetching analytics');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalytics();
-  }, []);
-
-  // ── Guard render ────────────────────────────────────────────────────────────
+    if (isAdmin) {
+      fetchData();
+    }
+  }, [isAdmin, selectedPeriod]);
 
   if (!isAdmin) return null;
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const overviewCards = data
+    ? [
+        {
+          title: 'Success Rate',
+          value: `${data.performance.success_rate.toFixed(1)}%`,
+          helper: `${data.performance.successful_transactions.toLocaleString()} of ${data.performance.total_transactions.toLocaleString()} txns`,
+          icon: Zap,
+        },
+        {
+          title: 'Total Users',
+          value: data.users.total.toLocaleString(),
+          helper: `+${data.users.new} new this period`,
+          icon: Users,
+        },
+        {
+          title: 'Wallet Balance',
+          value: formatCurrency(data.wallet.total_balance),
+          helper: 'All users combined',
+          icon: Wallet,
+        },
+        {
+          title: 'Verified Rate',
+          value: `${verifiedRate}%`,
+          helper: `${data.users.verified.toLocaleString()} verified users`,
+          icon: Shield,
+        },
+      ]
+    : [];
 
-  if (error) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm font-medium text-red-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const vtuSummaryCards = data
+    ? [
+        {
+          title: 'Total Volume',
+          value: formatCurrency(data.vtu.summary.total_amount),
+          helper: `${data.vtu.summary.total_transactions.toLocaleString()} transactions`,
+        },
+        {
+          title: 'Commission Earned',
+          value: formatCurrency(data.vtu.summary.total_commission),
+          helper: `${commissionRate}% of volume`,
+        },
+        {
+          title: 'Discount Given',
+          value: formatCurrency(data.vtu.summary.total_discount),
+          helper: 'Customer savings',
+        },
+        {
+          title: 'Net Amount',
+          value: formatCurrency(data.vtu.summary.net_amount),
+          helper: 'After fees',
+        },
+      ]
+    : [];
 
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="min-h-screen space-y-8 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-slate-950 sm:px-6 lg:px-8 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white"
+      className="min-h-screen bg-white px-4 py-6 text-black sm:px-6 lg:px-8"
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
         * {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
       `}</style>
 
-
-      {/* ── Wallet Stats Section ──────────────────────────────────────────── */}
-      {walletStats && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold text-[#111827]">Wallet Statistics</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              Platform wallet balances and transaction metrics
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: 'Total Balance',
-                value: formatCompactCurrency(walletStats?.total_balance_all_users ?? 0),
-                icon: Wallet,
-                color: 'bg-blue-50 text-blue-600',
-              },
-              {
-                label: 'Active Wallets',
-                value: (walletStats?.active_wallets ?? 0).toLocaleString(),
-                icon: Users2,
-                color: 'bg-purple-50 text-purple-600',
-              },
-              {
-                label: 'Avg. Balance',
-                value: formatCurrency(walletStats?.average_balance ?? 0),
-                icon: CreditCard,
-                color: 'bg-emerald-50 text-emerald-600',
-              },
-              {
-                label: 'Success Rate',
-                value: `${(walletStats?.transaction_success_rate ?? 0).toFixed(1)}%`,
-                icon: CheckCircle2,
-                color: 'bg-green-50 text-green-600',
-              },
-            ].map((metric) => {
-              const Icon = metric.icon;
-              return (
-                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-[#6b7280]">
-                        {metric.label}
-                      </p>
-                      <p className="mt-3 text-2xl font-bold text-[#111827]">
-                        {metric.value}
-                      </p>
-                    </div>
-                    <div className={`rounded-2xl ${metric.color} p-3`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          {walletStats?.daily_volume && (
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Today's Volume</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl bg-[#f8fafc] p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Transactions
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-[#111827]">
-                    {walletStats?.daily_volume?.count.toLocaleString()}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-[#f8fafc] p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
-                    Volume
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-[#111827]">
-                    {formatCompactCurrency(walletStats?.daily_volume?.value ?? 0)}
-                  </p>
-                </div>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-600">
+                <CheckCircle2 className="h-3.5 w-3.5 text-gray-700" />
+                Admin Analytics
               </div>
-            </Card>
-          )}
+
+              <h1 className="text-3xl font-black tracking-tight text-black sm:text-4xl">
+                Analytics Overview
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                Review platform performance, wallet movement, user growth, VTU
+                volume, commissions, and transaction distribution.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-2">
+              {(['week', 'month', 'year'] as const).map((period) => {
+                const isSelected = selectedPeriod === period;
+
+                return (
+                  <Button
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    variant={isSelected ? 'primary' : 'secondary'}
+                    size="sm"
+                    className={
+                      isSelected
+                        ? 'bg-black text-white hover:bg-gray-900'
+                        : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-100'
+                    }
+                  >
+                    {period.charAt(0).toUpperCase() + period.slice(1)}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
         </section>
-      )}
 
-      {/* ── VTU Stats Section ────────────────────────────────────────────── */}
-      {vtuStats && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold text-[#111827]">VTU Transactions</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              Airtime, data, bills, and other VTU service performance
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: 'Total Transactions',
-                value: (vtuStats?.total_transactions ?? 0).toLocaleString(),
-                icon: CreditCard,
-                color: 'bg-orange-50 text-orange-600',
-              },
-              {
-                label: 'Successful',
-                value: (vtuStats?.successful_transactions ?? 0).toLocaleString(),
-                icon: CheckCircle2,
-                color: 'bg-green-50 text-green-600',
-              },
-              {
-                label: 'Success Rate',
-                value: `${(vtuStats?.success_rate ?? 0).toFixed(1)}%`,
-                icon: TrendingUp,
-                color: 'bg-blue-50 text-blue-600',
-              },
-              {
-                label: 'Total Volume',
-                value: formatCompactCurrency(vtuStats?.total_volume ?? 0),
-                icon: Wallet,
-                color: 'bg-purple-50 text-purple-600',
-              },
-            ].map((metric) => {
-              const Icon = metric.icon;
-              return (
-                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-[#6b7280]">
-                        {metric.label}
-                      </p>
-                      <p className="mt-3 text-2xl font-bold text-[#111827]">
-                        {metric.value}
-                      </p>
-                    </div>
-                    <div className={`rounded-2xl ${metric.color} p-3`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Commissions</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {formatCompactCurrency(vtuStats?.total_commission ?? 0)}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                Total earned commissions
-              </p>
+        {loading && (
+          <div className="space-y-6">
+            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+              <CardBody>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="h-32 animate-pulse rounded-2xl border border-gray-200 bg-gray-100"
+                    />
+                  ))}
+                </div>
+              </CardBody>
             </Card>
 
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Avg. Transaction</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {formatCurrency(vtuStats?.average_transaction ?? 0)}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                Average per transaction
-              </p>
-            </Card>
+            <div className="h-64 animate-pulse rounded-3xl border border-gray-200 bg-gray-100" />
           </div>
+        )}
 
-          {/* Network Breakdown */}
-          {vtuStats?.by_network && Object.keys(vtuStats.by_network).length > 0 && (
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Network Performance</h3>
-              <div className="mt-4 space-y-4">
-                {Object.entries(vtuStats.by_network).map(([network, data]) => (
-                  <div key={network} className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0">
-                    <div>
-                      <p className="font-semibold text-[#111827]">{network}</p>
-                      <p className="text-sm text-[#6b7280]">
-                        {data.count} transactions
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-[#111827]">
-                        {formatCompactCurrency(data.volume)}
-                      </p>
-                      <p className="text-sm text-green-600">
-                        {(data.success_rate ?? 0).toFixed(1)}% success
-                      </p>
-                    </div>
-                  </div>
-                ))}
+        {!loading && error && (
+          <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <CardBody>
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-gray-200 bg-gray-50">
+                  <AlertCircle className="h-7 w-7 text-black" />
+                </div>
+
+                <h3 className="mt-5 text-xl font-black text-black">
+                  Unable to Load Analytics
+                </h3>
+
+                <p className="mt-2 max-w-md text-sm text-gray-500">{error}</p>
+
+                <Button
+                  onClick={() => window.location.reload()}
+                  variant="secondary"
+                  size="sm"
+                  className="mt-5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </Button>
               </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {!loading && !error && !data && (
+          <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <CardBody>
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-gray-200 bg-gray-50">
+                  <BarChart3 className="h-7 w-7 text-black" />
+                </div>
+
+                <h3 className="mt-5 text-xl font-black text-black">
+                  No Analytics Data Available
+                </h3>
+
+                <p className="mt-2 max-w-md text-sm text-gray-500">
+                  There is no analytics record available for the selected reporting
+                  period.
+                </p>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {!loading && !error && data && (
+          <>
+            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+              <CardHeader>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Platform Overview
+                    </p>
+
+                    <h3 className="mt-1 text-2xl font-black text-black">
+                      Key Performance Indicators
+                    </h3>
+                  </div>
+
+                  <Badge variant="success">Live Data</Badge>
+                </div>
+              </CardHeader>
+
+              <CardBody>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {overviewCards.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <div
+                        key={item.title}
+                        className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg"
+                      >
+                        <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gray-100 transition-all duration-300 group-hover:scale-110" />
+
+                        <div className="relative flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-500">
+                              {item.title}
+                            </p>
+
+                            <p className="mt-3 break-words text-3xl font-black tracking-tight text-black">
+                              {item.value}
+                            </p>
+
+                            <p className="mt-2 text-xs font-medium text-gray-500">
+                              {item.helper}
+                            </p>
+                          </div>
+
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 text-black">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardBody>
             </Card>
-          )}
-        </section>
-      )}
 
-      {/* ── User Stats Section ────────────────────────────────────────────── */}
-      {userStats && (
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-2xl font-bold text-[#111827]">User Statistics</h2>
-            <p className="mt-1 text-sm text-[#6b7280]">
-              User growth, verification rates, and active sessions
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              {
-                label: 'Total Users',
-                value: (userStats?.total_users ?? 0).toLocaleString(),
-                icon: Users2,
-                color: 'bg-blue-50 text-blue-600',
-              },
-              {
-                label: 'Verified Users',
-                value: (userStats?.verified_users ?? 0).toLocaleString(),
-                icon: Shield,
-                color: 'bg-green-50 text-green-600',
-              },
-              {
-                label: 'Active (30d)',
-                value: (userStats?.active_users_30days ?? 0).toLocaleString(),
-                icon: TrendingUp,
-                color: 'bg-emerald-50 text-emerald-600',
-              },
-              {
-                label: 'Verification Rate',
-                value: `${(userStats?.verification_rate ?? 0).toFixed(1)}%`,
-                icon: CheckCircle2,
-                color: 'bg-purple-50 text-purple-600',
-              },
-            ].map((metric) => {
-              const Icon = metric.icon;
-              return (
-                <Card key={metric.label} className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-                  <div className="flex items-start justify-between gap-4">
+            {data.wallet.transactions.length > 0 && (
+              <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+                <CardHeader>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[#6b7280]">
-                        {metric.label}
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                        Wallet Transactions
                       </p>
-                      <p className="mt-3 text-2xl font-bold text-[#111827]">
-                        {metric.value}
-                      </p>
+
+                      <h3 className="mt-1 text-2xl font-black text-black">
+                        Wallet Activity
+                      </h3>
                     </div>
-                    <div className={`rounded-2xl ${metric.color} p-3`}>
-                      <Icon className="h-5 w-5" />
+
+                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                      <ArrowUpRight className="h-4 w-4" />
+                      {selectedPeriod} aggregation
                     </div>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
+                </CardHeader>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">New This Month</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {(userStats?.new_users_this_month ?? 0).toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                New user registrations this month
-              </p>
+                <CardBody>
+                  <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                    {data.wallet.transactions.map((txn, idx) => (
+                      <div
+                        key={`${txn.type}-${txn.status}-${idx}`}
+                        className="flex flex-col gap-4 border-b border-gray-200 bg-white p-5 transition hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between last:border-0"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50">
+                            <Wallet className="h-5 w-5 text-black" />
+                          </div>
+
+                          <div>
+                            <p className="font-bold capitalize text-black">
+                              {txn.type}
+                            </p>
+
+                            <p className="text-xs text-gray-500">
+                              {txn.count.toLocaleString()} transactions
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="sm:text-right">
+                          <p className="text-lg font-black text-black">
+                            {formatCurrency(txn.amount)}
+                          </p>
+
+                          <div className="mt-1">
+                            <Badge
+                              variant={
+                                txn.status === 'success' ? 'success' : 'warning'
+                              }
+                            >
+                              {txn.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+
+            <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+              <CardHeader>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                    VTU Services
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black text-black">
+                    VTU Performance Summary
+                  </h3>
+                </div>
+              </CardHeader>
+
+              <CardBody className="space-y-8">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {vtuSummaryCards.map((item) => (
+                    <div
+                      key={item.title}
+                      className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-300 hover:shadow-md"
+                    >
+                      <p className="text-sm font-semibold text-gray-500">
+                        {item.title}
+                      </p>
+
+                      <p className="mt-3 break-words text-2xl font-black text-black">
+                        {item.value}
+                      </p>
+
+                      <p className="mt-2 text-xs font-medium text-gray-500">
+                        {item.helper}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {data.vtu.by_status.length > 0 && (
+                  <div>
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-lg font-black text-black">
+                          Transaction Status
+                        </h4>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Distribution by status for selected period.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                      {data.vtu.by_status.map((status, idx) => (
+                        <div
+                          key={`${status.status}-${idx}`}
+                          className="rounded-3xl border border-gray-200 bg-gray-50 p-5"
+                        >
+                          <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-500">
+                            {status.status}
+                          </p>
+
+                          <p className="mt-3 text-2xl font-black text-black">
+                            {status.count.toLocaleString()}
+                          </p>
+
+                          <p className="mt-1 text-sm font-semibold text-gray-600">
+                            {formatCurrency(status.total_amount)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {data.vtu.by_product_type.length > 0 && (
+                  <div>
+                    <div className="mb-4">
+                      <h4 className="text-lg font-black text-black">
+                        Product Type Breakdown
+                      </h4>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        Revenue, commission, and usage split by VTU product type.
+                      </p>
+                    </div>
+
+                    <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                      {data.vtu.by_product_type.map((product, idx) => (
+                        <div
+                          key={`${product.type}-${idx}`}
+                          className="flex flex-col gap-4 border-b border-gray-200 p-5 transition hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between last:border-0"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50">
+                              <TrendingUp className="h-5 w-5 text-black" />
+                            </div>
+
+                            <div>
+                              <p className="font-bold capitalize text-black">
+                                {product.type}
+                              </p>
+
+                              <p className="text-xs text-gray-500">
+                                {product.count.toLocaleString()} transactions
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="sm:text-right">
+                            <p className="text-lg font-black text-black">
+                              {formatCurrency(product.total_amount)}
+                            </p>
+
+                            <p className="text-xs font-medium text-gray-500">
+                              Commission {formatCurrency(product.total_commission)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardBody>
             </Card>
 
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">New This Week</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {(userStats?.new_users_this_week ?? 0).toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                New user registrations this week
-              </p>
-            </Card>
+            <div className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-gray-600">
+                <p>
+                  <span className="font-bold text-black">Period:</span>{' '}
+                  {data.start_date} to {data.end_date}
+                </p>
+              </div>
 
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Email Verified</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {(userStats?.email_verified_users ?? 0).toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                Users with verified email addresses
-              </p>
-            </Card>
-
-            <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-              <h3 className="font-semibold text-[#111827]">Unverified</h3>
-              <p className="mt-2 text-3xl font-bold text-[#111827]">
-                {(userStats?.unverified_users ?? 0).toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-[#6b7280]">
-                Users pending verification
-              </p>
-            </Card>
-          </div>
-        </section>
-      )}
-
-      {/* ── Empty State ────────────────────────────────────────────────────– */}
-      {!walletStats && !vtuStats && !userStats && (
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-12 text-center">
-          <Smartphone className="mx-auto h-12 w-12 text-[#d1d5db]" />
-          <p className="mt-4 text-sm font-medium text-[#6b7280]">
-            No analytics data available yet
-          </p>
-          <p className="mt-1 text-xs text-[#9ca3af]">
-            Statistics will appear here once transactions and users are recorded.
-          </p>
-        </Card>
-      )}
+              <Button
+                onClick={() => window.location.reload()}
+                variant="secondary"
+                size="sm"
+                className="gap-2 border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

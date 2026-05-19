@@ -65,37 +65,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Add small delay to ensure Zustand persist has hydrated from localStorage
     const timer = setTimeout(() => {
-      // Check if user is admin
+      // Check if user is authenticated
       if (!user) {
         router.push('/auth/login');
         return;
       }
 
-      // Check if email is verified
+      // Check if email is verified (safety check, AuthInitializer is primary enforcer)
       if (!user.isEmailVerified) {
         console.warn('[AdminLayout] User email not verified, redirecting to verification page');
         router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
         return;
       }
 
+      // Check if user has admin role
       const isAdmin = user.roles?.some((r) => r === 'admin');
       if (!isAdmin) {
+        // User doesn't have admin role, let AuthInitializer handle redirect to appropriate dashboard
         router.push('/dashboard');
         return;
       }
 
-      // If user has multiple roles but activeRole is not admin, redirect to appropriate dashboard
-      if (activeRole && activeRole !== 'admin') {
-        const path = activeRole === 'agent' ? '/agent' : '/dashboard';
-        router.push(path);
-        return;
-      }
-
+      // User is authenticated, email verified, and is admin - allow page to render
+      // NOTE: Role-based redirects (if user gains/loses admin role) are handled by AuthInitializer
       setLoading(false);
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [isMounted, user, activeRole, router]);
+  }, [isMounted, user, router]);
 
   if (loading) {
     return <PageSkeleton />;

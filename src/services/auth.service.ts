@@ -80,8 +80,8 @@ class AuthService {
     return apiClient.put('/users/change-password', data);
   }
 
-  async getProfile(): Promise<ApiResponse<User>> {
-    return apiClient.get('/auth/profile');
+  async getUser(): Promise<ApiResponse<{ user: User }>> {
+    return apiClient.get('/auth/user');
   }
 }
 

@@ -9,6 +9,13 @@ import {
   ApiResponse,
   PaginatedResponse,
 } from '@/types/api.types';
+import {
+  AdminStatisticsData,
+  UserVtuStatistics,
+  UserWalletStatistics,
+  UserStatistics,
+  CombinedUserStatistics,
+} from '@/types/vtu.types';
 
 class AdminService {
   async getDashboard(): Promise<ApiResponse<{ data: any }>> {
@@ -421,6 +428,31 @@ class AdminService {
 
   async getAnalytics(metric: string, period: string): Promise<any> {
     return apiClient.get(`/admin/analytics?metric=${metric}&period=${period}`);
+  }
+
+  // NEW VTU STATISTICS ENDPOINTS (May 2026 Update)
+  async getAdminVtuStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<AdminStatisticsData>> {
+    return apiClient.get(`/admin/statistics?period=${period}`);
+  }
+
+  async getUserVtuStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<UserVtuStatistics>> {
+    return apiClient.get(`/statistics/vtu?period=${period}`);
+  }
+
+  async getUserWalletStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<UserWalletStatistics>> {
+    return apiClient.get(`/statistics/wallet?period=${period}`);
+  }
+
+  async getUserStatistics(): Promise<ApiResponse<UserStatistics>> {
+    return apiClient.get(`/statistics/user`);
+  }
+
+  async getCombinedUserStatistics(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<CombinedUserStatistics>> {
+    return apiClient.get(`/statistics/all?period=${period}`);
+  }
+
+  async getAdminDashboardComprehensive(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<AdminStatisticsData>> {
+    return apiClient.get(`/admin/dashboard/comprehensive?period=${period}`);
   }
 }
 

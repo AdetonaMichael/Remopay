@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
+import { useErrorPageContext } from '@/contexts/ErrorPageContext';
+import { useInitialization } from '@/contexts/InitializationContext';
 
 /**
  * EmailVerificationEnforcer Component
@@ -17,7 +19,9 @@ import { useAuthStore } from '@/store/auth.store';
 export function EmailVerificationEnforcer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isHydrated } = useAuthStore();
+  const { isErrorPage } = useErrorPageContext();
+  const { isInitializationComplete } = useInitialization();
   const [isClient, setIsClient] = useState(false);
   const hasRedirectedRef = useRef(false);
 
@@ -57,9 +61,25 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
     if (!isClient) return;
     if (!pathname) return;
 
+    // Wait for store to be hydrated from localStorage before enforcing
+    if (!isHydrated) {
+      return;
+    }
+
+    // CRITICAL: Wait for AuthInitializer to complete its data refresh
+    // This ensures we have fresh verification flags from the API, not stale localStorage data
+    if (!isInitializationComplete) {
+      return;
+    }
+
     // Only enforce on protected routes
     if (isPublicRoute) {
       hasRedirectedRef.current = false; // Reset when on public route
+      return;
+    }
+
+    // Don't enforce on error pages (404, error boundary, etc.)
+    if (isErrorPage) {
       return;
     }
 
@@ -84,7 +104,7 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
       const email = user?.email || '';
       router.replace(`/auth/verify-email?email=${encodeURIComponent(email)}`);
     }
-  }, [isClient, pathname, isPublicRoute, isAuthenticated, isEmailVerified, user, router]);
+  }, [isClient, pathname, isPublicRoute, isAuthenticated, isEmailVerified, isHydrated, isInitializationComplete, user, router]);
 
   // Render children normally - enforcement happens via redirect above
   return <>{children}</>;

@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
+import { useErrorPageContext } from '@/contexts/ErrorPageContext';
+import { useInitialization } from '@/contexts/InitializationContext';
 
 /**
  * PhoneVerificationEnforcer Component
@@ -18,7 +20,9 @@ import { useAuthStore } from '@/store/auth.store';
 export function PhoneVerificationEnforcer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isPhoneVerified } = useAuthStore();
+  const { user, isAuthenticated, isPhoneVerified, isHydrated } = useAuthStore();
+  const { isErrorPage } = useErrorPageContext();
+  const { isInitializationComplete } = useInitialization();
   const [isClient, setIsClient] = useState(false);
   const hasRedirectedRef = useRef(false);
 
@@ -56,13 +60,33 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     if (!isClient) return;
     if (!pathname) return;
 
-    console.log('[PhoneVerificationEnforcer]', {
-      pathname,
-      isPublicRoute,
-      isAuthenticated,
-      isPhoneVerified,
-      userId: user?.id,
-    });
+    // Wait for store to be hydrated from localStorage before enforcing
+    if (!isHydrated) {
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.log('[PhoneVerificationEnforcer] Waiting for store hydration...');
+      }
+      return;
+    }
+
+    // CRITICAL: Wait for AuthInitializer to complete its data refresh
+    // This ensures we have fresh verification flags from the API, not stale localStorage data
+    if (!isInitializationComplete) {
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.log('[PhoneVerificationEnforcer] Waiting for AuthInitializer to refresh user data...');
+      }
+      return;
+    }
+
+    // Only log in development when verbose mode enabled
+    if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+      console.log('[PhoneVerificationEnforcer]', {
+        pathname,
+        isPublicRoute,
+        isAuthenticated,
+        isPhoneVerified,
+        userId: user?.id,
+      });
+    }
 
     // Only enforce on protected routes
     if (isPublicRoute) {
@@ -70,16 +94,28 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
       return;
     }
 
+    // Don't enforce on error pages (404, error boundary, etc.)
+    if (isErrorPage) {
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.log('[PhoneVerificationEnforcer] On error page, skipping enforcement');
+      }
+      return;
+    }
+
     // User is not authenticated - no enforcement needed
     if (!isAuthenticated || !user) {
-      console.log('[PhoneVerificationEnforcer] User not authenticated, skipping enforcement');
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.log('[PhoneVerificationEnforcer] User not authenticated, skipping enforcement');
+      }
       return;
     }
 
     // User has verified phone - allow access, reset redirect flag
     if (isPhoneVerified) {
       hasRedirectedRef.current = false;
-      console.log('[PhoneVerificationEnforcer] Phone is verified, allowing access');
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.log('[PhoneVerificationEnforcer] Phone is verified, allowing access');
+      }
       return;
     }
 
@@ -87,15 +123,17 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     // Use ref to ensure we only redirect once per unverified state
     if (!hasRedirectedRef.current) {
       hasRedirectedRef.current = true;
-      console.warn(
-        '[PhoneVerificationEnforcer] Blocking unverified user from accessing:',
-        pathname,
-        '- Redirecting to verify-phone',
-        { isPhoneVerified, userId: user?.id }
-      );
+      if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
+        console.warn(
+          '[PhoneVerificationEnforcer] Blocking unverified user from accessing:',
+          pathname,
+          '- Redirecting to verify-phone',
+          { isPhoneVerified, userId: user?.id }
+        );
+      }
       router.replace(`/auth/verify-phone?next=${encodeURIComponent(pathname)}`);
     }
-  }, [isClient, pathname, isPublicRoute, isAuthenticated, isPhoneVerified, user, router]);
+  }, [isClient, pathname, isPublicRoute, isAuthenticated, isPhoneVerified, isHydrated, isInitializationComplete, user, router]);
 
   // Render children normally - enforcement happens via redirect above
   return <>{children}</>;

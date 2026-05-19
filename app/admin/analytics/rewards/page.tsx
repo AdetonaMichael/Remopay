@@ -216,11 +216,11 @@ export default function AdminAnalyticsDashboardPage() {
             <div className="space-y-4">
               {[
                 { label: 'Registered Users', value: funnel.registered_users, rate: 100 },
-                { label: 'Email Verified', value: funnel.email_verified, rate: funnel.conversion_rates.registration_to_email },
-                { label: 'Phone Verified', value: funnel.phone_verified, rate: funnel.conversion_rates.email_to_phone },
-                { label: 'Wallet Funded', value: funnel.wallet_funded, rate: funnel.conversion_rates.phone_to_funding },
-                { label: 'First Transaction', value: funnel.first_transaction, rate: funnel.conversion_rates.funding_to_transaction },
-                { label: 'Earned Reward', value: funnel.reward_earned, rate: funnel.conversion_rates.transaction_to_reward },
+                { label: 'Email Verified', value: funnel.email_verified, rate: (funnel.email_verified / (funnel.registered_users || 1)) * 100 },
+                { label: 'Phone Verified', value: funnel.phone_verified, rate: (funnel.phone_verified / (funnel.registered_users || 1)) * 100 },
+                { label: 'Wallet Funded', value: funnel.wallet_funded, rate: (funnel.wallet_funded / (funnel.registered_users || 1)) * 100 },
+                { label: 'First Transaction', value: funnel.first_transaction, rate: (funnel.first_transaction / (funnel.registered_users || 1)) * 100 },
+                { label: 'Earned Reward', value: funnel.reward_earned, rate: (funnel.reward_earned / (funnel.registered_users || 1)) * 100 },
               ].map((step, idx) => (
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-2">
@@ -276,10 +276,10 @@ export default function AdminAnalyticsDashboardPage() {
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">#{user.user_id}</td>
                       <td className="px-6 py-4 text-right text-sm text-gray-600">
-                        {user.reward_count}
+                        {user.reward_count ?? 0}
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                        ₦{user.total_rewards.toFixed(2)}
+                        ₦{(user.total_rewards ?? 0).toFixed(2)}
                       </td>
                     </tr>
                   ))}

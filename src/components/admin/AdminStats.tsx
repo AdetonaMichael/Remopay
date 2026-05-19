@@ -18,6 +18,29 @@ interface AdminStatsProps {
   stats: StatItem[];
 }
 
+/**
+ * Safely convert stat value to string
+ * Handles NaN, null, undefined gracefully
+ */
+function safeStatValue(value: string | number): string {
+  if (value === null || value === undefined) {
+    return '—';
+  }
+  
+  if (typeof value === 'string') {
+    return value || '—';
+  }
+  
+  if (typeof value === 'number') {
+    if (isNaN(value)) {
+      return '—';
+    }
+    return value.toString();
+  }
+  
+  return '—';
+}
+
 export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
   const getTrendIcon = (direction: 'up' | 'down' | 'neutral') => {
     switch (direction) {
@@ -59,7 +82,7 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
                   <div className="text-[#a9b7ff]">{stat.icon}</div>
                 )}
               </div>
-              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-2xl font-bold text-gray-900">{safeStatValue(stat.value)}</p>
               {stat.change && (
                 <div
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${getTrendColor(
@@ -67,7 +90,7 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
                   )}`}
                 >
                   {getTrendIcon(stat.change.direction)}
-                  {stat.change.value}
+                  {safeStatValue(stat.change.value)}
                 </div>
               )}
             </CardBody>

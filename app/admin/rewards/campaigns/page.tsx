@@ -208,7 +208,7 @@ export default function AdminCampaignsPage() {
         <Card className="rounded-3xl border border-[#620707]/10 bg-[#620707] p-6 text-white shadow-sm">
           <Megaphone className="h-7 w-7" />
           <p className="mt-4 text-sm text-white/75">Total Campaigns</p>
-          <h2 className="mt-2 text-3xl font-black">{campaigns.length}</h2>
+          <h2 className="mt-2 text-3xl font-black text-white">{campaigns.length}</h2>
         </Card>
 
         <Card className="rounded-3xl border border-emerald-200 bg-white p-6 shadow-sm">

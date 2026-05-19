@@ -427,9 +427,11 @@ class RewardService {
   // ============= ADMIN REFERRAL ENDPOINTS =============
 
   async getReferralDashboard(): Promise<ReferralDashboard> {
+    console.log('[RewardService] GET /admin/referrals/dashboard');
     const response = await this.apiClient.get<ReferralDashboard>(
       '/admin/referrals/dashboard'
     );
+    console.log('[RewardService] Response:', { success: response.success, message: response.message });
     if (!response.success) {
       throw new Error(response.message || 'Failed to fetch referral dashboard');
     }

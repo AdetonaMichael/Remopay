@@ -17,6 +17,9 @@ import { trackApiError } from '@/utils/error-tracking.utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.afridata.remonode.com/api/v1';
 
+// Control verbosity of API logging
+const VERBOSE_API_LOGGING = process.env.NEXT_PUBLIC_VERBOSE_API_LOGGING === 'true';
+
 // Define payment operation paths that require idempotency keys
 // These are all endpoints that modify financial state and must be idempotent
 const PAYMENT_OPERATIONS = [
@@ -92,18 +95,36 @@ class ApiClient {
     this.setupInterceptors();
   }
 
+  private log(label: string, data?: any): void {
+    if (VERBOSE_API_LOGGING) {
+      debug.log(label, data);
+    }
+  }
+
+  private logRequest(method: string, url: string, data?: any): void {
+    if (VERBOSE_API_LOGGING) {
+      debug.logRequest(method, url, data);
+    }
+  }
+
+  private logResponse(status: number, url: string, data?: any): void {
+    if (VERBOSE_API_LOGGING) {
+      debug.logResponse(status, url, data);
+    }
+  }
+
   private setupInterceptors(): void {
     // Request interceptor
     this.axiosInstance.interceptors.request.use(
       (config: ExtendedAxiosRequestConfig) => {
         const token = this.getToken();
         
-        debug.log('[ApiClient] ===== REQUEST INTERCEPTOR =====');
-        debug.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data);
+        this.log('[ApiClient] ===== REQUEST INTERCEPTOR =====');
+        this.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data);
         
         if (token && token.length > 0) {
           config.headers.Authorization = `Bearer ${token}`;
-          debug.log('[ApiClient] ✓ Authorization token added to request');
+          this.log('[ApiClient] ✓ Authorization token added to request');
         } else {
           debug.warn('[ApiClient] ⚠️ No valid token found - request will be unauthenticated');
         }
@@ -126,11 +147,11 @@ class ApiClient {
 
           // Add idempotency key header
           config.headers['Idempotency-Key'] = idempotencyKey;
-          debug.log('[ApiClient] Added Idempotency-Key for payment operation');
+          this.log('[ApiClient] Added Idempotency-Key for payment operation');
         }
         
         config.retry = config.retry || 0;
-        debug.log('[ApiClient] Request interceptor completed');
+        this.log('[ApiClient] Request interceptor completed');
         return config;
       },
       (error) => {
@@ -142,8 +163,8 @@ class ApiClient {
     // Response interceptor
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        debug.log('[ApiClient] ===== RESPONSE RECEIVED =====');
-        debug.logResponse(response.status, response.config.url || '', response.data);
+        this.log('[ApiClient] ===== RESPONSE RECEIVED =====');
+        this.logResponse(response.status, response.config.url || '', response.data);
 
         // Transform backend response format to match ApiResponse interface
         // Backend returns { status, message, data } but frontend expects { success, message, data }
@@ -222,14 +243,14 @@ class ApiClient {
         // Retry logic for network errors
         if (error.response?.status !== 401 && config && config.retry! < this.maxRetries) {
           config.retry = (config.retry || 0) + 1;
-          debug.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
+          this.log(`[ApiClient] Retrying request (attempt ${config.retry}/${this.maxRetries})`);
           await this.delay(this.retryDelay * config.retry);
           return this.axiosInstance(config);
         }
 
         // Handle 401 - Unauthorized (session expired or invalid token)
         if (error.response?.status === 401) {
-          debug.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
+          this.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
           if (typeof window !== 'undefined') {
             // Clear token and auth store immediately
             this.clearToken();

@@ -26,7 +26,7 @@ interface PINSetupEnforcerProps {
 
 export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerProps) {
   const router = useRouter();
-  const { user, pinStatus, setPinStatus } = useAuthStore();
+  const { user, pinStatus, setPinStatus, isHydrated } = useAuthStore();
   const { success, error: alertError } = useAlert();
   const [showPINModal, setShowPINModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +39,7 @@ export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerPro
 
   // Check PIN status on component mount
   useEffect(() => {
-    if (!isMounted || !user) return;
+    if (!isMounted || !user || !isHydrated) return;
 
     // If PIN status not set in store, it means either:
     // 1. User just logged in (PIN status should be from login response)
@@ -50,7 +50,7 @@ export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerPro
       // User doesn't have PIN, show setup modal
       setShowPINModal(true);
     }
-  }, [user, isMounted]);
+  }, [user, isMounted, isHydrated]);
 
   // Check current PIN status from backend
   const checkPinStatus = async () => {

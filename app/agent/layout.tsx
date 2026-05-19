@@ -23,34 +23,31 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is agent
+    // Check if user is authenticated
     if (!user) {
       router.push('/auth/login');
       return;
     }
 
-    // Check if email is verified
+    // Check if email is verified (safety check, AuthInitializer is primary enforcer)
     if (!user.isEmailVerified) {
       console.warn('[AgentLayout] User email not verified, redirecting to verification page');
       router.replace(`/auth/verify-email?email=${encodeURIComponent(user.email)}`);
       return;
     }
 
+    // Check if user has agent role
     const isAgent = user.roles?.some((r) => r === 'agent');
     if (!isAgent) {
+      // User doesn't have agent role, let AuthInitializer handle redirect
       router.push('/dashboard');
       return;
     }
 
-    // If user has multiple roles but activeRole is not agent, redirect to appropriate dashboard
-    if (activeRole && activeRole !== 'agent') {
-      const path = activeRole === 'admin' ? '/admin' : '/dashboard';
-      router.push(path);
-      return;
-    }
-
+    // User is authenticated, email verified, and is agent - allow page to render
+    // NOTE: Role-based redirects (if user gains/loses agent role) are handled by AuthInitializer
     setLoading(false);
-  }, [user, activeRole, router]);
+  }, [user, router]);
 
   if (loading) {
     return (

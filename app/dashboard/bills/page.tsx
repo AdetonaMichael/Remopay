@@ -240,9 +240,9 @@ export default function BillsPage() {
                     {number}
                   </div>
 
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-bold text-[#111827]">{title}</p>
-                    <p className="text-xs text-[#667085]">{subtitle}</p>
+                  <div>
+                    <p className="text-xs font-bold text-[#111827] sm:text-sm">{title}</p>
+                    <p className="text-xs text-[#667085] line-clamp-1">{subtitle}</p>
                   </div>
 
                   {index < 3 && (

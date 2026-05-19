@@ -1,6 +1,8 @@
 'use client';
 
-export default function Error({
+import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
+
+function ErrorContent({
   error,
   reset,
 }: {
@@ -60,5 +62,19 @@ export default function Error({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <ErrorPageProvider isErrorPage={true}>
+      <ErrorContent error={error} reset={reset} />
+    </ErrorPageProvider>
   );
 }

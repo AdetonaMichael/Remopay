@@ -239,9 +239,9 @@ export default function TVPage() {
                     {number}
                   </div>
 
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-bold text-gray-900">{title}</p>
-                    <p className="text-xs text-gray-600">{subtitle}</p>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 sm:text-sm">{title}</p>
+                    <p className="text-xs text-gray-600 line-clamp-1">{subtitle}</p>
                   </div>
 
                   {index < 3 && (

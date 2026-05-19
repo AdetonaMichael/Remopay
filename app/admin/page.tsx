@@ -163,7 +163,16 @@ interface Transaction {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCompactCurrency(value: number): string {
+/**
+ * Safely format a value as compact currency
+ * Returns '₦0' if value is NaN, null, or undefined
+ */
+function formatCompactCurrency(value: number | null | undefined): string {
+  // Handle null/undefined/NaN
+  if (value === null || value === undefined || isNaN(value)) {
+    return '₦0';
+  }
+  
   if (value >= 1_000_000) {
     return `₦${(value / 1_000_000).toFixed(1)}M`;
   }
@@ -427,34 +436,56 @@ export default function AdminDashboardPage() {
     alerts: []
   };
 
+  // Ensure all numeric values are valid numbers
+  const safeUsers = {
+    total: Number.isFinite(users.total) ? users.total : 0,
+    verified: Number.isFinite(users.verified) ? users.verified : 0,
+    verification_rate: Number.isFinite(users.verification_rate) ? users.verification_rate : 0,
+  };
+
+  const safeTransactions = {
+    volume_this_month: Number.isFinite(transactionStats.volume_this_month) ? transactionStats.volume_this_month : 0,
+    month_growth_rate: transactionStats.month_growth_rate || '0%',
+  };
+
+  const safeRevenue = {
+    commission_today: Number.isFinite(revenue.commission_today) ? revenue.commission_today : 0,
+    total_commission: Number.isFinite(revenue.total_commission) ? revenue.total_commission : 0,
+  };
+
+  const safeVtuStats = {
+    success_rate: Number.isFinite(vtuStats.success_rate) ? vtuStats.success_rate : 0,
+    completed_transactions: Number.isFinite(vtuStats.completed_transactions) ? vtuStats.completed_transactions : 0,
+  };
+
   const kpiCards = [
     {
       label: 'Total Users',
-      value: users.total.toLocaleString(),
+      value: safeUsers.total.toLocaleString(),
       icon: Users,
       color: 'bg-blue-50 text-blue-600',
-      subtext: `${users.verified} verified (${users.verification_rate.toFixed(1)}%)`,
+      subtext: `${safeUsers.verified} verified (${safeUsers.verification_rate.toFixed(1)}%)`,
     },
     {
       label: 'Monthly Volume',
-      value: formatCompactCurrency(transactionStats.volume_this_month),
+      value: formatCompactCurrency(safeTransactions.volume_this_month),
       icon: CreditCard,
       color: 'bg-emerald-50 text-emerald-600',
-      subtext: `Growth: ${transactionStats.month_growth_rate}`,
+      subtext: `Growth: ${safeTransactions.month_growth_rate}`,
     },
     {
       label: 'Daily Revenue',
-      value: formatCurrency(revenue.commission_today),
+      value: formatCurrency(safeRevenue.commission_today),
       icon: Wallet,
       color: 'bg-purple-50 text-purple-600',
-      subtext: `Total: ${formatCompactCurrency(revenue.total_commission)}`,
+      subtext: `Total: ${formatCompactCurrency(safeRevenue.total_commission)}`,
     },
     {
       label: 'VTU Success Rate',
-      value: `${vtuStats.success_rate.toFixed(1)}%`,
+      value: `${safeVtuStats.success_rate.toFixed(1)}%`,
       icon: CheckCircle2,
       color: 'bg-green-50 text-green-600',
-      subtext: `${vtuStats.completed_transactions.toLocaleString()} completed`,
+      subtext: `${safeVtuStats.completed_transactions.toLocaleString()} completed`,
     },
   ];
 

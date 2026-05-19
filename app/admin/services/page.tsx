@@ -1,60 +1,41 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Smartphone,
-  Wifi,
+  AlertCircle,
+  ArrowUpRight,
+  CheckCircle2,
+  ShieldCheck,
   TrendingUp,
-  Activity,
-  Eye,
-  BarChart3,
+  Users,
+  Wallet,
 } from 'lucide-react';
 
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminTable } from '@/components/admin/AdminTable';
-import { AdminStats } from '@/components/admin/AdminStats';
-import { Card, CardBody, CardHeader } from '@/components/shared/Card';
-import { Button } from '@/components/shared/Button';
-import { Badge } from '@/components/shared/Badge';
 import { useAuthStore } from '@/store/auth.store';
+import { VtuStatisticsDashboard } from '@/components/admin/VtuStatisticsDashboard';
+import { Card, CardBody, CardHeader } from '@/components/shared/Card';
+import { Badge } from '@/components/shared/Badge';
 import { adminService } from '@/services/admin.service';
+import { AdminStatisticsData } from '@/types/vtu.types';
 import { formatCurrency } from '@/utils/format.utils';
-import { Modal } from '@/components/shared/Modal';
-import { Spinner } from '@/components/shared/Spinner';
-
-interface VTUTransaction {
-  id: number;
-  user_id: number;
-  transaction_type: string;
-  product_name: string;
-  amount: number;
-  phone: string;
-  status: string;
-  reference: string;
-  transaction_date: string;
-}
-
-interface NetworkStats {
-  count: number;
-  volume: number;
-  success_rate: number;
-}
 
 export default function AdminServicesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [transactions, setTransactions] = useState<VTUTransaction[]>([]);
-  const [stats, setStats] = useState<any>(null);
+
+  const [adminData, setAdminData] = useState<AdminStatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [selectedTxn, setSelectedTxn] = useState<VTUTransaction | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
 
   const isAdmin = useMemo(() => {
     return Boolean(user?.roles?.some((role) => role === 'admin'));
   }, [user]);
+
+  const verifiedPercentage = useMemo(() => {
+    if (!adminData?.users.total) return '0.0';
+
+    return ((adminData.users.verified / adminData.users.total) * 100).toFixed(1);
+  }, [adminData]);
 
   useEffect(() => {
     if (user && !isAdmin) {
@@ -63,268 +44,262 @@ export default function AdminServicesPage() {
   }, [user, isAdmin, router]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAdminData = async () => {
       try {
-        setLoading(true);
-        const [txnResponse, statsResponse] = await Promise.all([
-          adminService.getVTUTransactions(currentPage, 50),
-          adminService.getVTUTransactionStats(),
-        ]);
+        const response = await adminService.getAdminDashboardComprehensive('month');
 
-        if (txnResponse?.data) {
-          const data = Array.isArray(txnResponse.data)
-            ? txnResponse.data
-            : txnResponse.data.transactions || [];
-          setTransactions(data);
-          if (txnResponse.data.pagination) {
-            setTotalPages(txnResponse.data.pagination.last_page || 1);
-          }
-        }
-
-        if (statsResponse?.data) {
-          setStats(statsResponse.data);
+        if (response.success && response.data) {
+          setAdminData(response.data);
         }
       } catch (error) {
-        console.error('Error fetching VTU data:', error);
+        console.error('Error fetching admin data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, [currentPage]);
+    if (isAdmin) {
+      fetchAdminData();
+    }
+  }, [isAdmin]);
 
-  const statsItems = [
-    {
-      title: 'Total Transactions',
-      value: stats?.total_transactions || 0,
-      icon: <BarChart3 className="h-6 w-6" />,
-      change: { value: '+15.3%', direction: 'up' as const },
-    },
-    {
-      title: 'Total Volume',
-      value: formatCurrency(stats?.total_volume || 0),
-      icon: <TrendingUp className="h-6 w-6" />,
-      change: { value: '+9.8%', direction: 'up' as const },
-    },
-    {
-      title: 'Success Rate',
-      value: `${(stats?.success_rate || 0).toFixed(1)}%`,
-      icon: <Activity className="h-6 w-6" />,
-      change: { value: '+2.1%', direction: 'up' as const },
-    },
-    {
-      title: 'Total Commissions',
-      value: formatCurrency(stats?.total_commission || 0),
-      icon: <Smartphone className="h-6 w-6" />,
-      change: { value: '+6.5%', direction: 'up' as const },
-    },
-  ];
+  if (!isAdmin) return null;
 
-  const tableColumns = [
-    {
-      key: 'reference',
-      label: 'Reference',
-      width: '120px',
-    },
-    {
-      key: 'product_name',
-      label: 'Product',
-      width: '150px',
-    },
-    {
-      key: 'phone',
-      label: 'Phone',
-      width: '150px',
-    },
-    {
-      key: 'amount',
-      label: 'Amount',
-      width: '120px',
-      render: (value: number) => formatCurrency(value),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      width: '100px',
-      render: (value: string) => (
-        <Badge
-          variant={
-            value === 'completed'
-              ? 'success'
-              : value === 'failed'
-                ? 'danger'
-                : 'warning'
-          }
-        >
-          {value}
-        </Badge>
-      ),
-    },
-    {
-      key: 'transaction_date',
-      label: 'Date',
-      width: '150px',
-      render: (value: string) =>
-        new Date(value).toLocaleString('en-NG'),
-    },
-    {
-      key: 'id',
-      label: 'Action',
-      width: '80px',
-      align: 'center' as const,
-      render: (value: number, row: VTUTransaction) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setSelectedTxn(row);
-            setShowDetails(true);
-          }}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-      ),
-    },
-  ];
-
-  if (!isAdmin) {
-    return null;
-  }
+  const overviewCards = adminData
+    ? [
+        {
+          title: 'Total Users',
+          value: adminData.users.total,
+          helper: `${adminData.users.new} new this period`,
+          icon: Users,
+        },
+        {
+          title: 'Verified Users',
+          value: `${verifiedPercentage}%`,
+          helper: `${adminData.users.verified} verified accounts`,
+          icon: ShieldCheck,
+          badge: adminData.users.verified,
+        },
+        {
+          title: 'Wallet Balance',
+          value: formatCurrency(adminData.wallet.total_balance),
+          helper: 'Across all users',
+          icon: Wallet,
+        },
+        {
+          title: 'Success Rate',
+          value: `${adminData.performance.success_rate.toFixed(2)}%`,
+          helper: 'System-wide performance',
+          icon: TrendingUp,
+        },
+      ]
+    : [];
 
   return (
-    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
-      <AdminHeader
-        title="VTU Services"
-        description="Manage VTU transactions and service performance"
-      />
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="min-h-screen bg-white px-4 py-6 text-black sm:px-6 lg:px-8"
+    >
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-      <AdminStats stats={statsItems} />
+        * {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+      `}</style>
 
-      {/* Network Performance */}
-      {stats?.by_network && (
-        <Card>
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Network Performance
-            </h3>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(stats.by_network).map(
-                ([network, data]: [string, any]) => (
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-600">
+                <CheckCircle2 className="h-3.5 w-3.5 text-gray-700" />
+                Admin Dashboard
+              </div>
+
+              <h1 className="text-3xl font-black tracking-tight text-black sm:text-4xl">
+                Services & Analytics
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                Monitor platform growth, wallet activity, transaction insights, and
+                service performance from one clean operational dashboard.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-500">
+                Reporting Period
+              </p>
+
+              <p className="mt-1 text-lg font-extrabold text-black">This Month</p>
+            </div>
+          </div>
+        </section>
+
+        {loading && (
+          <Card>
+            <CardBody>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, index) => (
                   <div
-                    key={network}
-                    className="rounded-lg border border-gray-200 p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-gray-900">{network}</h4>
-                      <Badge variant="info">
-                        {(data.success_rate || 0).toFixed(1)}%
-                      </Badge>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Transactions:</span>
-                        <span className="font-medium text-gray-900">
-                          {data.count}
-                        </span>
+                    key={index}
+                    className="h-32 animate-pulse rounded-2xl border border-gray-200 bg-gray-100"
+                  />
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {!loading && adminData && (
+          <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                    System Overview
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black text-black">
+                    Platform Summary
+                  </h3>
+                </div>
+
+                <Badge variant="success">Live Data</Badge>
+              </div>
+            </CardHeader>
+
+            <CardBody>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                {overviewCards.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.title}
+                      className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-lg"
+                    >
+                      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gray-100 transition-all duration-300 group-hover:scale-110" />
+
+                      <div className="relative flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-500">
+                            {item.title}
+                          </p>
+
+                          <p className="mt-3 break-words text-3xl font-black tracking-tight text-black">
+                            {item.value}
+                          </p>
+
+                          <p className="mt-2 text-xs font-medium text-gray-500">
+                            {item.helper}
+                          </p>
+                        </div>
+
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50 text-black">
+                          <Icon className="h-5 w-5" />
+                        </div>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Volume:</span>
-                        <span className="font-medium text-gray-900">
-                          {formatCurrency(data.volume)}
-                        </span>
+
+                      {item.badge !== undefined && (
+                        <div className="relative mt-4">
+                          <Badge variant="success">{item.badge}</Badge>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {!loading && adminData && adminData.wallet.transactions.length > 0 && (
+          <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500">
+                    Wallet Transactions
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black text-black">
+                    Transaction Summary
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+                  <ArrowUpRight className="h-4 w-4" />
+                  Monthly aggregation
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardBody>
+              <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                {adminData.wallet.transactions.map((txn, idx) => (
+                  <div
+                    key={`${txn.type}-${txn.status}-${idx}`}
+                    className="flex flex-col gap-4 border-b border-gray-200 bg-white p-5 transition hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between last:border-0"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-gray-50">
+                        <Wallet className="h-5 w-5 text-black" />
+                      </div>
+
+                      <div>
+                        <p className="font-bold capitalize text-black">{txn.type}</p>
+
+                        <p className="text-xs text-gray-500">
+                          {txn.count} transactions
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="sm:text-right">
+                      <p className="text-lg font-black text-black">
+                        {formatCurrency(txn.amount)}
+                      </p>
+
+                      <div className="mt-1">
+                        <Badge variant={txn.status === 'success' ? 'success' : 'warning'}>
+                          {txn.status}
+                        </Badge>
                       </div>
                     </div>
                   </div>
-                )
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
-      <AdminTable
-        columns={tableColumns}
-        data={transactions}
-        loading={loading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        total={stats?.total_transactions}
-        onPageChange={setCurrentPage}
-        title="VTU Transactions"
-        perPage={50}
-      />
+        {!loading && !adminData && (
+          <Card className="rounded-3xl border border-gray-200 bg-white shadow-sm">
+            <CardBody>
+              <div className="flex flex-col items-center justify-center py-14 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-gray-200 bg-gray-50">
+                  <AlertCircle className="h-7 w-7 text-black" />
+                </div>
 
-      {showDetails && selectedTxn && (
-        <Modal
-          isOpen={showDetails}
-          onClose={() => setShowDetails(false)}
-          title="Transaction Details"
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Reference</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {selectedTxn.reference}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className="mt-1">
-                  <Badge
-                    variant={
-                      selectedTxn.status === 'completed'
-                        ? 'success'
-                        : selectedTxn.status === 'failed'
-                          ? 'danger'
-                          : 'warning'
-                    }
-                  >
-                    {selectedTxn.status}
-                  </Badge>
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Product</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {selectedTxn.product_name}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Phone</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {selectedTxn.phone}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Amount</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {formatCurrency(selectedTxn.amount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">User ID</p>
-                <p className="mt-1 text-base font-semibold text-gray-900">
-                  {selectedTxn.user_id}
-                </p>
-              </div>
-            </div>
+                <h3 className="mt-5 text-xl font-black text-black">
+                  No Admin Data Available
+                </h3>
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => setShowDetails(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+                <p className="mt-2 max-w-md text-sm text-gray-500">
+                  We could not load the dashboard statistics at this moment. Please try
+                  again later.
+                </p>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          <VtuStatisticsDashboard period="month" />
+        </div>
+      </div>
     </div>
   );
 }

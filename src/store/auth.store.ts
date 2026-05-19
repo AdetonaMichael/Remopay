@@ -21,6 +21,7 @@ interface AuthStore {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   emailVerificationCooldown: number;
+  isHydrated: boolean;
   
   setUser: (user: User | null) => void;
   setAuthToken: (token: string) => void;
@@ -30,6 +31,7 @@ interface AuthStore {
   setActiveRole: (role: string) => void;
   setEmailVerificationCooldown: (seconds: number) => void;
   setPhoneVerified: (verified: boolean) => void;
+  setIsHydrated: (hydrated: boolean) => void;
   getPrimaryRole: (roles?: string[]) => string | null;
   logout: () => void;
   reset: () => void;
@@ -80,6 +82,7 @@ export const useAuthStore = create<AuthStore>()(
       isEmailVerified: false,
       isPhoneVerified: false,
       emailVerificationCooldown: 0,
+      isHydrated: false,
 
       setUser: (user) => {
         // Determine primary role for activeRole
@@ -122,6 +125,8 @@ export const useAuthStore = create<AuthStore>()(
       setEmailVerificationCooldown: (seconds) => set({ emailVerificationCooldown: seconds }),
 
       setPhoneVerified: (verified) => set({ isPhoneVerified: verified }),
+
+      setIsHydrated: (hydrated) => set({ isHydrated: hydrated }),
 
       getPrimaryRole: (roles?: string[]) => {
         const rolesToCheck = roles || [];
@@ -174,6 +179,12 @@ export const useAuthStore = create<AuthStore>()(
         pinStatus: state.pinStatus,
         activeRole: state.activeRole,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Mark store as hydrated after persistence middleware restores state
+        if (state) {
+          state.isHydrated = true;
+        }
+      },
     }
   )
 );
