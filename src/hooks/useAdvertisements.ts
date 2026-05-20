@@ -40,6 +40,38 @@ export const useAdvertisements = (options: UseAdvertisementsOptions = {}) => {
   const [cached, setCached] = useState(false);
   const [cacheExpiresAt, setCacheExpiresAt] = useState<string | null>(null);
 
+  // Normalize backend ad data to match our Advertisement interface
+  const normalizeAd = useCallback((ad: any): Advertisement => {
+    return {
+      id: ad.id || ad.adId || '',
+      title: ad.title || '',
+      subtitle: ad.subtitle || '',
+      icon: ad.icon || '',
+      buttonText: ad.buttonText || ad.button_text || '',
+      actionType: ad.actionType || ad.action_type || 'navigation',
+      actionValue: ad.actionValue || ad.action_value || '',
+      image: {
+        url: ad.image?.url || ad.image_url || '',
+        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#cccccc',
+      },
+      gradient: {
+        start: ad.gradient?.start || ad.gradient_start || '#0066ff',
+        end: ad.gradient?.end || ad.gradient_end || '#0044cc',
+      },
+      displayDuration: ad.displayDuration || ad.display_duration || 5000,
+      isActive: ad.isActive !== undefined ? ad.isActive : ad.is_active !== undefined ? ad.is_active : true,
+      displayOrder: ad.displayOrder || ad.display_order || 0,
+      analytics: {
+        impressions: ad.analytics?.impressions || ad.analytics?.impression || 0,
+        clicks: ad.analytics?.clicks || 0,
+        ctr: ad.analytics?.ctr || 0,
+      },
+      validFrom: ad.validFrom || ad.valid_from || new Date().toISOString(),
+      validUntil: ad.validUntil || ad.valid_until || new Date(Date.now() + 86400000).toISOString(),
+      platform: ad.platform || 'all',
+    };
+  }, []);
+
   const fetchAds = useCallback(async () => {
     try {
       setLoading(true);
@@ -52,10 +84,13 @@ export const useAdvertisements = (options: UseAdvertisementsOptions = {}) => {
       });
 
       if (response.success && response.data) {
-        const ads = Array.isArray(response.data) 
+        const rawAds = Array.isArray(response.data) 
           ? response.data 
           : response.data.advertisements || [];
-        setAds(ads);
+        
+        // Normalize all ads to match our interface
+        const normalizedAds = rawAds.map(ad => normalizeAd(ad));
+        setAds(normalizedAds);
         
         // Handle pagination/meta structure
         if (typeof response.data === 'object' && !Array.isArray(response.data)) {
@@ -74,7 +109,7 @@ export const useAdvertisements = (options: UseAdvertisementsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [limit, platform, showAlert]);
+  }, [limit, platform, showAlert, normalizeAd]);
 
   const trackClick = useCallback(
     async (adId: number) => {
@@ -131,6 +166,42 @@ export const useAdvertisementsAdmin = (initialParams?: UseAdvertisementsAdminOpt
     }
   );
 
+  // Normalize backend ad data to match our AdvertisementAdmin interface
+  const normalizeAdminAd = useCallback((ad: any): AdvertisementAdmin => {
+    return {
+      id: ad.id || ad.adId || 0,
+      title: ad.title || '',
+      subtitle: ad.subtitle || '',
+      icon: ad.icon || '',
+      buttonText: ad.buttonText || ad.button_text || '',
+      actionType: ad.actionType || ad.action_type || 'navigation',
+      actionValue: ad.actionValue || ad.action_value || '',
+      image: {
+        url: ad.image?.url || ad.image_url || '',
+        fallbackColor: ad.image?.fallbackColor || ad.fallback_color || '#cccccc',
+      },
+      gradient: {
+        start: ad.gradient?.start || ad.gradient_start || '#0066ff',
+        end: ad.gradient?.end || ad.gradient_end || '#0044cc',
+      },
+      displayDuration: ad.displayDuration || ad.display_duration || 5000,
+      isActive: ad.isActive !== undefined ? ad.isActive : ad.is_active !== undefined ? ad.is_active : true,
+      displayOrder: ad.displayOrder || ad.display_order || 0,
+      analytics: {
+        impressions: ad.analytics?.impressions || ad.analytics?.impression || 0,
+        clicks: ad.analytics?.clicks || 0,
+        ctr: ad.analytics?.ctr || 0,
+      },
+      validFrom: ad.validFrom || ad.valid_from || new Date().toISOString(),
+      validUntil: ad.validUntil || ad.valid_until || new Date(Date.now() + 86400000).toISOString(),
+      platform: ad.platform || 'all',
+      notes: ad.notes || '',
+      created_at: ad.created_at || new Date().toISOString(),
+      updated_at: ad.updated_at || new Date().toISOString(),
+      created_by: ad.created_by || '',
+    };
+  }, []);
+
   const fetchAds = useCallback(async (customParams?: UseAdvertisementsAdminOptions) => {
     try {
       setLoading(true);
@@ -141,7 +212,9 @@ export const useAdvertisementsAdmin = (initialParams?: UseAdvertisementsAdminOpt
 
       if (response.success) {
         // Handle both response structures
-        const adsData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const rawAds = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const normalizedAds = rawAds.map(ad => normalizeAdminAd(ad));
+        
         const paginationData = (response as any).pagination || response.data?.pagination || {
           total: 0,
           per_page: 15,
@@ -151,7 +224,7 @@ export const useAdvertisementsAdmin = (initialParams?: UseAdvertisementsAdminOpt
           to: 0,
         };
         
-        setAds(adsData);
+        setAds(normalizedAds);
         setPagination(paginationData);
       } else {
         setError(response.message || 'Failed to fetch advertisements');
@@ -164,7 +237,7 @@ export const useAdvertisementsAdmin = (initialParams?: UseAdvertisementsAdminOpt
     } finally {
       setLoading(false);
     }
-  }, [params, showAlert]);
+  }, [params, showAlert, normalizeAdminAd]);
 
   const createAd = useCallback(
     async (data: CreateAdvertisementRequest) => {

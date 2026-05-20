@@ -352,6 +352,41 @@ export interface WalletTransaction {
   created_at: string;
 }
 
+// ============= PIN Types =============
+export interface PINStatus {
+  has_pin: boolean;
+  is_locked: boolean;
+  failed_attempts: number;
+  remaining_seconds?: number;
+}
+
+export interface SetTransactionPINRequest {
+  current_pin: string | null;
+  new_pin: string;
+  new_pin_confirmation: string;
+  password: string;
+}
+
+export interface VerifyTransactionPINRequest {
+  pin: string;
+}
+
+export interface VerifyTransactionPINResponse {
+  verified: boolean;
+  message: string;
+  remaining_attempts?: number;
+}
+
+export interface PINErrorResponse {
+  code: 'INVALID_PIN' | 'PIN_LOCKED' | 'PIN_NOT_SET' | 'INVALID_PASSWORD' | string;
+  message: string;
+  data?: {
+    failed_attempts?: number;
+    remaining_attempts?: number;
+    remaining_seconds?: number;
+  };
+}
+
 // ============= Payment Types =============
 export interface InitializePaymentRequest {
   amount: number;

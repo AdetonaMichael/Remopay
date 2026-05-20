@@ -124,7 +124,7 @@ export function PINSetupModal({
         {/* Header */}
         <div className="mb-6 text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#f7f8ff] mb-3">
-            <Lock className="text-[#4a5ff7]" size={24} />
+            <Lock className="text-[#d71927]" size={24} />
           </div>
           <h2 className="text-2xl font-bold text-[#111827]">
             {mode === 'setup' ? 'Set Transaction PIN' : 'Update PIN'}
@@ -317,9 +317,9 @@ export function PINSetupModal({
             <Button
               type="submit"
               fullWidth
+              className="bg-[#d71927] hover:bg-[#d71923] text-white rounded-[12px]"
               isLoading={isLoading}
               disabled={isLoading || !!successMessage}
-              className="rounded-[12px]"
             >
               {mode === 'setup' ? 'Create PIN' : 'Update PIN'}
             </Button>

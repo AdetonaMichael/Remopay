@@ -120,6 +120,23 @@ export function usePin() {
     }
   }, []);
 
+  // Fetch PIN status from backend
+  const fetchPinStatus = useCallback(async () => {
+    try {
+      const response = await pinService.getPINStatus();
+      console.log('[usePin] fetchPinStatus response:', response);
+      
+      if (response?.data) {
+        checkPinStatus(response.data);
+        return response.data;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('[usePin] Error fetching PIN status:', error);
+      return null;
+    }
+  }, [checkPinStatus]);
+
   return {
     pinStatus,
     isSettingPin,
@@ -128,6 +145,7 @@ export function usePin() {
     setPin,
     verifyPin,
     checkPinStatus,
+    fetchPinStatus,
     hasPinSet: pinStatus?.has_pin ?? false,
     isPinLocked: pinStatus?.is_locked ?? false,
   };

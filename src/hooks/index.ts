@@ -8,6 +8,7 @@ export { useNotifications } from './useNotifications';
 export { usePasswordValidation } from './usePasswordValidation';
 export { usePhoneVerification } from './usePhoneVerification';
 export { usePin } from './usePin';
+export { usePINVerification } from './usePINVerification';
 export { useRole } from './useRole';
 export { useTierUpgrade } from './useTierUpgrade';
 export { useUpdateCustomer } from './useUpdateCustomer';

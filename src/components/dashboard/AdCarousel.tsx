@@ -73,7 +73,9 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
     return null;
   }
 
-  const currentAd = ads[currentIndex];
+  // Ensure currentIndex is within bounds
+  const safeCurrentIndex = currentIndex >= ads.length ? 0 : currentIndex;
+  const currentAd = ads[safeCurrentIndex];
 
   const handleAdClick = async () => {
     await trackClick(currentAd.id);
@@ -180,7 +182,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
               key={index}
               onClick={() => goToSlide(index)}
               className={`h-2 rounded-full transition-all ${
-                index === currentIndex
+                index === safeCurrentIndex
                   ? 'w-8 bg-blue-600'
                   : 'w-2 bg-gray-300 hover:bg-gray-400'
               }`}
@@ -192,7 +194,7 @@ export const AdCarousel: React.FC<AdCarouselProps> = ({
 
       {/* Info Text */}
       <div className="text-center text-xs text-gray-500 mt-2">
-        {ads.length > 1 && `${currentIndex + 1} / ${ads.length}`}
+        {ads.length > 1 && `${safeCurrentIndex + 1} / ${ads.length}`}
       </div>
     </div>
   );
