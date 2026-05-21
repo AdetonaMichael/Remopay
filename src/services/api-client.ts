@@ -15,7 +15,7 @@ import {
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/utils/safe-storage.utils';
 import { trackApiError } from '@/utils/error-tracking.utils';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.afridata.remonode.com/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.afridata.remonode.com/api/v1';
 
 // Control verbosity of API logging
 const VERBOSE_API_LOGGING = process.env.NEXT_PUBLIC_VERBOSE_API_LOGGING === 'true';
@@ -48,7 +48,7 @@ const PAYMENT_OPERATIONS = [
 
 debug.log('[ApiClient] Initializing API Client with:', {
   API_BASE_URL,
-  env: process.env.NEXT_PUBLIC_API_URL,
+  env: process.env.NEXT_PUBLIC_API_BASE_URL,
   isProduction: process.env.NODE_ENV === 'production',
   timestamp: new Date().toISOString(),
 });
