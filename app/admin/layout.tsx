@@ -21,6 +21,7 @@ import {
   Zap,
   LogOut,
   X,
+  Mail,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -39,6 +40,7 @@ const adminNavItems = [
   { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
   { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle },
   { label: 'Advertisements', href: '/admin/advertisements', icon: Zap },
+  { label: 'Email Campaigns', href: '/admin/promotional-emails', icon: Mail },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', href: '/admin/reports', icon: FileText },

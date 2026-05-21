@@ -1,6 +1,7 @@
 'use client';
 
 import { EmailCampaignTemplate } from '@/types/promotional-email.types';
+import { AlertCircle } from 'lucide-react';
 
 interface TemplateSelectorProps {
   templates: EmailCampaignTemplate[];
@@ -14,6 +15,29 @@ export default function TemplateSelector({
   onSelectTemplate,
 }: TemplateSelectorProps) {
   const categories = Array.from(new Set(templates.map((t) => t.category)));
+
+  if (templates.length === 0) {
+    return (
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Step 1: Select Template</h2>
+        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-yellow-900 mb-2">No Templates Available</h3>
+          <p className="text-yellow-800 mb-4">
+            Email templates need to be created in the backend before you can create campaigns.
+          </p>
+          <div className="bg-yellow-100 rounded p-4 text-left text-sm text-yellow-900 mt-4">
+            <p className="font-semibold mb-2">To create templates, contact your backend administrator or:</p>
+            <ul className="list-disc list-inside space-y-1 text-yellow-800">
+              <li>Make a POST request to <code className="bg-white px-2 py-1 rounded">/admin/promotional-emails/templates</code></li>
+              <li>Include template name, description, required_fields, and other metadata</li>
+              <li>Once templates are created, refresh this page to see them</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
