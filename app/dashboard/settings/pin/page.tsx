@@ -20,9 +20,11 @@ import { PINSetupModal } from '@/components/shared/PINSetupModal';
 import { usePin } from '@/hooks/usePin';
 import { useAlert } from '@/hooks/useAlert';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function PINSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
+  const { pinStatus } = useAuthStore();
   const { isSettingPin, setPin } = usePin();
   const { success, error: alertError } = useAlert();
   
@@ -32,7 +34,7 @@ export default function PINSettingsPage() {
   );
 
   // Simple check: does user have transaction_pin?
-  const hasPIN = !!(user as any)?.transaction_pin;
+  const hasPIN = !!(pinStatus?.has_pin);
 
   useEffect(() => {
     if (!lockdownCountdown || lockdownCountdown <= 0) return;
@@ -52,7 +54,7 @@ export default function PINSettingsPage() {
     if (isLocked) {
       return {
         label: 'Locked',
-        badgeVariant: 'error' as const,
+        badgeVariant: 'danger' as const,
         title: 'PIN Temporarily Locked',
         description:
           'Your transaction PIN is locked due to multiple failed attempts. Please wait for the lockout period to expire before trying again.',

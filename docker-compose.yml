@@ -1,0 +1,11 @@
+services:
+  remopay-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: remopay-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.production

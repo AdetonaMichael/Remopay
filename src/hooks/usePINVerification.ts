@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { usePin } from './usePin';
 import { useAlert } from './useAlert';
 import { useAuth } from './useAuth';
+import { useAuthStore } from '@/store/auth.store';
 
 interface PINVerificationOptions {
   onSuccess: () => Promise<void> | void;
@@ -46,6 +47,7 @@ interface PINVerificationState {
  */
 export function usePINVerification() {
   const { user } = useAuth();
+  const { pinStatus } = useAuthStore();
   const { verifyPin, isPinLocked, lockoutCountdown } = usePin();
   const { error: showError } = useAlert();
 
@@ -63,14 +65,14 @@ export function usePINVerification() {
    * Check if user has PIN set and show setup modal if not
    */
   const checkPINSetup = useCallback((): boolean => {
-    if (!user?.transaction_pin) {
+    if (!pinStatus?.has_pin) {
       showError('Transaction PIN is required. Please set one up in Settings > Transaction PIN');
       // You can optionally redirect to PIN settings here
       // router.push('/dashboard/settings/pin');
       return false;
     }
     return true;
-  }, [user?.transaction_pin, showError]);
+  }, [pinStatus?.has_pin, showError]);
 
   /**
    * Open PIN verification modal
@@ -84,12 +86,8 @@ export function usePINVerification() {
       }
 
       // Check if PIN is locked
-      if (isPinLocked || (user?.pin_locked_until && new Date(user.pin_locked_until) > new Date())) {
-        const lockedUntil = user?.pin_locked_until
-          ? new Date(user.pin_locked_until).getTime()
-          : Date.now();
-        const now = new Date().getTime();
-        const remainingSeconds = Math.ceil((lockedUntil - now) / 1000);
+      if (isPinLocked || pinStatus?.is_locked) {
+        const remainingSeconds = pinStatus?.remaining_seconds || 1800; // Default to 30 minutes
 
         setState({
           showModal: false,
@@ -112,7 +110,7 @@ export function usePINVerification() {
         lockoutCountdown: null,
       });
     },
-    [user?.pin_locked_until, isPinLocked, checkPINSetup]
+    [pinStatus?.is_locked, pinStatus?.remaining_seconds, isPinLocked, checkPINSetup]
   );
 
   /**
@@ -215,6 +213,6 @@ export function usePINVerification() {
     openPINVerification,
     closePINVerification,
     handlePINVerify,
-    hasPIN: !!user?.transaction_pin,
+    hasPIN: !!pinStatus?.has_pin,
   };
 }

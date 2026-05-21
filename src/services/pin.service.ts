@@ -1,6 +1,18 @@
 import { apiClient } from './api-client';
 
-export const pinService = {
+interface PINServiceInterface {
+  setPin(
+    newPin: string,
+    newPinConfirmation: string,
+    password: string,
+    currentPin?: string
+  ): Promise<any>;
+  verifyPin(pin: string): Promise<any>;
+  resetPinAttempts(userId: number): Promise<any>;
+  getPINStatus(): Promise<any>;
+}
+
+export const pinService: PINServiceInterface = {
   /**
    * Set or update user's transaction PIN
    * @param newPin - 4-digit PIN
@@ -80,6 +92,20 @@ export const pinService = {
       return response;
     } catch (error) {
       console.error('[PINService] Error resetting PIN attempts:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get current PIN status
+   * Returns information about whether PIN is set, locked, etc.
+   */
+  async getPINStatus(): Promise<any> {
+    try {
+      const response = await apiClient.get('/wallet/pin/status');
+      return response;
+    } catch (error) {
+      console.error('[PINService] Error fetching PIN status:', error);
       throw error;
     }
   },

@@ -163,7 +163,6 @@ export default function RewardsPage() {
     }
   };
 
-  if (loading) return <PageSkeleton />;
 
   return (
     <div

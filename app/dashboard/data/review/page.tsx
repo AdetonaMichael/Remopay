@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
+  ArrowRight,
   CheckCircle2,
   ChevronLeft,
   CreditCard,
@@ -23,6 +24,7 @@ import { Toast } from '@/components/shared/Toast';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
 import { paymentService } from '@/services/payment.service';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { formatCurrency } from '@/utils/format.utils';
 
@@ -41,6 +43,7 @@ type PaymentMethod = 'wallet' | 'card' | 'bank_transfer';
 export default function DataReviewPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { pinStatus } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [formData, setFormData] = useState<FormData | null>(null);
@@ -53,6 +56,9 @@ export default function DataReviewPage() {
     useState<TransactionStatus>('idle');
   const [transactionId, setTransactionId] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Check if user has PIN set
+  const hasPIN = !!(pinStatus?.has_pin);
 
   useEffect(() => {
     const savedData =
@@ -538,21 +544,48 @@ export default function DataReviewPage() {
             )}
 
             {transactionStatus !== 'success' && (
-              <Button
-                fullWidth
-                onClick={handleConfirmPayment}
-                disabled={isProcessing}
-                className="mb-3 h-13 rounded-2xl bg-[#4A5FF7] text-base font-bold text-white shadow-sm shadow-blue-300 hover:bg-[#3A4FE7] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isProcessing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin" size={18} />
-                    Processing Payment...
-                  </span>
-                ) : (
-                  'Confirm & Pay'
+              <>
+                {!hasPIN && (
+                  <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 text-amber-600" size={22} />
+                      <div className="flex-1">
+                        <p className="text-sm font-extrabold text-amber-900">
+                          Set up your Transaction PIN
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-amber-800">
+                          You'll need a PIN to complete this payment. Set one up now for secure transactions.
+                        </p>
+                        <button
+                          onClick={() => router.push('/dashboard/settings/pin')}
+                          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900 transition-colors hover:bg-amber-200"
+                        >
+                          Set PIN Now
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </Button>
+
+                <Button
+                  fullWidth
+                  onClick={handleConfirmPayment}
+                  disabled={isProcessing || !hasPIN}
+                  className="mb-3 h-13 rounded-2xl bg-[#4A5FF7] text-base font-bold text-white shadow-sm shadow-blue-300 hover:bg-[#3A4FE7] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="animate-spin" size={18} />
+                      Processing Payment...
+                    </span>
+                  ) : !hasPIN ? (
+                    'PIN Required to Pay'
+                  ) : (
+                    'Confirm & Pay'
+                  )}
+                </Button>
+              </>
             )}
 
             <Button

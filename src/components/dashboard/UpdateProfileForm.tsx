@@ -14,7 +14,7 @@ import { useUpdateCustomer } from '@/hooks/useUpdateCustomer';
 import { UpdateCustomerPayload, CustomerProfile } from '@/types/customer.types';
 
 interface UpdateProfileFormProps {
-  mapleradCustomerId: string;
+  mapleradCustomerId?: string;
   currentData?: Partial<CustomerProfile>;
   onSuccess?: (data: CustomerProfile) => void;
   className?: string;
@@ -69,6 +69,17 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
   const { loading, error, fieldErrors, success, updateCustomer, clearError } = useUpdateCustomer({
     onSuccess,
   });
+
+  // If mapleradCustomerId is not provided, show a message
+  if (!mapleradCustomerId) {
+    return (
+      <div className={`rounded-lg border border-yellow-200 bg-yellow-50 p-4 ${className}`}>
+        <p className="text-sm text-yellow-800">
+          Profile update is not available. Please complete your tier upgrade first.
+        </p>
+      </div>
+    );
+  }
 
   const [formData, setFormData] = useState<FormData>({
     first_name: currentData?.first_name || '',
@@ -133,6 +144,12 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
     async (e: React.FormEvent) => {
       e.preventDefault();
       setShowSuccessMessage(false);
+
+      if (!mapleradCustomerId) {
+        clearError();
+        console.error('UpdateProfileForm: mapleradCustomerId is not available');
+        return;
+      }
 
       // Build payload without customer_id
       const payloadWithId: any = {
