@@ -14,3 +14,4 @@ export { transactionService } from './transaction.service';
 export { vtuService } from './vtu.service';
 export { walletService } from './wallet.service';
 export { advertisementService } from './advertisement.service';
+export { promotionalEmailService } from './promotional-email.service';

@@ -17,6 +17,7 @@ import { Button } from '@/components/shared/Button';
 import { Card } from '@/components/shared/Card';
 import { Spinner } from '@/components/shared/Spinner';
 import { useAlert } from '@/hooks/useAlert';
+import { useAuth } from '@/hooks/useAuth';
 import { referralService, ReferralLink, ReferralStats, ReferralMilestone, ReferralProgram } from '@/services/referral.service';
 
 function formatCurrency(amount?: number | null) {
@@ -39,8 +40,8 @@ function formatDate(date: string) {
 function normalizeReferralLink(link: string, code: string) {
   // Transform the referral link to the correct format
   // From: http://remopay-nginx/register?ref=CODE
-  // To: https://remopay.vercel.app/auth/register?ref=CODE
-  return `https://remopay.vercel.app/auth/register?ref=${code}`;
+  // To: https://remopay.remonode.com/auth/register?ref=CODE
+  return `https://remopay.remonode.com/auth/register?ref=${code}`;
 }
 
 function getStatusBadgeStyle(status: string) {
@@ -79,12 +80,15 @@ export default function ReferralPage() {
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
+  const { user } = useAuth();
   const { success: showSuccess, error: showError } = useAlert();
 
   // Fetch all data on mount
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (user?.id) {
+      fetchAllData();
+    }
+  }, [user?.id]);
 
   const fetchAllData = async () => {
     Promise.all([
@@ -125,10 +129,47 @@ export default function ReferralPage() {
     try {
       setLoadingMilestones(true);
       setErrorMilestones(null);
-      const data = await referralService.getMilestones();
-      setMilestones(data);
+
+      if (!user?.id) {
+        throw new Error('User not found');
+      }
+
+      // Fetch user referral data with nested referrals
+      const userData = await referralService.getUserReferralData(user.id);
+      
+      // Convert nested referral items to ReferralMilestone-like format for compatibility
+      const allReferrals: any[] = [];
+      userData.referralLinks.forEach((link) => {
+        if (link.referrals && Array.isArray(link.referrals)) {
+          link.referrals.forEach((referral) => {
+            allReferrals.push({
+              milestone_id: referral.id,
+              referred_user: {
+                id: referral.id,
+                name: referral.name,
+                email: referral.email,
+              },
+              referral_code: link.code,
+              program: link.program,
+              progress_percentage: 100,
+              milestones: {
+                email_verified: { completed: true, completed_at: referral.created_at },
+                phone_verified: { completed: true, completed_at: referral.created_at },
+                wallet_funded_100: { completed: true, completed_at: referral.created_at },
+                first_transaction: { completed: true, completed_at: referral.created_at },
+              },
+              is_fully_qualified: true,
+              payout_earned: 200,
+              payout_paid_at: null,
+              status: 'eligible' as const,
+            });
+          });
+        }
+      });
+
+      setMilestones(allReferrals);
     } catch (error: any) {
-      setErrorMilestones(error.message || 'Failed to load milestones');
+      setErrorMilestones(error.message || 'Failed to load referrals');
     } finally {
       setLoadingMilestones(false);
     }

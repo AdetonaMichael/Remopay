@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 
 export const useAuth = () => {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, error, setUser, setAuthToken, setIsLoading, setError, getPrimaryRole, logout: logoutStore, setEmailVerificationCooldown, emailVerificationCooldown } = useAuthStore();
+  const { user, isAuthenticated, isLoading, error, setUser, setAuthToken, setIsLoading, setError, getPrimaryRole, logout: logoutStore, setEmailVerificationCooldown, emailVerificationCooldown, setPinStatus } = useAuthStore();
   const { addToast } = useUIStore();
 
   const login = useCallback(
@@ -21,6 +21,18 @@ export const useAuth = () => {
         if (response.success && response.data) {
           setUser(response.data.user);
           setAuthToken(response.data.token);
+          
+          // Set PIN status from login response
+          if (response.data.pin_status) {
+            setPinStatus({
+              has_pin: response.data.pin_status.has_pin,
+              is_locked: response.data.pin_status.is_locked,
+              failed_attempts: typeof response.data.pin_status.failed_attempts === 'string' 
+                ? parseInt(response.data.pin_status.failed_attempts) 
+                : response.data.pin_status.failed_attempts,
+            });
+          }
+          
           addToast({ type: 'success', message: 'Login successful!' });
 
           console.log('[useAuth] Login response user:', {

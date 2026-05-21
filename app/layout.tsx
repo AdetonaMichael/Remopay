@@ -23,9 +23,9 @@ export const metadata: Metadata = {
   creator: "Remopay",
   publisher: "Remopay",
   robots: "index, follow",
-  metadataBase: new URL("https://remopay.vercel.app"),
+  metadataBase: new URL("https://remopay.remonode.com"),
   alternates: {
-    canonical: "https://remopay.vercel.app",
+    canonical: "https://remopay.remonode.com",
   },
   manifest: "/manifest.json",
   icons: {
@@ -55,20 +55,20 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "https://remopay.vercel.app",
+    url: "https://remopay.remonode.com",
     title: "Remopay - Your all-in-one payment solution",
     description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
     siteName: "Remopay",
     images: [
       {
-        url: "https://remopay.vercel.app/remopay-banner.png",
+        url: "https://remopay.remonode.com/remopay-banner.png",
         width: 1200,
         height: 630,
         alt: "Remopay - Your all-in-one payment solution",
         type: "image/png",
       },
       {
-        url: "https://remopay.vercel.app/remopay-banner.png",
+        url: "https://remopay.remonode.com/remopay-banner.png",
         width: 800,
         height: 420,
         alt: "Remopay - Your all-in-one payment solution",
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Remopay - Your all-in-one payment solution",
     description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
-    images: ["https://remopay.vercel.app/remopay-banner.png"],
+    images: ["https://remopay.remonode.com/remopay-banner.png"],
     creator: "@Remopay",
     site: "@Remopay",
   },
@@ -211,22 +211,54 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://analytics.google.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
-        {/* Google Tag Manager */}
+        {/* Google Analytics 4 with Enhanced Tracking */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-L0LS146KZG"
           strategy="afterInteractive"
+          async
         />
         <Script
-          id="google-analytics"
+          id="google-analytics-init"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              gtag('config', 'G-L0LS146KZG');
+              gtag('config', 'G-L0LS146KZG', {
+                'page_path': window.location.pathname,
+                'page_title': document.title,
+                'anonymize_ip': false,
+                'allow_google_signals': true,
+                'allow_ad_personalization_signals': true,
+                'send_page_view': true,
+                'cookie_flags': 'SameSite=None;Secure'
+              });
+              
+              // Track all navigation events
+              window.addEventListener('popstate', function() {
+                gtag('event', 'page_view', {
+                  'page_path': window.location.pathname,
+                  'page_title': document.title,
+                  'page_referrer': document.referrer
+                });
+              });
+              
+              // Enable enhanced measurement
+              gtag('event', 'page_view', {
+                'send_to': 'G-L0LS146KZG',
+                'page_title': document.title,
+                'page_path': window.location.pathname
+              });
             `,
           }}
+        />
+
+        {/* Google Ads Conversion Tracking (placeholder - update with your conversion ID) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=AW-YOUR_CONVERSION_ID"
+          strategy="afterInteractive"
         />
       </head>
       <body className="min-h-full flex flex-col bg-gray-50">

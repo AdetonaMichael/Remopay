@@ -10,6 +10,17 @@ export interface ReferralLink {
   link: string;
   program: string;
   created_at: string;
+  referrals?: ReferralItem[]; // Nested referrals from single endpoint
+}
+
+/**
+ * Individual Referral Item (from nested referrals)
+ */
+export interface ReferralItem {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
 }
 
 /**
@@ -157,6 +168,27 @@ class ReferralService {
       return response.data || [];
     } catch (error: any) {
       debug.error('[ReferralService] Failed to fetch milestones', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get single user's referral data (includes nested referrals per link)
+   */
+  async getUserReferralData(userId: number): Promise<{ referralLinks: ReferralLink[]; authReferralLink: string | null }> {
+    try {
+      debug.log('[ReferralService] Fetching user referral data');
+
+      const response = await apiClient.get<{ referralLinks: ReferralLink[]; authReferralLink: string | null }>(`/referrals/single/${userId}`);
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch user referral data');
+      }
+
+      debug.log('[ReferralService] User referral data fetched successfully');
+      return response.data!;
+    } catch (error: any) {
+      debug.error('[ReferralService] Failed to fetch user referral data', error);
       throw error;
     }
   }

@@ -24,14 +24,27 @@ import { useAuthStore } from '@/store/auth.store';
 
 export default function PINSettingsPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const { pinStatus } = useAuthStore();
-  const { isSettingPin, setPin } = usePin();
+  const { pinStatus, isHydrated } = useAuthStore();
+  const { isSettingPin, setPin, fetchPinStatus } = usePin();
   const { success, error: alertError } = useAlert();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [lockdownCountdown, setLockdownCountdown] = useState<number | null>(
     null
   );
+  const [pinStatusLoaded, setPinStatusLoaded] = useState(false);
+
+  // Fetch PIN status if not in store
+  useEffect(() => {
+    const loadPinStatus = async () => {
+      if (isHydrated && user && !pinStatus) {
+        await fetchPinStatus();
+      }
+      setPinStatusLoaded(true);
+    };
+    
+    loadPinStatus();
+  }, [isHydrated, user, pinStatus, fetchPinStatus]);
 
   // Simple check: does user have transaction_pin?
   const hasPIN = !!(pinStatus?.has_pin);

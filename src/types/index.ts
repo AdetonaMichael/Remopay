@@ -20,3 +20,6 @@ export * from './notification.types';
 
 // Customer types
 export * from './customer.types';
+
+// Promotional Email types
+export * from './promotional-email.types';

@@ -1,7 +1,7 @@
 /**
  * Tier Upgrade Service
  * Handles tier upgrade requests using individual tier endpoints
- * Backend API: https://api.remopay.com/api/v1/payment/customers
+ * Backend API: https://gateway.remonode.com/remopay/api/v1/payment/customers
  * 
  * Updated: May 10, 2026
  * - Tier 0: PATCH /tier-zero (Basic enrollment)

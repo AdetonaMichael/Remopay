@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAlert } from './useAlert';
+import { useAuthStore } from '@/store/auth.store';
 import { pinService } from '@/services/pin.service';
 
 interface PINStatus {
@@ -13,6 +14,7 @@ interface PINStatus {
 
 export function usePin() {
   const { success, error: alertError } = useAlert();
+  const { setPinStatus: setStorePinStatus } = useAuthStore();
   const [pinStatus, setPinStatus] = useState<PINStatus | null>(null);
   const [isSettingPin, setIsSettingPin] = useState(false);
   const [isVerifyingPin, setIsVerifyingPin] = useState(false);
@@ -37,11 +39,14 @@ export function usePin() {
 
         if (response?.success) {
           success('PIN set successfully!');
-          // Update local PIN status
-          setPinStatus((prev) => ({
-            ...prev,
+          // Update both local and store PIN status
+          const updatedStatus: PINStatus = {
             has_pin: true,
-          } as PINStatus));
+            is_locked: false,
+            failed_attempts: 0,
+          };
+          setPinStatus(updatedStatus);
+          setStorePinStatus(updatedStatus);
           return response;
         } else {
           const errorMsg = response?.message || 'Failed to set PIN';
@@ -114,11 +119,12 @@ export function usePin() {
   // Check if PIN is set (can be called on page load or after login)
   const checkPinStatus = useCallback((status: PINStatus) => {
     setPinStatus(status);
+    setStorePinStatus(status);
     
     if (status?.is_locked) {
       setLockoutCountdown(status?.remaining_seconds || 1800);
     }
-  }, []);
+  }, [setStorePinStatus]);
 
   // Fetch PIN status from backend
   const fetchPinStatus = useCallback(async () => {

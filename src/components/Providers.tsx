@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
 import { PhoneVerificationEnforcer } from '@/components/PhoneVerificationEnforcer';
 import { Error403Modal } from '@/components/Error403Modal';
+import { AnalyticsInitializer } from '@/components/AnalyticsInitializer';
 import { InitializationProvider } from '@/contexts/InitializationContext';
 import { debug, initializeDebugLogging } from '@/utils/debug.utils';
 import { initializeErrorTracking } from '@/utils/error-tracking.utils';
@@ -35,6 +36,7 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
     <ErrorBoundary>
       <InitializationProvider>
         <AuthInitializer>
+          <AnalyticsInitializer />
           <EmailVerificationEnforcer>
             <PhoneVerificationEnforcer>
               <>
