@@ -6,6 +6,12 @@ services:
     container_name: remopay-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3000:3000"      # optional: keep for direct debugging
     env_file:
       - .env.production
+    networks:
+      - remonode_shared  # ← THIS is what was missing
+
+networks:
+  remonode_shared:
+    external: true       # ← join the existing Kong network, don't create a new one
