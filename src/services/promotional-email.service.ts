@@ -51,11 +51,11 @@ export const promotionalEmailService = {
    */
   async createCampaign(data: CreateCampaignRequest): Promise<PromotionalEmailCampaign> {
     try {
-      const response = await apiClient.post<{ data: PromotionalEmailCampaign }>(
+      const response = await apiClient.post<any>(
         `${BASE_URL}/campaigns`,
         data
       );
-      return response.data!.data;
+      return response.data!.data.campaign;
     } catch (error) {
       console.error('Error creating campaign:', error);
       throw error;
@@ -205,17 +205,22 @@ export const promotionalEmailService = {
    * Calculate target user count for criteria
    * (Can be called periodically to show user count preview)
    */
-  async calculateTargetUsers(criteria: Record<string, any>): Promise<{ count: number }> {
+  async calculateTargetUsers(criteria: Record<string, any>): Promise<{ count: number; previewUsers: any[] }> {
     try {
-      const response = await apiClient.post<{ count: number }>(
+      const response = await apiClient.post<any>(
         `${BASE_URL}/calculate-targets`,
         criteria
       );
-      return response.data!;
+      // Extract from nested response structure
+      const result = response.data?.data || response.data;
+      return {
+        count: result.total_targets || 0,
+        previewUsers: result.preview_users || [],
+      };
     } catch (error) {
       console.error('Error calculating target users:', error);
       // Return 0 if endpoint doesn't exist yet
-      return { count: 0 };
+      return { count: 0, previewUsers: [] };
     }
   },
 };

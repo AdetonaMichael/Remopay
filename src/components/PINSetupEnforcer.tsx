@@ -22,9 +22,10 @@ import { useAlert } from '@/hooks/useAlert';
  */
 interface PINSetupEnforcerProps {
   showForNewUsers?: boolean; // Show PIN setup immediately for newly registered users
+  children?: React.ReactNode; // Content to render (should be rendered always, with modal on top)
 }
 
-export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerProps) {
+export function PINSetupEnforcer({ showForNewUsers = true, children }: PINSetupEnforcerProps) {
   const router = useRouter();
   const { user, pinStatus, setPinStatus, isHydrated } = useAuthStore();
   const { success, error: alertError } = useAlert();
@@ -128,20 +129,26 @@ export function PINSetupEnforcer({ showForNewUsers = true }: PINSetupEnforcerPro
   };
 
   return (
-    <PINSetupModal
-      isOpen={showPINModal}
-      mode="setup"
-      onSubmit={handlePINSetupSubmit}
-      onSuccess={() => {
-        // PIN setup complete
-        setShowPINModal(false);
-      }}
-      onClose={() => {
-        // Users cannot close this modal until PIN is set
-        // They must complete PIN setup or can be redirected
-        // For now, we prevent closing by not handling it
-      }}
-      isLoading={isLoading}
-    />
+    <>
+      {/* Always render children - the page content */}
+      {children}
+      
+      {/* Show PIN setup modal on top if needed */}
+      <PINSetupModal
+        isOpen={showPINModal}
+        mode="setup"
+        onSubmit={handlePINSetupSubmit}
+        onSuccess={() => {
+          // PIN setup complete
+          setShowPINModal(false);
+        }}
+        onClose={() => {
+          // Users cannot close this modal until PIN is set
+          // They must complete PIN setup or can be redirected
+          // For now, we prevent closing by not handling it
+        }}
+        isLoading={isLoading}
+      />
+    </>
   );
 }

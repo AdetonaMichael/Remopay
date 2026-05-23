@@ -34,14 +34,21 @@ export default function ContentEditor({
   };
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Step 3: Email Content</h2>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">Customize Content</h2>
+        <p className="mt-1 text-sm text-gray-500">Fill in the required fields to personalize your campaign.</p>
+      </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Required Fields */}
         {template.required_fields.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Required Fields *</h3>
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Required Fields *</h3>
+              <p className="text-xs text-gray-500 mt-1">These fields must be completed</p>
+            </div>
             <div className="space-y-4">
               {template.required_fields.map((field) => (
                 <TemplateFieldInput
@@ -62,7 +69,10 @@ export default function ContentEditor({
         {/* Optional Fields */}
         {template.optional_fields.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Optional Fields</h3>
+            <div className="mb-4 pt-4 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700">Optional Fields</h3>
+              <p className="text-xs text-gray-500 mt-1">Add these to enhance your campaign</p>
+            </div>
             <div className="space-y-4">
               {template.optional_fields.map((field) => (
                 <TemplateFieldInput
@@ -82,3 +92,4 @@ export default function ContentEditor({
     </div>
   );
 }
+    

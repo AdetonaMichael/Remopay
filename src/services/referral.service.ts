@@ -177,16 +177,34 @@ class ReferralService {
    */
   async getUserReferralData(userId: number): Promise<{ referralLinks: ReferralLink[]; authReferralLink: string | null }> {
     try {
-      debug.log('[ReferralService] Fetching user referral data');
+      debug.log('[ReferralService] Fetching user referral data for user:', userId);
 
-      const response = await apiClient.get<{ referralLinks: ReferralLink[]; authReferralLink: string | null }>(`/referrals/single/${userId}`);
+      const response = await apiClient.get<any>(`/referrals/single/${userId}`);
 
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to fetch user referral data');
+      // This endpoint returns data directly, not wrapped in { success, message, data }
+      // Response format: { data: {...}, authReferralLink: '...' }
+      const responseData = response.data || response; // Handle both wrapped and unwrapped responses
+      
+      debug.log('[ReferralService] Raw response:', response);
+      debug.log('[ReferralService] Response data:', responseData);
+
+      // Check if we have the expected structure
+      if (!responseData || (typeof responseData === 'object' && !responseData.data && !responseData.referralLinks)) {
+        throw new Error('Invalid response structure from referral data endpoint');
       }
 
-      debug.log('[ReferralService] User referral data fetched successfully');
-      return response.data!;
+      // Extract referralLinks and authReferralLink from response
+      // Handle both: { data: { referralLinks, ... }, authReferralLink } and direct structure
+      const referralLinks = responseData.referralLinks || responseData.data?.referralLinks || [];
+      const authReferralLink = responseData.authReferralLink || null;
+      
+      debug.log('[ReferralService] Extracted referralLinks:', referralLinks);
+      debug.log('[ReferralService] Extracted authReferralLink:', authReferralLink);
+      
+      return {
+        referralLinks,
+        authReferralLink,
+      };
     } catch (error: any) {
       debug.error('[ReferralService] Failed to fetch user referral data', error);
       throw error;

@@ -34,6 +34,7 @@ export default function PromotionalEmailBuilder() {
   const [selectedTemplate, setSelectedTemplate] = useState<EmailCampaignTemplate | null>(null);
   const [loading, setLoading] = useState(false);
   const [targetUserCount, setTargetUserCount] = useState(0);
+  const [previewUsers, setPreviewUsers] = useState<any[]>([]);
   const [previewHtml, setPreviewHtml] = useState('');
 
   const [formData, setFormData] = useState<FormData>({
@@ -184,9 +185,11 @@ export default function PromotionalEmailBuilder() {
         formData.target_criteria
       );
       setTargetUserCount(result.count);
+      setPreviewUsers(result.previewUsers);
     } catch (error) {
       console.error('Error calculating target users:', error);
       setTargetUserCount(0);
+      setPreviewUsers([]);
     }
   };
 
@@ -228,7 +231,7 @@ export default function PromotionalEmailBuilder() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
@@ -244,7 +247,7 @@ export default function PromotionalEmailBuilder() {
           </div>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-6">
             {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center flex-1">
                 <div
@@ -277,7 +280,7 @@ export default function PromotionalEmailBuilder() {
         </div>
 
         {/* Steps Content */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className={`bg-white rounded-lg shadow-md ${currentStep === 5 ? 'p-6' : 'p-8'}`}>
           {currentStep === 1 && (
             <TemplateSelector
               templates={templates}
@@ -315,6 +318,7 @@ export default function PromotionalEmailBuilder() {
             <PreviewAndSend
               previewHtml={previewHtml}
               targetUserCount={targetUserCount}
+              previewUsers={previewUsers}
               campaignName={formData.campaign_name}
               onSend={handleSendCampaign}
               loading={loading}

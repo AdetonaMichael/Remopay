@@ -6,6 +6,7 @@ import { AuthInitializer } from '@/components/AuthInitializer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { EmailVerificationEnforcer } from '@/components/EmailVerificationEnforcer';
 import { PhoneVerificationEnforcer } from '@/components/PhoneVerificationEnforcer';
+import { PINSetupEnforcer } from '@/components/PINSetupEnforcer';
 import { Error403Modal } from '@/components/Error403Modal';
 import { AnalyticsInitializer } from '@/components/AnalyticsInitializer';
 import { InitializationProvider } from '@/contexts/InitializationContext';
@@ -39,11 +40,13 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
           <AnalyticsInitializer />
           <EmailVerificationEnforcer>
             <PhoneVerificationEnforcer>
-              <>
-                {children}
-                <Toast />
-                <Error403Modal />
-              </>
+              <PINSetupEnforcer>
+                <>
+                  {children}
+                  <Toast />
+                  <Error403Modal />
+                </>
+              </PINSetupEnforcer>
             </PhoneVerificationEnforcer>
           </EmailVerificationEnforcer>
         </AuthInitializer>

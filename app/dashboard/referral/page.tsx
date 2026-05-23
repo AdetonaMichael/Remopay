@@ -130,45 +130,16 @@ export default function ReferralPage() {
       setLoadingMilestones(true);
       setErrorMilestones(null);
 
-      if (!user?.id) {
-        throw new Error('User not found');
-      }
-
-      // Fetch user referral data with nested referrals
-      const userData = await referralService.getUserReferralData(user.id);
+      // Fetch actual milestone data from backend
+      const milestonesData = await referralService.getMilestones();
       
-      // Convert nested referral items to ReferralMilestone-like format for compatibility
-      const allReferrals: any[] = [];
-      userData.referralLinks.forEach((link) => {
-        if (link.referrals && Array.isArray(link.referrals)) {
-          link.referrals.forEach((referral) => {
-            allReferrals.push({
-              milestone_id: referral.id,
-              referred_user: {
-                id: referral.id,
-                name: referral.name,
-                email: referral.email,
-              },
-              referral_code: link.code,
-              program: link.program,
-              progress_percentage: 100,
-              milestones: {
-                email_verified: { completed: true, completed_at: referral.created_at },
-                phone_verified: { completed: true, completed_at: referral.created_at },
-                wallet_funded_100: { completed: true, completed_at: referral.created_at },
-                first_transaction: { completed: true, completed_at: referral.created_at },
-              },
-              is_fully_qualified: true,
-              payout_earned: 200,
-              payout_paid_at: null,
-              status: 'eligible' as const,
-            });
-          });
-        }
-      });
+      console.log('[ReferralPage] Fetched milestones from backend:', milestonesData);
+      console.log(`[ReferralPage] Total referrals: ${milestonesData.length}`);
 
-      setMilestones(allReferrals);
+      // Use backend data directly - no transformation needed
+      setMilestones(milestonesData);
     } catch (error: any) {
+      console.error('[ReferralPage] Error fetching milestones:', error);
       setErrorMilestones(error.message || 'Failed to load referrals');
     } finally {
       setLoadingMilestones(false);
@@ -468,6 +439,11 @@ export default function ReferralPage() {
             </div>
           ) : milestones.length > 0 ? (
             <div className="mt-6 space-y-4">
+              <div className="mb-4 rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                <p className="text-xs text-green-600">
+                  ✓ Found {milestones.length} referral(s)
+                </p>
+              </div>
               {milestones.map((milestone) => (
                 <div key={milestone.milestone_id} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5">
                   <div className="flex items-start justify-between gap-3">

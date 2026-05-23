@@ -125,7 +125,7 @@ export default function AdminTransactionsPage() {
       setIsLoading(true);
       const filtersToUse = filterValues || filters;
       
-      const response = await adminService.getAllTransactions(page, 50, filtersToUse);
+      const response = await adminService.getAllTransactions(page, 10, filtersToUse);
 
       // The API returns data directly in response.data, not response.data.data
       const transactionsData = response?.data?.transactions;

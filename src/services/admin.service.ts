@@ -133,7 +133,7 @@ class AdminService {
   }
 
   // TRANSACTIONS ENDPOINTS
-  async getAllTransactions(page = 1, per_page = 50, filters?: any): Promise<any> {
+  async getAllTransactions(page = 1, per_page = 10, filters?: any): Promise<any> {
     const params = new URLSearchParams();
     params.append('page', String(page));
     params.append('per_page', String(per_page));
