@@ -526,8 +526,21 @@ export interface UpdateUserStatusRequest {
 export interface SendEmailRequest {
   title: string;
   body: string;
+  type?: 'transaction' | 'system' | 'promotion' | 'update' | 'alert';
+  priority?: 'low' | 'normal' | 'high';
+  send_push?: boolean;
   send_email?: boolean;
   email_template?: string;
+  extra_data?: {
+    greeting?: string;
+    details?: Array<{ label: string; value: string }>;
+    details_title?: string;
+    highlight?: string;
+    actionUrl?: string;
+    actionText?: string;
+    support_text?: string;
+    closing_message?: string;
+  };
 }
 
 export interface SendNotificationRequest {

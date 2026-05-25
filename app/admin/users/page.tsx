@@ -177,7 +177,21 @@ export default function AdminUsersPage() {
   const [emailData, setEmailData] = useState({
     title: '',
     body: '',
-    template: 'admin-custom',
+    type: 'system' as 'transaction' | 'system' | 'promotion' | 'update' | 'alert',
+    priority: 'normal' as 'low' | 'normal' | 'high',
+    send_push: false,
+    send_email: true,
+    email_template: 'admin-custom',
+    extra_data: {
+      greeting: '',
+      details: [] as Array<{ label: string; value: string }>,
+      details_title: '',
+      highlight: '',
+      actionUrl: '',
+      actionText: '',
+      support_text: '',
+      closing_message: '',
+    },
   });
 
   // ── State - Loading ─────────────────────────────────────────────────────────
@@ -373,25 +387,56 @@ export default function AdminUsersPage() {
     setEmailData({
       title: '',
       body: '',
-      template: 'admin-custom',
+      type: 'system',
+      priority: 'normal',
+      send_push: false,
+      send_email: true,
+      email_template: 'admin-custom',
+      extra_data: {
+        greeting: '',
+        details: [],
+        details_title: '',
+        highlight: '',
+        actionUrl: '',
+        actionText: '',
+        support_text: '',
+        closing_message: '',
+      },
     });
     setShowEmailModal(true);
   };
 
   const handleSendEmail = async () => {
     if (!selectedUser || !emailData.title || !emailData.body) {
-      showAlert('Please fill all required fields', 'warning');
+      showAlert('Please fill all required fields (Subject and Message)', 'warning');
       return;
     }
 
     try {
       setLoadingAction(true);
-      await adminService.sendEmailToUser(selectedUser.id, {
+      
+      // Build payload with only populated extra_data fields
+      const payload: any = {
         title: emailData.title,
         body: emailData.body,
-        send_email: true,
-        email_template: emailData.template,
+        type: emailData.type,
+        priority: emailData.priority,
+        send_push: emailData.send_push,
+        send_email: emailData.send_email,
+        email_template: emailData.email_template,
+      };
+
+      // Only include extra_data if any field is populated
+      const hasExtraData = Object.entries(emailData.extra_data).some(([key, value]) => {
+        if (key === 'details') return Array.isArray(value) && value.length > 0;
+        return Boolean(value);
       });
+
+      if (hasExtraData) {
+        payload.extra_data = emailData.extra_data;
+      }
+
+      await adminService.sendEmailToUser(selectedUser.id, payload);
       showAlert('Email sent successfully', 'success');
       setShowEmailModal(false);
     } catch (error) {
@@ -1393,10 +1438,10 @@ export default function AdminUsersPage() {
         <Modal
           isOpen={showEmailModal}
           onClose={() => setShowEmailModal(false)}
-          title="Send Email"
-          size="md"
+          title="Send Email to User"
+          size="lg"
         >
-          <div className="space-y-5">
+          <div className="space-y-6 max-h-[75vh] overflow-y-auto">
             {/* User Info */}
             <div className="rounded-lg bg-[#f8fafc] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
@@ -1407,56 +1452,321 @@ export default function AdminUsersPage() {
               </p>
             </div>
 
-            {/* Title */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-[#111827]">
-                Subject
-              </label>
-              <Input
-                placeholder="Email subject..."
-                value={emailData.title}
-                onChange={(e) =>
-                  setEmailData({ ...emailData, title: e.target.value })
-                }
-              />
+            {/* REQUIRED FIELDS SECTION */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Required Information
+              </h4>
+              <div className="space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Subject <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Email subject (max 255 characters)..."
+                    value={emailData.title}
+                    maxLength={255}
+                    onChange={(e) =>
+                      setEmailData({ ...emailData, title: e.target.value })
+                    }
+                  />
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    {emailData.title.length}/255
+                  </p>
+                </div>
+
+                {/* Body */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Message <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Email message (max 1000 characters, HTML supported)..."
+                    value={emailData.body}
+                    maxLength={1000}
+                    onChange={(e) =>
+                      setEmailData({ ...emailData, body: e.target.value })
+                    }
+                    rows={4}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    {emailData.body.length}/1000
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Body */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-[#111827]">
-                Message
-              </label>
-              <textarea
-                placeholder="Email message..."
-                value={emailData.body}
-                onChange={(e) =>
-                  setEmailData({ ...emailData, body: e.target.value })
-                }
-                rows={4}
-                className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
-              />
+            {/* OPTIONAL FIELDS SECTION */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Optional Settings
+              </h4>
+              <div className="space-y-4">
+                {/* Type and Priority Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Type */}
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Email Type
+                    </label>
+                    <select
+                      value={emailData.type}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          type: e.target.value as any,
+                        })
+                      }
+                      className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                    >
+                      <option value="system">System</option>
+                      <option value="transaction">Transaction</option>
+                      <option value="promotion">Promotion</option>
+                      <option value="update">Update</option>
+                      <option value="alert">Alert</option>
+                    </select>
+                  </div>
+
+                  {/* Priority */}
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Priority
+                    </label>
+                    <select
+                      value={emailData.priority}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          priority: e.target.value as any,
+                        })
+                      }
+                      className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                    >
+                      <option value="low">Low</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Toggles Row */}
+                <div className="flex items-center gap-6">
+                  {/* Send Email Toggle */}
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={emailData.send_email}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          send_email: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
+                    />
+                    <span className="text-sm font-medium text-[#111827]">
+                      Send Email
+                    </span>
+                  </label>
+
+                  {/* Send Push Toggle */}
+                  <label className="flex cursor-pointer items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={emailData.send_push}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          send_push: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 rounded border-[#d1d5db] text-[#4a5ff7]"
+                    />
+                    <span className="text-sm font-medium text-[#111827]">
+                      Send Push Notification
+                    </span>
+                  </label>
+                </div>
+
+                {/* Template */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Email Template
+                  </label>
+                  <select
+                    value={emailData.email_template}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        email_template: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  >
+                    <option value="admin-custom">Custom Admin</option>
+                    <option value="security">Security Alert</option>
+                    <option value="promotional">Promotional</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
-            {/* Template */}
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-[#111827]">
-                Template
-              </label>
-              <select
-                value={emailData.template}
-                onChange={(e) =>
-                  setEmailData({ ...emailData, template: e.target.value })
-                }
-                className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
-              >
-                <option value="admin-custom">Custom Admin</option>
-                <option value="security">Security Alert</option>
-                <option value="promotional">Promotional</option>
-              </select>
+            {/* EXTRA DATA SECTION */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Email Customization (Optional)
+              </h4>
+              <div className="space-y-4">
+                {/* Greeting */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Custom Greeting
+                  </label>
+                  <Input
+                    placeholder="e.g., 'Hello John!'"
+                    value={emailData.extra_data.greeting}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        extra_data: {
+                          ...emailData.extra_data,
+                          greeting: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Highlight */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Highlight/Important Info
+                  </label>
+                  <textarea
+                    placeholder="Important information to highlight in the email..."
+                    value={emailData.extra_data.highlight}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        extra_data: {
+                          ...emailData.extra_data,
+                          highlight: e.target.value,
+                        },
+                      })
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                </div>
+
+                {/* Details Title */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Details Section Title
+                  </label>
+                  <Input
+                    placeholder="e.g., 'Transaction Details'"
+                    value={emailData.extra_data.details_title}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        extra_data: {
+                          ...emailData.extra_data,
+                          details_title: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Action URL and Text Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Action Button URL
+                    </label>
+                    <Input
+                      placeholder="https://..."
+                      value={emailData.extra_data.actionUrl}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          extra_data: {
+                            ...emailData.extra_data,
+                            actionUrl: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Button Text
+                    </label>
+                    <Input
+                      placeholder="e.g., 'View Details'"
+                      value={emailData.extra_data.actionText}
+                      onChange={(e) =>
+                        setEmailData({
+                          ...emailData,
+                          extra_data: {
+                            ...emailData.extra_data,
+                            actionText: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Support Text */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Support Text/Help Info
+                  </label>
+                  <textarea
+                    placeholder="Help or support information to include in the email..."
+                    value={emailData.extra_data.support_text}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        extra_data: {
+                          ...emailData.extra_data,
+                          support_text: e.target.value,
+                        },
+                      })
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                </div>
+
+                {/* Closing Message */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Custom Closing Message
+                  </label>
+                  <Input
+                    placeholder="e.g., 'Thank you for your business'"
+                    value={emailData.extra_data.closing_message}
+                    onChange={(e) =>
+                      setEmailData({
+                        ...emailData,
+                        extra_data: {
+                          ...emailData.extra_data,
+                          closing_message: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 border-t border-[#e5e7eb] pt-6">
               <Button
                 variant="primary"
                 size="md"

@@ -112,9 +112,9 @@ export default function RootLayout({
     logo: "https://api.remopay.remonode.com/icon.png",
     description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
     sameAs: [
-      "https://www.facebook.com/Remopay",
-      "https://www.twitter.com/Remopay",
-      "https://www.instagram.com/Remopay",
+      "https://www.facebook.com/RemonodeTech/",
+      "https://www.twitter.com/RemonodeTech",
+      "https://www.instagram.com/RemonodeTech",
       "https://www.linkedin.com/company/remonode",
     ],
     contactPoint: {

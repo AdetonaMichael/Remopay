@@ -8,6 +8,7 @@ import {
   GenerateReportRequest,
   ApiResponse,
   PaginatedResponse,
+  SendEmailRequest,
 } from '@/types/api.types';
 import {
   AdminStatisticsData,
@@ -102,12 +103,7 @@ class AdminService {
 
   async sendEmailToUser(
     userId: string | number,
-    payload: {
-      title: string;
-      body: string;
-      send_email?: boolean;
-      email_template?: string;
-    }
+    payload: SendEmailRequest
   ): Promise<any> {
     return apiClient.post(`/admin/users/${userId}/email`, payload);
   }
