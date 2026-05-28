@@ -445,14 +445,6 @@ export default function RemopayTransferPage() {
               </div>
             )}
 
-            <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">
-                Instant Transfer
-              </p>
-              <p className="mt-2 text-sm leading-6 text-blue-900">
-                Money reaches your recipient instantly after PIN verification.
-              </p>
-            </div>
           </aside>
         </div>
       </Card>

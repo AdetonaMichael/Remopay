@@ -91,9 +91,8 @@ export default function RemopayTransferReviewPage() {
     try {
       const response = await submitTransfer(pin);
       if (response) {
-        // Extract data - API returns data at root or in .data property
-        const transferData = response.data || response;
-        setSuccessData(transferData);
+        // Response is the transfer data directly
+        setSuccessData(response);
       }
     } finally {
       setIsProcessing(false);

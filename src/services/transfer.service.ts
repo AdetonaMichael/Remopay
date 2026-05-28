@@ -26,8 +26,11 @@ class TransferService {
    */
   async getBanks(): Promise<Bank[] | null> {
     try {
-      const response = await apiClient.get<BankListResponse>('/payment/banks');
-      return response?.data?.data || null;
+      const response = (await apiClient.get('/payment/banks')) as any;
+      if (response && response.data) {
+        return response.data;
+      }
+      return null;
     } catch (error) {
       console.error('Error fetching banks:', error);
       return null;
@@ -39,11 +42,12 @@ class TransferService {
    */
   async verifyRecipient(payload: VerifyRecipientRequest): Promise<RecipientUser | null> {
     try {
-      const response = await apiClient.post<VerifyRecipientResponse>(
-        '/wallet/transfer/verify/user',
-        payload
-      );
-      return response?.data?.data || null;
+      const response = (await apiClient.post('/wallet/transfer/verify/user', payload)) as any;
+      
+      if (response?.success && response?.data) {
+        return response.data;
+      }
+      return null;
     } catch (error) {
       console.error('Error verifying recipient:', error);
       throw error; // Re-throw to let component handle it
@@ -56,15 +60,9 @@ class TransferService {
    */
   async getRecentRemopayRecipients(limit: number = 5): Promise<Recipient[] | null> {
     try {
-      const response = await apiClient.get<RecipientsListResponse>(
-        '/wallet/transfer/recipients/remopay',
-        {
-          params: {
-            limit,
-            sort: 'recent',
-          },
-        }
-      );
+      const response = (await apiClient.get('/wallet/transfer/recipients/remopay', {
+        params: { limit, sort: 'recent' },
+      })) as any;
       return response?.data?.recipients || null;
     } catch (error) {
       console.error('Error fetching recent recipients:', error);
@@ -84,17 +82,9 @@ class TransferService {
     limit: number = 20
   ): Promise<RecipientsListResponse | null> {
     try {
-      const response = await apiClient.get<RecipientsListResponse>(
-        '/wallet/transfer/recipients',
-        {
-          params: {
-            bank_type: bankType,
-            sort,
-            page,
-            limit,
-          },
-        }
-      );
+      const response = (await apiClient.get('/wallet/transfer/recipients', {
+        params: { bank_type: bankType, sort, page, limit },
+      })) as any;
       return response?.data || null;
     } catch (error) {
       console.error('Error fetching recipients:', error);
@@ -110,11 +100,9 @@ class TransferService {
     payload: RemopayTransferRequest
   ): Promise<RemopayTransferResponse | null> {
     try {
-      const response = await apiClient.post<RemopayTransferResponse>(
-        '/wallet/transfer/identifier',
-        payload
-      );
-      return response?.data || null;
+      const response = (await apiClient.post('/wallet/transfer/identifier', payload)) as any;
+      // Response is already the full response body with success, reference, amount, etc.
+      return response || null;
     } catch (error) {
       console.error('Error initiating Remopay transfer:', error);
       throw error; // Re-throw for component error handling
@@ -127,14 +115,11 @@ class TransferService {
    */
   async resolveBankAccount(bankCode: string, accountNumber: string): Promise<AccountResolutionResponse | null> {
     try {
-      const response = await apiClient.post<AccountResolutionResponse>(
-        '/payment/resolve-account',
-        {
-          bank_code: bankCode,
-          account_number: accountNumber,
-        }
-      );
-      return response?.data || null;
+      const response = (await apiClient.post('/payment/resolve-account', {
+        bank_code: bankCode,
+        account_number: accountNumber,
+      })) as any;
+      return response || null;
     } catch (error) {
       console.error('Error resolving bank account:', error);
       throw error; // Re-throw for component error handling
@@ -147,10 +132,7 @@ class TransferService {
    */
   async initiateBankTransfer(payload: BankTransferRequest): Promise<BankTransferResponse | null> {
     try {
-      const response = await apiClient.post<BankTransferResponse>(
-        '/payment/initiate-transfer',
-        payload
-      );
+      const response = (await apiClient.post('/payment/initiate-transfer', payload)) as any;
       return response?.data || null;
     } catch (error) {
       console.error('Error initiating bank transfer:', error);

@@ -35,8 +35,6 @@ export interface Bank {
 }
 
 export interface BankListResponse {
-  status: boolean;
-  message: string;
   data: Bank[];
 }
 
@@ -128,16 +126,12 @@ export interface RemopayTransferRequest {
 
 export interface RemopayTransferResponse {
   success: boolean;
-  message: string;
-  data: {
-    id: number;
-    transfer_code: string;
-    recipient_id: number;
-    recipient_name: string;
-    amount: number;
-    status: TransferStatus;
-    created_at: string;
-  };
+  message?: string;
+  reference: string;
+  amount: number;
+  sender_balance: number;
+  recipient_balance: number;
+  status: string; // 'success' or other status
 }
 
 /**
