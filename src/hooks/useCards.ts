@@ -220,35 +220,91 @@ export const useCards = (options?: UseCardsOptions) => {
           ...(filters.createdAt && { created_at: filters.createdAt }),
         };
 
+        console.debug('[useCards] Fetching cards with query:', query);
+
         // Call API
         const response = await cardService.getAllCards(query);
 
-        if (!response || !response.success) {
-          throw new Error(response?.message || 'Failed to fetch cards');
+        // Enhanced logging for debugging
+        console.debug('[useCards] API Response:', {
+          success: response?.success,
+          message: response?.message,
+          hasData: !!response?.data,
+          cardsCount: response?.data?.cards?.length,
+          dataStructure: {
+            hasCards: Array.isArray(response?.data?.cards),
+            hasMeta: !!response?.data?.meta,
+          },
+        });
+
+        // Handle response validation
+        if (!response) {
+          console.error('[useCards] Received null/undefined response');
+          throw new Error('Server returned no response');
         }
 
-        // Update state
+        if (response.success === false) {
+          const errorMsg = response?.message || 'Failed to fetch cards';
+          console.error('[useCards] API returned error response:', {
+            success: response?.success,
+            message: errorMsg,
+          });
+          throw new Error(errorMsg);
+        }
+
+        // Success - update state with cards and pagination
+        const cardsData = response.data?.cards || [];
+        const metaData = response.data?.meta || {
+          current_page: page,
+          total_pages: 1,
+          total_records: cardsData.length,
+          page_size: pageSize,
+        };
+
         setCardListState({
-          cards: response.data.cards,
-          pagination: response.data.meta,
+          cards: cardsData,
+          pagination: metaData,
           isLoading: false,
           error: null,
           filters,
           currentPage: page,
         });
 
-        return response.data.cards;
+        console.debug('[useCards] Successfully loaded cards', {
+          count: cardsData.length,
+          page: metaData.current_page,
+          totalPages: metaData.total_pages,
+        });
+
+        return cardsData;
       } catch (error: any) {
-        console.error('[useCards] Error fetching cards:', error);
+        const errorDetails = {
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          responseData: error?.response?.data,
+          errorType: error?.response ? 'HTTP Error' : 'Application Error',
+        };
+
+        console.error('[useCards] Error fetching cards:', errorDetails);
 
         let errorMessage = 'Failed to load cards';
 
+        // Check if it's an HTTP error with response
         if (error.response?.status === 400) {
           errorMessage = 'Please complete your profile to view cards';
         } else if (error.response?.status === 422) {
           errorMessage = 'Invalid filter parameters';
         } else if (error.response?.status === 401) {
-          errorMessage = 'Authentication failed';
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.response?.status === 500) {
+          errorMessage = 'Server error - please try again later';
+        } else if (error.response?.status === 404) {
+          errorMessage = 'Cards endpoint not found. Please contact support.';
+        } else if (error.message) {
+          // Use the API error message if available (from response.message)
+          errorMessage = error.message;
         }
 
         setCardListState((prev) => ({

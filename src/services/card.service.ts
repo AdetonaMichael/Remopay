@@ -82,6 +82,8 @@ class CardService {
       // Build query string
       const params = this.buildQueryString(query);
 
+      console.debug('[CardService] Fetching cards with params:', params);
+
       const response = await apiClient.get<any>(
         '/payment/issuing',
         {
@@ -90,11 +92,34 @@ class CardService {
       );
 
       // Handle response wrapper - extract from 'original' if present
-      const actualResponse = response as GetAllCardsResponse;
+      let actualResponse = response as GetAllCardsResponse;
+      
+      // Normalize response to ensure proper structure
+      actualResponse = this.normalizeResponse(actualResponse);
+      
+      // Enhanced logging for debugging
+      console.debug('[CardService] getAllCards response:', {
+        success: actualResponse?.success,
+        message: actualResponse?.message,
+        cardsCount: actualResponse?.data?.cards?.length,
+        pagination: actualResponse?.data?.meta,
+        hasCardsData: !!actualResponse?.data?.cards,
+        hasMetaData: !!actualResponse?.data?.meta,
+      });
       
       return actualResponse;
     } catch (error: any) {
-      console.error('[CardService] Error fetching cards:', error);
+      console.error('[CardService] Error fetching cards:', {
+        message: error?.message,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        responseData: error?.response?.data,
+        requestConfig: {
+          url: error?.config?.url,
+          method: error?.config?.method,
+          params: error?.config?.params,
+        },
+      });
       throw error;
     }
   }
@@ -234,6 +259,58 @@ class CardService {
       ...(query.status && { status: query.status }),
       ...(query.created_at && { created_at: query.created_at }),
     };
+  }
+
+  /**
+   * Ensure response has proper structure with default values
+   * Handles cases where API might return partial or malformed responses
+   */
+  private normalizeResponse(response: any): GetAllCardsResponse {
+    if (!response) {
+      return {
+        success: false,
+        message: 'Empty response from server',
+        data: {
+          cards: [],
+          meta: {
+            current_page: 1,
+            total_pages: 0,
+            total_records: 0,
+            page_size: 10,
+          },
+        },
+      };
+    }
+
+    // Ensure data structure exists
+    if (!response.data) {
+      response.data = {
+        cards: [],
+        meta: {
+          current_page: 1,
+          total_pages: 0,
+          total_records: 0,
+          page_size: 10,
+        },
+      };
+    }
+
+    // Ensure cards array exists
+    if (!response.data.cards) {
+      response.data.cards = [];
+    }
+
+    // Ensure meta exists
+    if (!response.data.meta) {
+      response.data.meta = {
+        current_page: 1,
+        total_pages: 0,
+        total_records: 0,
+        page_size: 10,
+      };
+    }
+
+    return response;
   }
 }
 

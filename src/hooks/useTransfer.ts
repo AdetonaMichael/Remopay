@@ -105,11 +105,11 @@ export const useTransfer = (options?: UseTransferOptions) => {
         identifier_type: formData.identifierType,
       });
 
-      if (response?.success && response.data) {
-        setRecipientDetails(response.data);
+      if (response) {
+        setRecipientDetails(response);
         addToast({
           type: 'success',
-          message: `${response.data.name} verified successfully`,
+          message: `${response.name} verified successfully`,
         });
       } else {
         setRecipientDetails(null);

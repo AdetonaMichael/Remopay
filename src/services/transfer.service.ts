@@ -16,6 +16,7 @@ import {
   RecipientsListResponse,
   AccountResolutionResponse,
   Recipient,
+  RecipientUser,
 } from '@/types/transfer.types';
 
 class TransferService {
@@ -36,13 +37,13 @@ class TransferService {
   /**
    * Verify recipient exists (Remopay user)
    */
-  async verifyRecipient(payload: VerifyRecipientRequest): Promise<VerifyRecipientResponse | null> {
+  async verifyRecipient(payload: VerifyRecipientRequest): Promise<RecipientUser | null> {
     try {
       const response = await apiClient.post<VerifyRecipientResponse>(
         '/wallet/transfer/verify/user',
         payload
       );
-      return response.data || null;
+      return response?.data?.data || null;
     } catch (error) {
       console.error('Error verifying recipient:', error);
       throw error; // Re-throw to let component handle it
@@ -64,7 +65,7 @@ class TransferService {
           },
         }
       );
-      return response?.data?.data?.recipients || null;
+      return response?.data?.recipients || null;
     } catch (error) {
       console.error('Error fetching recent recipients:', error);
       return null;

@@ -94,25 +94,24 @@ export interface Recipient {
   identifier_type?: IdentifierType;
 }
 
+/**
+ * Recipients List Response - represents the data inside ApiResponse
+ */
 export interface RecipientsListResponse {
-  success: boolean;
-  message: string;
-  data: {
-    recipients: Recipient[];
-    pagination?: {
-      current_page: number;
-      per_page: number;
-      total: number;
-      last_page: number;
-    };
-    count?: number;
-    summary?: {
-      total_recipients: number;
-      remopay_recipients: number;
-      external_bank_recipients: number;
-      total_transfers_made: number;
-      total_amount_transferred: number;
-    };
+  recipients: Recipient[];
+  pagination?: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
+  count?: number;
+  summary?: {
+    total_recipients: number;
+    remopay_recipients: number;
+    external_bank_recipients: number;
+    total_transfers_made: number;
+    total_amount_transferred: number;
   };
 }
 
