@@ -328,11 +328,11 @@ export interface Wallet {
   user_id: string;
   balance: number;
   currency: string;
-  pending_amount: number;
-  locked_amount: number;
-  available_balance: number;
-  total_topups: number;
-  total_spent: number;
+  pending_amount?: number;
+  locked_amount?: number;
+  available_balance?: number;
+  total_topups?: number;
+  total_spent?: number;
   last_transaction?: {
     id: string;
     type: string;
@@ -340,6 +340,12 @@ export interface Wallet {
     created_at: string;
   };
 }
+
+// Helper to get available balance from wallet (handles both 'balance' and 'available_balance' properties)
+export const getAvailableBalance = (wallet: Wallet | null | undefined): number => {
+  if (!wallet) return 0;
+  return wallet.available_balance ?? wallet.balance ?? 0;
+};
 
 export interface WalletTransaction {
   id: string;

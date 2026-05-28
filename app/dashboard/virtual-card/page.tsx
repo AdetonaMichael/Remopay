@@ -1,119 +1,157 @@
 'use client';
 
-import { ArrowLeft, ArrowRight, CreditCard, Shield, Zap, Wallet } from 'lucide-react';
-import Link from 'next/link';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCards } from '@/hooks/useCards';
+import { useAuthStore } from '@/store/auth.store';
+import { useUIStore } from '@/store/ui.store';
+import { CardList, CreateCardForm, CardFilterSection } from '@/components/dashboard/card';
+import { AlertCircle, CreditCard, Loader } from 'lucide-react';
 
+/**
+ * Virtual Card Management Dashboard
+ * Main page for creating and managing virtual USD cards
+ */
 export default function VirtualCardPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { addToast } = useUIStore();
+
+  // Use the cards hook for all card operations
+  const {
+    cardListState,
+    createFormData,
+    updateCreateFormField,
+    createFormErrors,
+    isCreatingCard,
+    createCard,
+    goToPage,
+    changePageSize,
+    applyFilters,
+    clearFilters,
+    hasCards,
+    isEmpty,
+  } = useCards({
+    onSuccess: (message) => {
+      // Cards list will auto-refresh
+    },
+    onError: (error) => {
+      // Error is already shown via toast in the hook
+      console.error('[VirtualCardPage] Card operation error:', error);
+    },
+  });
+
+  // Verify user authentication
+  useEffect(() => {
+    if (!user) {
+      addToast({ type: 'error', message: 'Please log in to access cards' });
+      router.push('/auth/login');
+    }
+  }, [user, router, addToast]);
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <main className="min-h-screen bg-[#100303] text-white pt-20">
-      {/* Header */}
-      <section className="border-b border-[#ff4b55]/20 px-5 py-8 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-white/70 hover:text-[#ff4b55] mb-6"
-          >
-            <ArrowLeft size={18} />
-            Back to Services
-          </Link>
-          <h1 className="text-5xl font-black tracking-tight">
-            Virtual <span className="text-[#ff2635]">Dollar Card</span>
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-white/70">
-            Create and manage virtual cards instantly. Pay online securely without exposing your real card details.
-          </p>
-        </div>
-      </section>
+    <main style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-white">
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
 
-      {/* Features */}
-      <section className="px-5 py-16 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-black mb-10">
-            Why Choose <span className="text-[#ff2635]">Virtual Cards?</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: Zap,
-                title: 'Instant Creation',
-                desc: 'Generate virtual cards in seconds, ready to use immediately.',
-              },
-              {
-                icon: Shield,
-                title: 'Enhanced Security',
-                desc: 'Protect your real card details with disposable virtual cards.',
-              },
-              {
-                icon: Wallet,
-                title: 'Full Control',
-                desc: 'Set spending limits, expiry dates, and manage transactions easily.',
-              },
-              {
-                icon: CreditCard,
-                title: 'Multi-Use',
-                desc: 'Create multiple cards for different purposes and merchants.',
-              },
-            ].map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-6"
-                >
-                  <Icon className="h-10 w-10 text-[#ff737b] mb-4" />
-                  <h3 className="text-lg font-black mb-2">{feature.title}</h3>
-                  <p className="text-sm text-white/70">{feature.desc}</p>
-                </div>
-              );
-            })}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+        
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Virtual Cards</h1>
+              <p className="text-sm text-gray-600 mt-0.5">Create and manage your USD virtual cards</p>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* How it works */}
-      <section className="bg-[#140404] px-5 py-16 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-black mb-10">
-            How It <span className="text-[#ff2635]">Works</span>
-          </h2>
-
-          <div className="space-y-6">
-            {[
-              { step: 1, title: 'Fund Your Wallet', desc: 'Add money to your Remopay wallet' },
-              { step: 2, title: 'Create Card', desc: 'Click "Create Virtual Card" and set your preferences' },
-              { step: 3, title: 'Use Instantly', desc: 'Get card details immediately and start shopping' },
-              { step: 4, title: 'Manage & Monitor', desc: 'Track transactions and manage your cards anytime' },
-            ].map((item) => (
-              <div key={item.step} className="flex gap-6 items-start">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d71927] font-black flex-shrink-0">
-                  {item.step}
-                </div>
-                <div>
-                  <h3 className="text-xl font-black mb-2">{item.title}</h3>
-                  <p className="text-white/70">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+        {/* Error State Display */}
+        {cardListState.error && (
+          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-900">{cardListState.error}</p>
+              <p className="text-xs text-red-700 mt-1">
+                If this issue persists, please ensure your profile is complete and verified.
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* CTA */}
-      <section className="px-5 py-16 lg:px-8">
-        <div className="mx-auto max-w-7xl text-center">
-          <h2 className="text-3xl font-black mb-6">Ready to Create Your Virtual Card?</h2>
-          <p className="text-white/70 mb-8 max-w-2xl mx-auto">
-            Join thousands of users who are securing their online transactions with Remopay Virtual Cards.
-          </p>
-          <Link
-            href="/auth/register"
-            className="inline-flex items-center gap-3 rounded-xl bg-[#d71927] px-8 py-4 text-sm font-black text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420]"
-          >
-            Get Started Now <ArrowRight size={18} />
-          </Link>
+        {/* Main Content */}
+        <div className="space-y-6">
+          {/* Create Card Form */}
+          <CreateCardForm
+            formData={createFormData}
+            onFieldChange={updateCreateFormField}
+            onSubmit={async () => {
+              await createCard();
+            }}
+            errors={createFormErrors}
+            isLoading={isCreatingCard || cardListState.isLoading}
+            onSuccess={() => {
+              // Form will auto-reset in the hook
+            }}
+          />
+
+          {/* Filter Section - Only show if there are cards */}
+          {hasCards && (
+            <CardFilterSection
+              onFiltersChange={applyFilters}
+              onClear={clearFilters}
+              isLoading={cardListState.isLoading}
+            />
+          )}
+
+          {/* Cards List */}
+          <CardList
+            cards={cardListState.cards}
+            pagination={cardListState.pagination}
+            isLoading={cardListState.isLoading}
+            onPageChange={goToPage}
+            onPageSizeChange={changePageSize}
+          />
         </div>
-      </section>
+
+        {/* Features Section - Only show if no cards */}
+        {isEmpty && (
+          <div className="mt-16 pt-12 border-t border-gray-200">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">Why Virtual Cards?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  title: 'Instant Creation',
+                  desc: 'Generate virtual cards in seconds, ready to use immediately.',
+                  icon: '',
+                },
+                {
+                  title: 'Enhanced Security',
+                  desc: 'Protect your real card details with disposable virtual cards.',
+                  icon: '',
+                },
+                {
+                  title: 'Full Control',
+                  desc: 'Manage multiple cards for different purposes and merchants.',
+                  icon: '',
+                },
+              ].map((feature, idx) => (
+                <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+                  <div className="text-4xl mb-3">{feature.icon}</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-sm text-gray-600">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </main>
   );
 }
+

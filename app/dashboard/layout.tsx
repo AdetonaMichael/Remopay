@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Activity,
+  ArrowRightLeft,
+  CreditCard,
   FileText,
   Gift,
   Home,
@@ -81,6 +83,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/data', label: 'Buy Data', icon: Wifi },
     { href: '/dashboard/tv', label: 'TV Subscription', icon: Tv },
     { href: '/dashboard/bills', label: 'Electricity Token', icon: FileText },
+    { href: '/dashboard/transfer', label: 'Transfer Money', icon: ArrowRightLeft },
+    { href: '/dashboard/virtual-card', label: 'Virtual Cards', icon: CreditCard },
     { href: '/dashboard/history', label: 'History', icon: Activity },
     { href: '/dashboard/rewards', label: 'Rewards', icon: Gift },
     { href: '/dashboard/loyalty', label: 'Loyalty Tier', icon: Award },

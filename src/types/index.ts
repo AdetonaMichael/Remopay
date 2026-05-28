@@ -18,6 +18,9 @@ export * from './tier-upgrade.types';
 // Notification types
 export * from './notification.types';
 
+// Virtual Card types
+export * from './card.types';
+
 // Customer types
 export * from './customer.types';
 

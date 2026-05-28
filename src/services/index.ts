@@ -1,6 +1,7 @@
 export { authService } from './auth.service';
 export { apiClient } from './api-client';
 export { adminService } from './admin.service';
+export { cardService } from './card.service';
 export { customerService } from './customer.service';
 export { notificationService } from './notification.service';
 export { paymentService } from './payment.service';
