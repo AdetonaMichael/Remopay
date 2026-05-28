@@ -82,7 +82,7 @@ export default function WalletPage() {
       </div>
 
       {/* Balance Card */}
-      <Card className="bg-gradient-to-br from-[#a9b7ff] to-[#9da9ff] text-white">
+      <Card className="bg-gradient-to-br from-[#d71927] to-[#9da9ff] text-white">
         <div className="flex justify-between items-start mb-8">
           <div>
             <p className="text-white/80 text-sm font-medium">Available Balance</p>
@@ -94,7 +94,7 @@ export default function WalletPage() {
           <CreditCard size={32} className="opacity-80" />
         </div>
 
-        <Button fullWidth className="bg-white text-[#a9b7ff] hover:bg-gray-100">
+        <Button fullWidth className="bg-white text-[#d71927] hover:bg-gray-100">
           <Plus size={18} className="mr-2" />
           Add Funds
         </Button>
@@ -110,7 +110,7 @@ export default function WalletPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-4 py-2 font-medium border-b-2 transition ${
                   activeTab === tab
-                    ? 'border-[#a9b7ff] text-[#a9b7ff]'
+                    ? 'border-[#d71927] text-[#d71927]'
                     : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -184,7 +184,7 @@ export default function WalletPage() {
               <select
                 value={selectedMethod}
                 onChange={(e) => setSelectedMethod(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a9b7ff]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d71927]"
               >
                 <option value="card">Debit Card</option>
                 <option value="bank">Bank Transfer</option>

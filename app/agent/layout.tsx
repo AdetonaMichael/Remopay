@@ -61,7 +61,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#a9b7ff] text-[#0a0a0a] transform transition-transform duration-200 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#d71927] text-[#0a0a0a] transform transition-transform duration-200 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:relative md:translate-x-0 md:z-0`}
       >

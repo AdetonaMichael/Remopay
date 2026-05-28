@@ -278,7 +278,7 @@ export default function BillsPage() {
                         className={`rounded-2xl border p-4 text-center transition-all ${
                           active
                             ? 'border-[#d71927]  shadow-[0_14px_30px_rgba(215,25,39,0.14)]'
-                            : 'border-gray-200 bg-white hover:border-[#A9B7FF] hover:bg-white'
+                            : 'border-gray-200 bg-white hover:border-[#d71927] hover:bg-white'
                         }`}
                       >
                         <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F8FAFC]">
@@ -335,7 +335,7 @@ export default function BillsPage() {
                         className={`rounded-[24px] border p-5 text-left transition-all ${
                           active
                             ? 'border-[#d71927]  shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
-                            : 'border-gray-200 bg-white hover:border-[#A9B7FF]'
+                            : 'border-gray-200 bg-white hover:border-[#d71927]'
                         }`}
                       >
                         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl  text-[#d71927]">

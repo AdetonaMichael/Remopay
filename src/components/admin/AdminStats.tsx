@@ -79,7 +79,7 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
               <div className="flex items-start justify-between">
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                 {stat.icon && (
-                  <div className="text-[#a9b7ff]">{stat.icon}</div>
+                  <div className="text-[#d71927]">{stat.icon}</div>
                 )}
               </div>
               <p className="text-2xl font-bold text-gray-900">{safeStatValue(stat.value)}</p>

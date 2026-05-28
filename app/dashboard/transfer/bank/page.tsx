@@ -198,11 +198,11 @@ export default function BankTransferPage() {
                   {/* Banks List */}
                   <div className="grid max-h-[500px] gap-3 overflow-y-auto pr-1">
                     {filteredBanks.length > 0 ? (
-                      filteredBanks.map((bank) => {
+                      filteredBanks.map((bank, index) => {
                         const active = formData.selectedBank?.code === bank.code;
                         return (
                           <button
-                            key={bank.code}
+                            key={`${bank.code}-${bank.name}-${index}`}
                             type="button"
                             onClick={() => {
                               selectBank(bank);
@@ -445,15 +445,6 @@ export default function BankTransferPage() {
               <span>Continue to Review</span>
               <ChevronRight className="ml-2" size={20} />
             </Button>
-
-            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                Processing
-              </p>
-              <p className="mt-2 text-sm leading-6 text-amber-900">
-                Transfers typically complete within seconds to minutes after PIN authorization.
-              </p>
-            </div>
           </aside>
         </div>
       </Card>

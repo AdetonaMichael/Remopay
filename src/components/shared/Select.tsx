@@ -24,7 +24,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           className={clsx(
             'w-full px-3 py-2 rounded-lg border body-sm text-gray-900 bg-white',
-            'focus:outline-none focus:ring-2 focus:ring-[#a9b7ff] focus:border-transparent',
+            'focus:outline-none focus:ring-2 focus:ring-[#d71927] focus:border-transparent',
             'disabled:bg-gray-100 disabled:cursor-not-allowed',
             error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300',
             className

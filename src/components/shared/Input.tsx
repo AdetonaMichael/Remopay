@@ -27,7 +27,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             className={clsx(
               'w-full px-4 py-3 rounded-lg border body-base text-gray-900 placeholder-gray-400',
-              'focus:outline-none focus:ring-2 focus:ring-[#a9b7ff] focus:border-transparent',
+              'focus:outline-none focus:ring-2 focus:ring-[#d71927] focus:border-transparent',
               'disabled:bg-gray-100 disabled:cursor-not-allowed transition-all',
               error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300',
               icon && 'pl-12',

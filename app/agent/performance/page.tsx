@@ -40,7 +40,7 @@ export default function AgentPerformancePage() {
         <select
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a9b7ff]"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d71927]"
         >
           <option value="week">This Week</option>
           <option value="month">This Month</option>
@@ -120,7 +120,7 @@ export default function AgentPerformancePage() {
                   <span className="text-sm font-medium text-gray-600 w-10">{day}</span>
                   <div className="flex-1 bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-[#a9b7ff] h-2 rounded-full"
+                      className="bg-[#d71927] h-2 rounded-full"
                       style={{ width: Math.floor(Math.random() * 80 + 20) + '%' }}
                     />
                   </div>
@@ -175,7 +175,7 @@ export default function AgentPerformancePage() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-[#a9b7ff] h-2 rounded-full"
+                      className="bg-[#d71927] h-2 rounded-full"
                       style={{ width: service.percentage + '%' }}
                     />
                   </div>

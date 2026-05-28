@@ -459,7 +459,7 @@ export default function ElectricityReviewPage() {
                         ? 'cursor-not-allowed border-gray-200 bg-[#F8FAFC] opacity-60'
                         : active
                           ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
-                          : 'border-gray-200 bg-white hover:border-[#A9B7FF]'
+                          : 'border-gray-200 bg-white hover:border-[#d71927]'
                     }`}
                   >
                     <div className="flex items-start gap-4">

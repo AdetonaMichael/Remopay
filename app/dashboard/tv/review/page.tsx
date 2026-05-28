@@ -581,7 +581,7 @@ export default function TVReviewPage() {
                     transactionStatus !== 'verified' ||
                     !hasPIN
                   }
-                  className="mb-3 h-13 rounded-2xl bg-[#4A5FF7] text-base font-bold text-white shadow-sm shadow-blue-300 hover:bg-[#3A4FE7] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mb-3 h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-sm shadow-blue-300 hover:bg-[#3A4FE7] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isProcessing || transactionStatus === 'processing' ? (
                     <span className="flex items-center justify-center gap-2">

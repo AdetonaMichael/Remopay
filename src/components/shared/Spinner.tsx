@@ -10,7 +10,7 @@ export const Spinner = ({ size = 'md', className = '' }) => {
   return (
     <div className={`flex justify-center items-center ${className}`}>
       <svg
-        className={`animate-spin text-[#a9b7ff] ${sizeClasses[size as keyof typeof sizeClasses]}`}
+        className={`animate-spin text-[#d71927] ${sizeClasses[size as keyof typeof sizeClasses]}`}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"

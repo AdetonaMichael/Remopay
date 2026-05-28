@@ -317,7 +317,7 @@ const CustomPhoneInputComponent = React.forwardRef<
           )}
 
           <div className="relative">
-            <div className="flex items-center w-full rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-[#a9b7ff] focus-within:border-transparent transition-all" style={{ zIndex: isDropdownOpen ? 40 : 'auto' }}>
+            <div className="flex items-center w-full rounded-lg border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-[#d71927] focus-within:border-transparent transition-all" style={{ zIndex: isDropdownOpen ? 40 : 'auto' }}>
               <div className="relative" ref={dropdownRef}>
                 <button
                   type="button"
@@ -350,7 +350,7 @@ const CustomPhoneInputComponent = React.forwardRef<
                           placeholder="Search country..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#a9b7ff] focus:border-transparent"
+                          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#d71927] focus:border-transparent"
                           aria-label="Search countries"
                         />
                         {searchQuery && (
@@ -452,7 +452,7 @@ const CustomPhoneInputComponent = React.forwardRef<
               <div className={`flex items-center w-full rounded-lg border transition-all ${
                 error 
                   ? 'border-red-500 focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent' 
-                  : 'border-gray-300 focus-within:ring-2 focus-within:ring-[#a9b7ff] focus-within:border-transparent'
+                  : 'border-gray-300 focus-within:ring-2 focus-within:ring-[#d71927] focus-within:border-transparent'
               } bg-white`} style={{ zIndex: isDropdownOpen ? 40 : 'auto' }}>
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -486,7 +486,7 @@ const CustomPhoneInputComponent = React.forwardRef<
                             placeholder="Search country..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#a9b7ff] focus:border-transparent"
+                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#d71927] focus:border-transparent"
                             aria-label="Search countries"
                           />
                           {searchQuery && (

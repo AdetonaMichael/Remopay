@@ -125,7 +125,7 @@ export default function AgentCustomersPage() {
                   <td className="px-6 py-4 text-sm text-gray-900">{customer.transactions}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{customer.last_transaction}</td>
                   <td className="px-6 py-4 text-sm">
-                    <button className="text-[#a9b7ff] hover:text-[#9da9ff] font-medium">View</button>
+                    <button className="text-[#d71927] hover:text-[#9da9ff] font-medium">View</button>
                   </td>
                 </tr>
               ))}
