@@ -36,7 +36,6 @@ class TierUpgradeService {
   ): Promise<ApiResponse<TierUpgradeResponse>> {
     return apiClient.patch('/payment/customers/tier-zero', data);
   }
-
   /**
    * Upgrade to Tier 1 - Bronze Tier
    * PATCH /v1/payment/customers/tier-one
