@@ -4,6 +4,7 @@ export { useAuth } from './useAuth';
 export { useAuthRole } from './useAuthRole';
 export { useCards } from './useCards';
 export { useFilters } from './useFilters';
+export { useFx } from './useFx';
 export { useIdempotency } from './useIdempotency';
 export { useNotifications } from './useNotifications';
 export { usePasswordValidation } from './usePasswordValidation';

@@ -26,3 +26,6 @@ export * from './customer.types';
 
 // Promotional Email types
 export * from './promotional-email.types';
+
+// FX Conversion types
+export * from './fx.types';

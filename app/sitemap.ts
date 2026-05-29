@@ -100,5 +100,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  return [...mainPages, ...authPages, ...servicePages];
+  // Main service pages (not under dashboard - public)
+  const mainServicePages = [
+    {
+      url: `${baseUrl}/multi-currency`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+  ];
+
+  return [...mainPages, ...authPages, ...servicePages, ...mainServicePages];
 }

@@ -3,6 +3,7 @@ export { apiClient } from './api-client';
 export { adminService } from './admin.service';
 export { cardService } from './card.service';
 export { customerService } from './customer.service';
+export { fxService } from './fx.service';
 export { notificationService } from './notification.service';
 export { paymentService } from './payment.service';
 export { pinService } from './pin.service';

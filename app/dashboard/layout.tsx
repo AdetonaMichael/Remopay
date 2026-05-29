@@ -10,6 +10,7 @@ import {
   CreditCard,
   FileText,
   Gift,
+  Globe,
   Home,
   LogOut,
   Phone,
@@ -271,7 +272,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </div>
           </aside>
 
-          <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-[#111] sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-2 text-[#111]">
             {children}
           </main>
         </div>

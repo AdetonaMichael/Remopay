@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] bg-[#140404] p-6 text-white shadow-xl shadow-[#d71927]/10 lg:p-8">
+      <section className="relative overflow-hidden bg-[#140404]  text-white ">
         <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#d71927]/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[#ff737b]/10 blur-3xl" />
 

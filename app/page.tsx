@@ -496,7 +496,7 @@ export default function RemopayLandingPage() {
           </a>
         </div>
         <a
-          href="/"
+          href="https://api.remopay.remonode.com/Remopay.apk"
           download
           className="flex items-center justify-center gap-3 rounded-xl bg-[#d71927] px-6 py-4 button-md text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420] w-full"
         >
@@ -572,7 +572,7 @@ export default function RemopayLandingPage() {
           {[
             ['Company', [['About Us', '/about'], ['Careers', '/about'], ['Blog', '/'], ['Contact Us', '/support']]],
             ['Help', [['FAQs', '/faq'], ['Support Center', '/support'], ['Terms of Service', '/terms'], ['Privacy Policy', '/privacy']]],
-            ['Services', [['Airtime', '/'], ['Data', '/'], ['Electricity', '/'], ['TV Subscription', '/'], ['More Services', '/']]],
+            ['Services', [['Airtime', '/'], ['Data', '/'], ['Electricity', '/'], ['TV Subscription', '/'], ['Multi-Currency', '/multi-currency'], ['More Services', '/']]],
           ].map(([title, links]: any) => (
             <div key={title}>
               <h3 className="mb-4 h6 font-semibold">{title}</h3>

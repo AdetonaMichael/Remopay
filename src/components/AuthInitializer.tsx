@@ -126,6 +126,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/privacy',
       '/terms',
       '/support',
+      '/multi-currency',
       '/error',
     ];
 

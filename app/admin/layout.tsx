@@ -22,6 +22,7 @@ import {
   LogOut,
   X,
   Mail,
+  Globe,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -32,6 +33,7 @@ const adminNavItems = [
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
   { label: 'Services', href: '/admin/services', icon: Smartphone },
+  { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
   { label: 'Rewards', href: '/admin/rewards', icon: Gift },
   { label: 'Campaigns', href: '/admin/rewards/campaigns', icon: TrendingUp },
