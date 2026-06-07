@@ -17,3 +17,5 @@ export { vtuService } from './vtu.service';
 export { walletService } from './wallet.service';
 export { advertisementService } from './advertisement.service';
 export { promotionalEmailService } from './promotional-email.service';
+export { usdAccountService } from './usd-account.service';
+export { airtimeToCashService } from './airtime-to-cash.service';

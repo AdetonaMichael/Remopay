@@ -23,6 +23,7 @@ import {
   X,
   Mail,
   Globe,
+  Phone,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -33,6 +34,7 @@ const adminNavItems = [
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
   { label: 'Services', href: '/admin/services', icon: Smartphone },
+  { label: 'Airtime to Cash', href: '/admin/airtime-to-cash', icon: Phone },
   { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
   { label: 'Rewards', href: '/admin/rewards', icon: Gift },

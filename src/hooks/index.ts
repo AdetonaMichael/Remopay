@@ -17,3 +17,5 @@ export { useUpdateCustomer } from './useUpdateCustomer';
 export { useAdvertisements, useAdvertisementsAdmin } from './useAdvertisements';
 export { useTransfer } from './useTransfer';
 export { useBankTransfer } from './useBankTransfer';
+export { useUsdAccount } from './useUsdAccount';
+export { useAirtimeToCash } from './useAirtimeToCash';

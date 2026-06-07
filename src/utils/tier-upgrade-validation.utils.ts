@@ -309,16 +309,16 @@ export const validateTier2 = (data: any): ValidationResult => {
 // ============= HELPER FUNCTIONS FOR UI =============
 
 const COUNTRIES = [
-  { value: 'Nigeria', label: 'Nigeria' },
-  { value: 'Ghana', label: 'Ghana' },
-  { value: 'Kenya', label: 'Kenya' },
-  { value: 'South Africa', label: 'South Africa' },
-  { value: 'United States', label: 'United States' },
-  { value: 'United Kingdom', label: 'United Kingdom' },
-  { value: 'Canada', label: 'Canada' },
-  { value: 'Australia', label: 'Australia' },
-  { value: 'India', label: 'India' },
-  { value: 'Egypt', label: 'Egypt' },
+  { value: 'NG', label: 'Nigeria' },
+  { value: 'GH', label: 'Ghana' },
+  { value: 'KE', label: 'Kenya' },
+  { value: 'ZA', label: 'South Africa' },
+  { value: 'US', label: 'United States' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'IN', label: 'India' },
+  { value: 'EG', label: 'Egypt' },
 ];
 
 const PHONE_COUNTRY_CODES = [

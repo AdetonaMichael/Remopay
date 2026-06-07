@@ -29,3 +29,9 @@ export * from './promotional-email.types';
 
 // FX Conversion types
 export * from './fx.types';
+
+// USD Account types
+export * from './usd-account.types';
+
+// Airtime-to-Cash types
+export * from './airtime-to-cash.types';

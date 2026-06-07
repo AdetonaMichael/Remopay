@@ -3,6 +3,8 @@
  * Based on AFRIDataNG Backend API Specification
  */
 
+import type { MapleradCustomerData } from './tier-upgrade.types';
+
 // ============= Generic Response Wrapper =============
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -48,6 +50,7 @@ export interface User {
   permissions: string[];
   balance: number;
   formatted_balance: string;
+  mapleradCustomer?: MapleradCustomerData | null;
 }
 
 export interface Role {
