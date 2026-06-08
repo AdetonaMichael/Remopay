@@ -18,6 +18,7 @@ import {
   AdminApproveRequest,
   AdminRejectRequest,
   TransactionHistoryResponse,
+  TransactionSummary,
   AdminProviderResponse,
   UpdateProviderRequest,
   AuditLog,
@@ -69,17 +70,75 @@ class AirtimeToCashService {
   }
 
   /**
+   * Upload screenshot for proof of transfer
+   * POST /v1/airtime/{id}/upload-screenshot
+   * Expects multipart/form-data with a screenshot file.
+   * Returns a secure Cloudinary URL to include in the submit-proof request.
+   */
+  async uploadScreenshot(
+    transactionId: number,
+    file: File
+  ): Promise<{ screenshot_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('screenshot', file);
+
+      const response = await apiClient.post<any>(
+        `/airtime/${transactionId}/upload-screenshot`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      // Extract screenshot data from response
+      const data = response.data?.data || response.data;
+      
+      if (data && typeof data === 'object' && 'screenshot_url' in data) {
+        return {
+          screenshot_url: data.screenshot_url,
+          public_id: data.public_id,
+          size: data.size,
+          width: data.width,
+          height: data.height,
+          uploaded_at: data.uploaded_at,
+        };
+      }
+      
+      console.warn('Invalid upload screenshot response structure:', response.data);
+      throw new Error('Failed to extract screenshot URL from response');
+    } catch (error) {
+      console.error('Failed to upload screenshot:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Initiate a new airtime conversion request
    */
   async initiateConversion(
     request: InitiateConversionRequest
   ): Promise<InitiateConversionResponse> {
     try {
-      const response = await apiClient.post<{ data: InitiateConversionResponse }>(
+      const response = await apiClient.post<any>(
         '/airtime/initiate',
         request
       );
-      return response.data?.data as InitiateConversionResponse;
+      
+      console.log('Initiate conversion response:', response.data);
+      
+      // API response structure: { success, message, transaction, instructions }
+      // The apiClient wraps it, so response.data is the actual data
+      const data = response.data?.data || response.data;
+      
+      if (data && typeof data === 'object' && 'transaction' in data && 'instructions' in data) {
+        return data as InitiateConversionResponse;
+      }
+      
+      console.warn('Invalid initiate conversion response structure:', response.data);
+      throw new Error('Invalid response structure from API');
     } catch (error) {
       console.error('Failed to initiate conversion:', error);
       throw error;
@@ -94,11 +153,20 @@ class AirtimeToCashService {
     request: SubmitProofRequest
   ): Promise<AirtimeToCashTransaction> {
     try {
-      const response = await apiClient.post<{ data: AirtimeToCashTransaction }>(
+      const response = await apiClient.post<any>(
         `/airtime/${transactionId}/submit-proof`,
         request
       );
-      return response.data?.data as AirtimeToCashTransaction;
+      
+      // Try nested data first, then direct data
+      const data = response.data?.data || response.data;
+      
+      if (data && typeof data === 'object') {
+        return data as AirtimeToCashTransaction;
+      }
+      
+      console.warn('Invalid submit proof response structure:', response.data);
+      throw new Error('Invalid response structure from API');
     } catch (error) {
       console.error('Failed to submit proof:', error);
       throw error;
@@ -118,15 +186,85 @@ class AirtimeToCashService {
   }): Promise<HistoryWithSummary> {
     try {
       const response = await apiClient.get<any>('/airtime/history', { params });
-      const historyData = response.data?.data;
+      console.log('[AirtimeToCashService] getHistory raw response:', response.data);
       
-      // Ensure data is valid
-      if (historyData && typeof historyData === 'object') {
-        return historyData as HistoryWithSummary;
+      const data = response.data?.data || response.data;
+      console.log('[AirtimeToCashService] extracted data:', data);
+      
+      // Handle two possible response structures:
+      // 1. Direct array: data = [transactions...]
+      // 2. Paginated object: data = { data: [transactions...], current_page, ... }
+      
+      let transactions: any[] = [];
+      let paginatedData: TransactionHistoryResponse | null = null;
+      
+      if (Array.isArray(data)) {
+        // API returned direct array of transactions
+        console.log('[AirtimeToCashService] Response is direct array');
+        transactions = data;
+        paginatedData = {
+          data: transactions,
+          current_page: 1,
+          per_page: transactions.length,
+          total: transactions.length,
+          last_page: 1,
+          next_page_url: null,
+          prev_page_url: null,
+        };
+      } else if (data && typeof data === 'object' && Array.isArray(data.data)) {
+        // API returned paginated object with data array inside
+        console.log('[AirtimeToCashService] Response is paginated object');
+        transactions = data.data;
+        paginatedData = data as TransactionHistoryResponse;
       }
       
-      console.warn('Invalid history response structure:', response.data);
-      return { transactions: [], summary: {} } as HistoryWithSummary;
+      if (transactions.length > 0 || paginatedData) {
+        const summary: TransactionSummary = {
+          total_requests: paginatedData?.total || transactions.length,
+          completed: transactions.filter((t: any) => t.status === 'completed').length,
+          rejected: transactions.filter((t: any) => t.status === 'rejected').length,
+          pending: transactions.filter((t: any) => t.status === 'pending').length,
+          total_converted: transactions.reduce((sum: number, t: any) => sum + (parseFloat(t.cash_credited) || 0), 0),
+          total_fees_paid: transactions.reduce((sum: number, t: any) => sum + (parseFloat(t.service_fee) || 0), 0),
+        };
+        
+        const result: HistoryWithSummary = {
+          data: paginatedData || {
+            data: [],
+            current_page: 1,
+            per_page: 0,
+            total: 0,
+            last_page: 1,
+            next_page_url: null,
+            prev_page_url: null,
+          },
+          summary,
+        };
+        
+        console.log('[AirtimeToCashService] Returning HistoryWithSummary with', transactions.length, 'transactions');
+        return result;
+      }
+      
+      console.warn('Invalid history response structure - no transactions found:', response.data);
+      return {
+        data: {
+          data: [],
+          current_page: 1,
+          per_page: 0,
+          total: 0,
+          last_page: 1,
+          next_page_url: null,
+          prev_page_url: null,
+        },
+        summary: {
+          total_requests: 0,
+          completed: 0,
+          rejected: 0,
+          pending: 0,
+          total_converted: 0,
+          total_fees_paid: 0,
+        },
+      };
     } catch (error) {
       console.error('Failed to fetch transaction history:', error);
       throw error;
@@ -138,10 +276,19 @@ class AirtimeToCashService {
    */
   async getTransaction(transactionId: number): Promise<AirtimeToCashTransaction> {
     try {
-      const response = await apiClient.get<{ data: AirtimeToCashTransaction }>(
+      const response = await apiClient.get<any>(
         `/airtime/${transactionId}`
       );
-      return response.data?.data as AirtimeToCashTransaction;
+      
+      // Try nested data first, then direct data
+      const data = response.data?.data || response.data;
+      
+      if (data && typeof data === 'object') {
+        return data as AirtimeToCashTransaction;
+      }
+      
+      console.warn('Invalid transaction response structure:', response.data);
+      throw new Error('Invalid response structure from API');
     } catch (error) {
       console.error('Failed to fetch transaction:', error);
       throw error;
@@ -154,9 +301,11 @@ class AirtimeToCashService {
   async getStats(): Promise<AirtimeToCashStats> {
     try {
       const response = await apiClient.get<any>('/airtime/stats');
-      const stats = response.data?.data;
       
-      if (stats && typeof stats === 'object') {
+      // Try nested data first, then direct data
+      const stats = response.data?.data || response.data;
+      
+      if (stats && typeof stats === 'object' && 'total_requests' in stats) {
         return stats as AirtimeToCashStats;
       }
       
@@ -164,7 +313,7 @@ class AirtimeToCashService {
       return {} as AirtimeToCashStats;
     } catch (error) {
       console.error('Failed to fetch statistics:', error);
-      throw error;
+      return {} as AirtimeToCashStats;
     }
   }
 
@@ -202,16 +351,18 @@ class AirtimeToCashService {
 
     try {
       const response = await apiClient.get<any>('/airtime/admin/dashboard');
-      const data = response.data?.data;
       
-      if (data && typeof data === 'object' && 'overview' in data) {
+      // apiClient strips wrapper, response.data IS the dashboard object directly
+      const data = response.data;
+      
+      if (data && typeof data === 'object' && ('overview' in data || 'by_provider' in data)) {
         return data as AdminDashboardData;
       }
       
-      console.warn('Invalid dashboard response structure:', response.data);
+      console.warn('[AirtimeToCashService] Invalid dashboard response structure:', data);
       return DEFAULT_DASHBOARD;
     } catch (error) {
-      console.error('Failed to fetch admin dashboard:', error);
+      console.error('[AirtimeToCashService] Failed to fetch admin dashboard:', error);
       return DEFAULT_DASHBOARD;
     }
   }
@@ -230,16 +381,18 @@ class AirtimeToCashService {
           params,
         }
       );
-      const data = response.data?.data;
       
-      if (data && typeof data === 'object' && 'data' in data) {
-        return data as AdminPendingResponse;
+      // apiClient strips wrapper, response.data IS the paginated response directly
+      const paginatedData = response.data;
+      
+      if (paginatedData && typeof paginatedData === 'object' && ('data' in paginatedData || 'current_page' in paginatedData)) {
+        return paginatedData as AdminPendingResponse;
       }
       
-      console.warn('Invalid pending response structure:', response.data);
+      console.warn('[AirtimeToCashService] Invalid pending response structure:', paginatedData);
       return { data: [], current_page: 1, per_page: 50, total: 0, last_page: 1 } as AdminPendingResponse;
     } catch (error) {
-      console.error('Failed to fetch pending conversions:', error);
+      console.error('[AirtimeToCashService] Failed to fetch pending conversions:', error);
       return { data: [], current_page: 1, per_page: 50, total: 0, last_page: 1 } as AdminPendingResponse;
     }
   }
@@ -267,16 +420,22 @@ class AirtimeToCashService {
           params,
         }
       );
-      const data = response.data?.data;
       
-      if (data && typeof data === 'object' && 'data' in data) {
+      console.log('[AirtimeToCashService] getAdminAll response.data:', response.data);
+      
+      // apiClient already strips the wrapper, response.data IS the paginated response
+      const data = response.data;
+      console.log('[AirtimeToCashService] getAdminAll checking pagination properties:', { hasData: 'data' in data, hasCurrentPage: 'current_page' in data, dataLength: data?.data?.length });
+      
+      if (data && typeof data === 'object' && ('data' in data || 'current_page' in data)) {
+        console.log('[AirtimeToCashService] ✓ getAdminAll returning valid response with', data.data?.length || 0, 'transactions');
         return data as TransactionHistoryResponse;
       }
       
-      console.warn('Invalid admin transactions response structure:', response.data);
+      console.warn('[AirtimeToCashService] Invalid admin transactions response structure:', data);
       return { data: [], current_page: 1, per_page: 50, total: 0, last_page: 1, next_page_url: null, prev_page_url: null } as TransactionHistoryResponse;
     } catch (error) {
-      console.error('Failed to fetch admin transactions:', error);
+      console.error('[AirtimeToCashService] Failed to fetch admin transactions:', error);
       return { data: [], current_page: 1, per_page: 50, total: 0, last_page: 1, next_page_url: null, prev_page_url: null } as TransactionHistoryResponse;
     }
   }
@@ -289,16 +448,20 @@ class AirtimeToCashService {
       const response = await apiClient.get<any>(
         `/airtime/admin/${transactionId}`
       );
-      const data = response.data?.data;
       
-      if (data && typeof data === 'object') {
+      // apiClient already strips the wrapper, response.data IS the transaction
+      const data = response.data;
+      console.log('[AirtimeToCashService] getAdminTransaction response.data:', data);
+      
+      if (data && typeof data === 'object' && 'id' in data) {
+        console.log('[AirtimeToCashService] ✓ Returning valid transaction:', data.id);
         return data as AdminTransactionView;
       }
       
-      console.warn('Invalid transaction response structure:', response.data);
+      console.warn('[AirtimeToCashService] Invalid transaction response structure:', data);
       return {} as AdminTransactionView;
     } catch (error) {
-      console.error('Failed to fetch admin transaction:', error);
+      console.error('[AirtimeToCashService] Failed to fetch admin transaction:', error);
       return {} as AdminTransactionView;
     }
   }

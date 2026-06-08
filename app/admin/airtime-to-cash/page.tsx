@@ -97,7 +97,7 @@ export default function AdminAirtimeToCashPage() {
           const response = await airtimeToCashService.getAdminPending({
             per_page: 50,
           });
-          setPendingTransactions(Array.isArray(response.data) ? response.data : response.data?.data || []);
+          setPendingTransactions(response.data || []);
         } catch (error: any) {
           addToast({
             message: 'Failed to load pending transactions',
@@ -125,7 +125,7 @@ export default function AdminAirtimeToCashPage() {
           if (filters.searchTerm) params.reference = filters.searchTerm;
 
           const response = await airtimeToCashService.getAdminAll(params);
-          setAllTransactions(Array.isArray(response.data) ? response.data : response.data?.data || []);
+          setAllTransactions(response.data || []);
         } catch (error: any) {
           addToast({
             message: 'Failed to load transactions',

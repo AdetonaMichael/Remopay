@@ -29,7 +29,7 @@ export default function SubmitProofPage() {
   const params = useParams();
   const router = useRouter();
   const { addToast } = useUIStore();
-  const { submitProof, isSubmittingProof, conversionError, clearError } =
+  const { submitProof, uploadScreenshot, isSubmittingProof, conversionError, clearError } =
     useAirtimeToCash();
 
   const transactionId = Number(params.id);
@@ -118,10 +118,17 @@ export default function SubmitProofPage() {
     }
 
     try {
-      // In a real implementation, upload the file to storage and get URL
-      // For now, we'll use a simulated URL (backend expects public URL)
-      const screenshotUrl = uploadState.preview; // In real implementation: upload to S3/storage service
+      setUploadState((prev) => ({
+        ...prev,
+        uploading: true,
+        error: undefined,
+      }));
 
+      // Step 1: Upload screenshot file to backend to get URL
+      const uploadResult = await uploadScreenshot(transactionId, uploadState.file);
+      const screenshotUrl = uploadResult.screenshot_url;
+
+      // Step 2: Submit the uploaded screenshot URL for proof verification
       await submitProof(transactionId, screenshotUrl);
 
       addToast({
@@ -129,11 +136,14 @@ export default function SubmitProofPage() {
         type: 'success',
       });
 
-      setTimeout(() => {
-        router.push('/dashboard/airtime-to-cash/history');
-      }, 2000);
+      router.push('/dashboard/airtime-to-cash/history');
     } catch (error) {
       console.error('Failed to submit proof:', error);
+      setUploadState((prev) => ({
+        ...prev,
+        uploading: false,
+        error: 'Failed to upload screenshot. Please try again.',
+      }));
     }
   };
 
@@ -305,13 +315,13 @@ export default function SubmitProofPage() {
 
               <Button
                 onClick={handleSubmitProof}
-                disabled={!uploadState.preview || isSubmittingProof}
+                disabled={!uploadState.preview || uploadState.uploading || isSubmittingProof}
                 className="ml-auto flex items-center gap-2 rounded-2xl bg-[#d71927] px-6 py-3 font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b81420] disabled:opacity-60"
               >
-                {isSubmittingProof ? (
+                {uploadState.uploading || isSubmittingProof ? (
                   <>
                     <Loader2 className="animate-spin" size={20} />
-                    Submitting...
+                    Uploading...
                   </>
                 ) : (
                   <>
@@ -374,7 +384,7 @@ export default function SubmitProofPage() {
                   You'll Receive (Estimated)
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-green-900">
-                  ₦{(transaction.cash_credited || Math.round(transaction.net_amount * (transaction.conversion_rate || 0.8))).toLocaleString()}
+                  ₦{(Number(transaction.cash_credited) > 0 ? transaction.cash_credited : Math.round(transaction.net_amount * (transaction.conversion_rate || 0.8))).toLocaleString()}
                 </p>
                 <p className="mt-1 text-xs text-green-700">After service fee deducted</p>
               </div>

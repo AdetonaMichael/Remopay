@@ -12,7 +12,7 @@ const config: Config = {
         brand: '#620707',
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
       // Comprehensive responsive typography scale
       fontSize: {

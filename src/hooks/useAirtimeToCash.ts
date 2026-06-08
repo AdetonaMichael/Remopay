@@ -25,6 +25,7 @@ interface UseAirtimeToCashReturn {
   isSubmittingProof: boolean;
   conversionError: string | null;
   initiateConversion: (formData: AirtimeToCashFormData) => Promise<void>;
+  uploadScreenshot: (transactionId: number, file: File) => Promise<{ screenshot_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }>;
   submitProof: (transactionId: number, screenshotUrl: string) => Promise<void>;
 
   // History
@@ -100,7 +101,12 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
         notes: formData.notes,
       });
 
-      setTransaction(response.transaction);
+      // Safely extract transaction
+      if (response && response.transaction) {
+        setTransaction(response.transaction);
+      } else {
+        throw new Error('No transaction data in response');
+      }
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||
@@ -110,6 +116,18 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
       setConversionError(message);
     } finally {
       setIsInitiating(false);
+    }
+  }, []);
+
+  // Upload screenshot
+  const uploadScreenshot = useCallback(async (transactionId: number, file: File) => {
+    try {
+      const result = await airtimeToCashService.uploadScreenshot(transactionId, file);
+      return result;
+    } catch (error: any) {
+      const message = error?.message || 'Failed to upload screenshot';
+      setConversionError(message);
+      throw error;
     }
   }, []);
 
@@ -139,6 +157,9 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
       setHistoryLoading(true);
       setHistoryError(null);
       const response = await airtimeToCashService.getHistory(params);
+      console.log('[useAirtimeToCash] fetchHistory response:', response);
+      console.log('[useAirtimeToCash] response.data:', response.data);
+      console.log('[useAirtimeToCash] response.data.data:', response.data.data);
       setHistory(response.data.data);
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Failed to load history';
@@ -187,6 +208,7 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
     isSubmittingProof,
     conversionError,
     initiateConversion,
+    uploadScreenshot,
     submitProof,
 
     // History

@@ -133,7 +133,7 @@ export default function AirtimeToCashHistoryPage() {
               <div>
                 <p className="text-sm text-gray-600">Total Requests</p>
                 <p className="mt-2 text-2xl font-extrabold text-gray-900">
-                  {stats.total_requests}
+                  {stats.total_requests || 0}
                 </p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100">
@@ -147,7 +147,7 @@ export default function AirtimeToCashHistoryPage() {
               <div>
                 <p className="text-sm text-gray-600">Completed</p>
                 <p className="mt-2 text-2xl font-extrabold text-green-600">
-                  {stats.completed}
+                  {stats.completed || 0}
                 </p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100">
@@ -161,7 +161,7 @@ export default function AirtimeToCashHistoryPage() {
               <div>
                 <p className="text-sm text-gray-600">Total Converted</p>
                 <p className="mt-2 text-xl font-extrabold text-[#d71927]">
-                  ₦{stats.total_converted.toLocaleString()}
+                  ₦{(stats.total_converted || 0).toLocaleString()}
                 </p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100">
@@ -175,7 +175,7 @@ export default function AirtimeToCashHistoryPage() {
               <div>
                 <p className="text-sm text-gray-600">Fees Paid</p>
                 <p className="mt-2 text-xl font-extrabold text-gray-900">
-                  ₦{stats.total_fees_paid.toLocaleString()}
+                  ₦{(stats.total_fees_paid || 0).toLocaleString()}
                 </p>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100">
@@ -262,7 +262,7 @@ export default function AirtimeToCashHistoryPage() {
       </Card>
 
       {/* Transactions List */}
-      {history.length === 0 ? (
+      {(!history || history.length === 0) ? (
         <Card className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
           <Send className="mx-auto mb-4 text-gray-400" size={48} />
           <p className="text-lg font-bold text-gray-900">No conversions yet</p>
