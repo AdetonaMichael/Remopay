@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ChevronRight,
@@ -48,10 +47,10 @@ export default function AirtimeToCashPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
   const {
-    providers,
-    providersLoading,
-    providersError,
-    fetchProviders,
+    adminProviders,
+    adminProvidersLoading,
+    adminProvidersError,
+    fetchAdminProviders,
     transaction,
     isInitiating,
     conversionError,
@@ -59,6 +58,9 @@ export default function AirtimeToCashPage() {
     clearError,
     resetTransaction,
   } = useAirtimeToCash();
+
+  // Use adminProviders as the source of truth (has real updated logo_url values)
+  const providers = adminProviders;
 
   const [formData, setFormData] = useState<ConversionFormData>({
     phone_number: '',
@@ -100,8 +102,17 @@ export default function AirtimeToCashPage() {
 
   // Load providers on mount
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    if (adminProviders.length === 0) {
+      fetchAdminProviders();
+    }
+  }, [fetchAdminProviders, adminProviders.length]);
+
+  // Debug: Log providers and their logos
+  useEffect(() => {
+    if (providers && providers.length > 0) {
+      console.log('[AirtimeToCash Dashboard] Providers loaded from admin endpoint:', providers);
+    }
+  }, [providers]);
 
   // Set first provider as default
   useEffect(() => {
@@ -202,22 +213,22 @@ export default function AirtimeToCashPage() {
     });
   };
 
-  if (providersLoading) {
+  if (adminProvidersLoading) {
     return <CardSkeleton count={3} />;
   }
 
-  if (providersError) {
+  if (adminProvidersError) {
     return (
       <Card className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <div className="flex items-center gap-4">
           <AlertCircle className="text-red-600" size={24} />
           <div>
             <p className="font-bold text-red-900">Failed to load providers</p>
-            <p className="text-sm text-red-700">{providersError}</p>
+            <p className="text-sm text-red-700">{adminProvidersError}</p>
           </div>
         </div>
         <Button
-          onClick={() => fetchProviders()}
+          onClick={() => fetchAdminProviders()}
           className="mt-4 rounded-2xl bg-red-600 px-6 py-2 text-sm font-bold text-white hover:bg-red-700"
         >
           Retry
@@ -301,12 +312,10 @@ export default function AirtimeToCashPage() {
                     >
                       <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
                         {logoUrl ? (
-                          <Image
+                          <img
                             src={logoUrl}
                             alt={provider.name}
-                            width={42}
-                            height={42}
-                            className="object-contain"
+                            className="max-h-10 max-w-10 object-contain"
                           />
                         ) : (
                           <Send className="text-[#d71927]" size={22} />

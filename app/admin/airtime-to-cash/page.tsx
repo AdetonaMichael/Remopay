@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Filter,
   Loader2,
+  Settings,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
@@ -86,6 +87,18 @@ export default function AdminAirtimeToCashPage() {
     };
 
     fetchDashboard();
+    
+    // Fetch all transactions on mount for recent section
+    const fetchAll = async () => {
+      try {
+        const response = await airtimeToCashService.getAdminAll({ per_page: 50 });
+        setAllTransactions(response.data || []);
+      } catch (error: any) {
+        // Silently fail for initial load
+      }
+    };
+    
+    fetchAll();
   }, [addToast]);
 
   // Fetch pending when tab changes to pending
@@ -163,6 +176,17 @@ export default function AdminAirtimeToCashPage() {
         <p className="mt-2 text-gray-600">
           Review and manage conversion requests from users
         </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-3">
+        <Button
+          onClick={() => router.push('/admin/airtime-to-cash/providers')}
+          className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 flex items-center gap-2"
+        >
+          <Settings size={18} />
+          Manage Providers
+        </Button>
       </div>
 
       {/* Dashboard Metrics */}
@@ -292,6 +316,70 @@ export default function AdminAirtimeToCashPage() {
             </div>
           </Card>
         </>
+      )}
+
+      {/* Recent Conversions Section */}
+      {allTransactions.length > 0 && (
+        <Card className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
+            <p className="text-lg font-bold text-gray-900">Recent Conversions</p>
+            <Button
+              onClick={() => setActiveTab('all')}
+              className="rounded-lg text-[#d71927] font-bold text-sm hover:text-red-800 flex items-center gap-2"
+            >
+              View All
+              <ChevronRight size={18} />
+            </Button>
+          </div>
+
+          <div className="p-6">
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {allTransactions.slice(0, 5).map((transaction) => {
+                const config = STATUS_CONFIG[transaction.status];
+
+                return (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 hover:bg-gray-50 cursor-pointer transition"
+                    onClick={() =>
+                      router.push(
+                        `/admin/airtime-to-cash/${transaction.id}`
+                      )
+                    }
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                        <Send className="text-gray-600" size={20} />
+                      </div>
+
+                      <div>
+                        <p className="font-bold text-gray-900">
+                          {transaction.user?.first_name || 'User'}{' '}
+                          {transaction.user?.last_name || ''}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {transaction.provider.toUpperCase()} •{' '}
+                          {transaction.reference}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="font-bold text-gray-900">
+                          ₦{transaction.airtime_amount.toLocaleString()}
+                        </p>
+                        <span className={`text-xs px-2 py-1 rounded-lg font-bold ${config.color}`}>
+                          {config.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Transactions Section */}

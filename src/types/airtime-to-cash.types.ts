@@ -245,6 +245,7 @@ export interface UpdateProviderRequest {
   receiving_number?: string;
   min_amount?: number;
   max_amount?: number;
+  logo_url?: string;
 }
 
 // Audit Logs Response (uses existing AuditLog interface)

@@ -528,16 +528,24 @@ class AirtimeToCashService {
       const response = await apiClient.get<any>(
         '/airtime/admin/providers'
       );
-      const data = response.data?.data;
+      
+      // Handle multiple response structures
+      let data = response.data?.data;
+      
+      // If response.data itself is an array, use it directly
+      if (!Array.isArray(data) && Array.isArray(response.data)) {
+        data = response.data;
+      }
       
       if (Array.isArray(data)) {
+        console.log('[AirtimeToCashService] Fetched admin providers:', data.length);
         return data;
       }
       
-      console.warn('Invalid providers response structure:', response.data);
+      console.warn('[AirtimeToCashService] Invalid providers response structure:', response.data);
       return [];
     } catch (error) {
-      console.error('Failed to fetch admin providers:', error);
+      console.error('[AirtimeToCashService] Failed to fetch admin providers:', error);
       return [];
     }
   }
@@ -564,6 +572,53 @@ class AirtimeToCashService {
       return {} as AdminProviderResponse;
     } catch (error) {
       console.error('Failed to update provider:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload provider logo (admin)
+   * POST /v1/airtime/admin/providers/{code}/upload-logo
+   * Expects multipart/form-data with a logo file.
+   * Returns Cloudinary URL for the logo.
+   */
+  async uploadProviderLogo(
+    providerCode: string,
+    file: File
+  ): Promise<{ logo_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await apiClient.post<any>(
+        `/airtime/admin/providers/${providerCode}/upload-logo`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      // Extract logo data from response
+      const data = response.data?.data || response.data;
+      
+      if (data && typeof data === 'object' && 'logo_url' in data) {
+        console.log('[AirtimeToCashService] Provider logo uploaded:', data.logo_url);
+        return {
+          logo_url: data.logo_url,
+          public_id: data.public_id,
+          size: data.size,
+          width: data.width,
+          height: data.height,
+          uploaded_at: data.uploaded_at,
+        };
+      }
+      
+      console.warn('[AirtimeToCashService] Invalid upload logo response structure:', response.data);
+      throw new Error('Failed to extract logo URL from response');
+    } catch (error) {
+      console.error('[AirtimeToCashService] Failed to upload provider logo:', error);
       throw error;
     }
   }

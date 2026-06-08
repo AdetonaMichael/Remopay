@@ -10,6 +10,8 @@ import {
   AirtimeToCashFormData,
   AirtimeToCashTransaction,
   AirtimeToCashStats,
+  AdminProviderResponse,
+  UpdateProviderRequest,
 } from '@/types/airtime-to-cash.types';
 
 interface UseAirtimeToCashReturn {
@@ -18,6 +20,16 @@ interface UseAirtimeToCashReturn {
   providersLoading: boolean;
   providersError: string | null;
   fetchProviders: () => Promise<void>;
+
+  // Admin Providers
+  adminProviders: AdminProviderResponse[];
+  adminProvidersLoading: boolean;
+  adminProvidersError: string | null;
+  fetchAdminProviders: () => Promise<void>;
+  updateProvider: (code: string, data: UpdateProviderRequest) => Promise<void>;
+  isUpdatingProvider: boolean;
+  uploadProviderLogo: (code: string, file: File) => Promise<{ logo_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }>;
+  isUploadingLogo: boolean;
 
   // Conversion
   transaction: AirtimeToCashTransaction | null;
@@ -50,6 +62,13 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
   const [providersLoading, setProvidersLoading] = useState(false);
   const [providersError, setProvidersError] = useState<string | null>(null);
 
+  // Admin providers state
+  const [adminProviders, setAdminProviders] = useState<AdminProviderResponse[]>([]);
+  const [adminProvidersLoading, setAdminProvidersLoading] = useState(false);
+  const [adminProvidersError, setAdminProvidersError] = useState<string | null>(null);
+  const [isUpdatingProvider, setIsUpdatingProvider] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
   // Conversion state
   const [transaction, setTransaction] = useState<AirtimeToCashTransaction | null>(null);
   const [isInitiating, setIsInitiating] = useState(false);
@@ -78,6 +97,59 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
       setProviders([]); // Ensure providers is always an array
     } finally {
       setProvidersLoading(false);
+    }
+  }, []);
+
+  // Fetch admin providers
+  const fetchAdminProviders = useCallback(async () => {
+    try {
+      setAdminProvidersLoading(true);
+      setAdminProvidersError(null);
+      const data = await airtimeToCashService.getAdminProviders();
+      console.log('[useAirtimeToCash] fetchAdminProviders returned:', data);
+      setAdminProviders(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Failed to load providers';
+      setAdminProvidersError(message);
+      setAdminProviders([]);
+    } finally {
+      setAdminProvidersLoading(false);
+    }
+  }, []);
+
+  // Update provider
+  const updateProvider = useCallback(async (code: string, data: UpdateProviderRequest) => {
+    try {
+      setIsUpdatingProvider(true);
+      const updated = await airtimeToCashService.updateProvider(code, data);
+      setAdminProviders((prev) =>
+        prev.map((p) => (p.code === code ? { ...p, ...updated } : p))
+      );
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Failed to update provider';
+      setAdminProvidersError(message);
+      throw error;
+    } finally {
+      setIsUpdatingProvider(false);
+    }
+  }, []);
+
+  // Upload provider logo
+  const uploadProviderLogo = useCallback(async (code: string, file: File) => {
+    try {
+      setIsUploadingLogo(true);
+      const result = await airtimeToCashService.uploadProviderLogo(code, file);
+      // Update the provider's logo_url in state
+      setAdminProviders((prev) =>
+        prev.map((p) => (p.code === code ? { ...p, logo_url: result.logo_url } : p))
+      );
+      return result;
+    } catch (error: any) {
+      const message = error?.message || 'Failed to upload logo';
+      setAdminProvidersError(message);
+      throw error;
+    } finally {
+      setIsUploadingLogo(false);
     }
   }, []);
 
@@ -201,6 +273,16 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
     providersLoading,
     providersError,
     fetchProviders,
+
+    // Admin Providers
+    adminProviders,
+    adminProvidersLoading,
+    adminProvidersError,
+    fetchAdminProviders,
+    updateProvider,
+    isUpdatingProvider,
+    uploadProviderLogo,
+    isUploadingLogo,
 
     // Conversion
     transaction,
