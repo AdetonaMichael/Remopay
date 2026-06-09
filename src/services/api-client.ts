@@ -129,6 +129,21 @@ class ApiClient {
           debug.warn('[ApiClient] ⚠️ No valid token found - request will be unauthenticated');
         }
 
+        // Handle FormData: let browser/axios handle Content-Type with proper boundary
+        const isFormData = config.data instanceof FormData || 
+                          (config.data && typeof config.data === 'object' && 
+                           config.data.constructor && 
+                           config.data.constructor.name === 'FormData');
+        
+        if (isFormData) {
+          // DO NOT set Content-Type header manually for FormData
+          // Let axios/browser automatically set it with boundary
+          if (config.headers['Content-Type'] === 'application/json') {
+            delete config.headers['Content-Type'];
+          }
+          debug.log('[ApiClient] ✅ FormData detected - Content-Type header handled for multipart');
+        }
+
         // Add idempotency key for payment operations
         const method = config.method?.toUpperCase() || '';
         const url = config.url || '';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Upload,
@@ -8,7 +8,6 @@ import {
   AlertCircle,
   Loader2,
   ChevronRight,
-  Image as ImageIcon,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
@@ -17,80 +16,143 @@ import { Toast } from '@/components/shared/Toast';
 import { useUIStore } from '@/store/ui.store';
 import { useAirtimeToCash } from '@/hooks/useAirtimeToCash';
 import { airtimeToCashService } from '@/services/airtime-to-cash.service';
+import { AirtimeToCashTransaction } from '@/types/airtime-to-cash.types';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// File Upload State Interface
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 interface FileUploadState {
-  file?: File;
-  preview?: string;
+  file: File | null;
+  preview: string | null;
   uploading: boolean;
-  error?: string;
+  error: string | null;
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Validation Constants
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif'];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Main Component
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function SubmitProofPage() {
   const params = useParams();
   const router = useRouter();
   const { addToast } = useUIStore();
-  const { submitProof, uploadScreenshot, isSubmittingProof, conversionError, clearError } =
-    useAirtimeToCash();
+  const { uploadScreenshot, isSubmittingProof } = useAirtimeToCash();
 
   const transactionId = Number(params.id);
 
-  const [transaction, setTransaction] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // State Management
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const [transaction, setTransaction] = useState<AirtimeToCashTransaction | null>(null);
+  const [transactionLoading, setTransactionLoading] = useState(true);
   const [uploadState, setUploadState] = useState<FileUploadState>({
+    file: null,
+    preview: null,
     uploading: false,
+    error: null,
   });
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Effects
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   // Fetch transaction details on mount
   useEffect(() => {
     const fetchTransaction = async () => {
       try {
-        setLoading(true);
+        setTransactionLoading(true);
         const data = await airtimeToCashService.getTransaction(transactionId);
-        setTransaction(data);
+        
+        if (!data) {
+          throw new Error('Transaction data is empty');
+        }
+        
+        setTransaction(data as AirtimeToCashTransaction);
       } catch (error: any) {
+        console.error('[SubmitProofPage] Failed to load transaction:', error);
+        
+        const errorMessage = 
+          error?.response?.data?.message ||
+          error?.message ||
+          'Failed to load transaction. Please try again.';
+        
         addToast({
-          message: 'Failed to load transaction',
+          message: errorMessage,
           type: 'error',
         });
-        router.back();
+        
+        // Redirect back after showing error
+        setTimeout(() => router.back(), 1500);
       } finally {
-        setLoading(false);
+        setTransactionLoading(false);
       }
     };
 
-    if (transactionId) {
+    if (transactionId && transactionId > 0) {
       fetchTransaction();
     }
   }, [transactionId, router, addToast]);
 
-  // Handle error toast
-  useEffect(() => {
-    if (conversionError) {
-      addToast({
-        message: conversionError,
-        type: 'error',
-      });
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Validation Functions
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const validateFile = useCallback((file: File): string | null => {
+    // Check file exists
+    if (!file) {
+      return 'Please select a file';
     }
-  }, [conversionError, addToast]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Check file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      const exts = ALLOWED_FILE_EXTENSIONS.join(', ');
+      return `Only ${exts} images are allowed`;
+    }
+
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      const maxMB = MAX_FILE_SIZE / 1024 / 1024;
+      return `File size must be less than ${maxMB}MB`;
+    }
+
+    return null; // No errors
+  }, []);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Event Handlers
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    
+    if (!file) {
       setUploadState({
+        file: null,
+        preview: null,
         uploading: false,
-        error: 'Only JPEG, PNG, or WebP images are supported',
+        error: null,
       });
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file
+    const validationError = validateFile(file);
+    if (validationError) {
       setUploadState({
+        file: null,
+        preview: null,
         uploading: false,
-        error: 'File size must be less than 5MB',
+        error: validationError,
       });
       return;
     }
@@ -98,18 +160,27 @@ export default function SubmitProofPage() {
     // Create preview
     const reader = new FileReader();
     reader.onload = (event) => {
+      const preview = event.target?.result as string;
       setUploadState({
         file,
-        preview: event.target?.result as string,
+        preview,
         uploading: false,
-        error: undefined,
+        error: null,
+      });
+    };
+    reader.onerror = () => {
+      setUploadState({
+        file: null,
+        preview: null,
+        uploading: false,
+        error: 'Failed to read file',
       });
     };
     reader.readAsDataURL(file);
-  };
+  }, [validateFile]);
 
-  const handleSubmitProof = async () => {
-    if (!uploadState.file || !uploadState.preview) {
+  const handleSubmitProof = useCallback(async () => {
+    if (!uploadState.file) {
       setUploadState((prev) => ({
         ...prev,
         error: 'Please select a screenshot',
@@ -121,33 +192,75 @@ export default function SubmitProofPage() {
       setUploadState((prev) => ({
         ...prev,
         uploading: true,
-        error: undefined,
+        error: null,
       }));
 
-      // Step 1: Upload screenshot file to backend to get URL
-      const uploadResult = await uploadScreenshot(transactionId, uploadState.file);
-      const screenshotUrl = uploadResult.screenshot_url;
+      console.log('[SubmitProofPage] Submitting proof for transaction:', transactionId);
 
-      // Step 2: Submit the uploaded screenshot URL for proof verification
-      await submitProof(transactionId, screenshotUrl);
+      // Call the hook function to upload screenshot
+      const result = await uploadScreenshot(transactionId, uploadState.file);
 
+      console.log('[SubmitProofPage] Upload successful, result:', result);
+
+      // Show success message
+      const successMessage = 
+        result?.message || 
+        'Proof submitted successfully! Awaiting admin verification.';
+      
       addToast({
-        message: 'Proof submitted! Awaiting admin verification.',
+        message: successMessage,
         type: 'success',
       });
 
-      router.push('/dashboard/airtime-to-cash/history');
-    } catch (error) {
-      console.error('Failed to submit proof:', error);
+      // Clear the upload state
+      setUploadState({
+        file: null,
+        preview: null,
+        uploading: false,
+        error: null,
+      });
+
+      // Redirect to history after delay
+      setTimeout(() => {
+        router.push('/dashboard/airtime-to-cash/history');
+      }, 1500);
+    } catch (error: any) {
+      console.error('[SubmitProofPage] Upload failed:', error);
+
+      // Extract error message from response or error object
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to upload screenshot. Please try again.';
+
       setUploadState((prev) => ({
         ...prev,
         uploading: false,
-        error: 'Failed to upload screenshot. Please try again.',
+        error: errorMessage,
       }));
-    }
-  };
 
-  if (loading) {
+      // Show error toast
+      addToast({
+        message: errorMessage,
+        type: 'error',
+      });
+    }
+  }, [uploadState.file, transactionId, uploadScreenshot, router, addToast]);
+
+  const handleReset = useCallback(() => {
+    setUploadState({
+      file: null,
+      preview: null,
+      uploading: false,
+      error: null,
+    });
+  }, []);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Render: Loading State
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  if (transactionLoading) {
     return (
       <Card className="rounded-2xl border border-gray-200 bg-white p-8">
         <div className="flex items-center justify-center gap-3">
@@ -157,6 +270,10 @@ export default function SubmitProofPage() {
       </Card>
     );
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Render: Error State
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   if (!transaction) {
     return (
@@ -178,6 +295,10 @@ export default function SubmitProofPage() {
     );
   }
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Render: Main Content
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -188,7 +309,9 @@ export default function SubmitProofPage() {
       `}</style>
 
       <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        {/* Header */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* Header with Progress Steps */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
@@ -198,7 +321,7 @@ export default function SubmitProofPage() {
               <div>
                 <p className="text-sm font-bold text-gray-900">Initiate Conversion</p>
                 <p className="text-xs text-gray-600">
-                  ₦{transaction.airtime_amount.toLocaleString()}
+                  ₦{transaction.airtime_amount?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
@@ -217,17 +340,18 @@ export default function SubmitProofPage() {
           </div>
         </div>
 
-        {/* Content */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* Main Content */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
         <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_360px]">
           <div className="space-y-8">
             {/* Instructions */}
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-              <p className="mb-3 text-sm font-bold text-blue-900">📋 Instructions</p>
-              <ol className="space-y-2 text-sm text-blue-800">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+              <p className="mb-3 text-sm font-bold text-gray-900">Instructions</p>
+              <ol className="space-y-2 text-sm text-gray-700">
                 <li>
-                  1. Send <strong>₦{transaction.airtime_amount.toLocaleString()}</strong> airtime to{' '}
-                  <strong>{transaction.provider.toUpperCase()}</strong> number: <strong>08010000000</strong>
-                  (displayed in next step)
+                  1. Send <strong>₦{transaction.airtime_amount?.toLocaleString() || '0'}</strong> airtime to{' '}
+                  <strong>{transaction.provider?.toUpperCase() || 'PROVIDER'}</strong> number: <strong>08010000000</strong>
                 </li>
                 <li>2. Take a screenshot showing successful transfer</li>
                 <li>3. Upload the screenshot below</li>
@@ -241,9 +365,9 @@ export default function SubmitProofPage() {
                 Upload Transfer Screenshot <span className="text-red-600">*</span>
               </label>
 
-              <label className="block">
+              <label className="block cursor-pointer">
                 <div
-                  className={`relative cursor-pointer rounded-2xl border-2 border-dashed px-6 py-12 text-center transition ${
+                  className={`relative rounded-2xl border-2 border-dashed px-6 py-12 text-center transition ${
                     uploadState.preview
                       ? 'border-green-300 bg-green-50'
                       : uploadState.error
@@ -253,8 +377,9 @@ export default function SubmitProofPage() {
                 >
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept={ALLOWED_FILE_TYPES.join(',')}
                     onChange={handleFileSelect}
+                    disabled={uploadState.uploading || isSubmittingProof}
                     className="hidden"
                   />
 
@@ -265,7 +390,7 @@ export default function SubmitProofPage() {
                         Click to upload screenshot
                       </p>
                       <p className="mt-1 text-xs text-gray-600">
-                        JPEG, PNG, or WebP • Max 5MB
+                        JPEG, PNG, or GIF • Max 5MB
                       </p>
                     </>
                   ) : (
@@ -285,7 +410,9 @@ export default function SubmitProofPage() {
               </label>
 
               {uploadState.error && (
-                <p className="mt-3 text-sm font-medium text-red-600">{uploadState.error}</p>
+                <div className="mt-3 rounded-lg bg-red-50 border border-red-200 p-3">
+                  <p className="text-sm font-medium text-red-600">{uploadState.error}</p>
+                </div>
               )}
             </div>
 
@@ -308,14 +435,20 @@ export default function SubmitProofPage() {
             <div className="flex gap-4">
               <Button
                 onClick={() => router.back()}
-                className="rounded-2xl border-2 border-gray-300 bg-white px-6 py-3 font-bold text-gray-900 hover:bg-gray-50"
+                disabled={uploadState.uploading || isSubmittingProof}
+                className="rounded-2xl border-2 border-gray-300 bg-white px-6 py-3 font-bold text-gray-900 hover:bg-gray-50 disabled:opacity-60"
               >
                 Go Back
               </Button>
 
               <Button
                 onClick={handleSubmitProof}
-                disabled={!uploadState.preview || uploadState.uploading || isSubmittingProof}
+                disabled={
+                  !uploadState.file ||
+                  uploadState.uploading ||
+                  isSubmittingProof ||
+                  !!uploadState.error
+                }
                 className="ml-auto flex items-center gap-2 rounded-2xl bg-[#d71927] px-6 py-3 font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b81420] disabled:opacity-60"
               >
                 {uploadState.uploading || isSubmittingProof ? (
@@ -333,7 +466,9 @@ export default function SubmitProofPage() {
             </div>
           </div>
 
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* Right Sidebar: Transaction Summary */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           <aside className="rounded-2xl border border-gray-200 bg-white p-5">
             <p className="text-sm font-bold text-gray-900">Transaction Details</p>
 
@@ -342,7 +477,7 @@ export default function SubmitProofPage() {
               <div className="rounded-2xl bg-gray-50 px-4 py-3">
                 <p className="text-xs text-gray-600">Reference</p>
                 <p className="mt-1 font-mono text-sm font-bold text-gray-900">
-                  {transaction.reference}
+                  {transaction.reference || 'N/A'}
                 </p>
               </div>
 
@@ -350,7 +485,7 @@ export default function SubmitProofPage() {
               <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-600">Provider</p>
                 <p className="mt-1 text-sm font-bold text-gray-900">
-                  {transaction.provider.toUpperCase()}
+                  {transaction.provider?.toUpperCase() || 'N/A'}
                 </p>
               </div>
 
@@ -358,7 +493,7 @@ export default function SubmitProofPage() {
               <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-600">Airtime Amount</p>
                 <p className="mt-1 text-lg font-extrabold text-[#d71927]">
-                  ₦{transaction.airtime_amount.toLocaleString()}
+                  ₦{transaction.airtime_amount?.toLocaleString() || '0'}
                 </p>
               </div>
 
@@ -366,7 +501,7 @@ export default function SubmitProofPage() {
               <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-600">Your Phone</p>
                 <p className="mt-1 text-sm font-bold text-gray-900">
-                  {transaction.phone_number}
+                  {transaction.phone_number || 'N/A'}
                 </p>
               </div>
 
@@ -374,7 +509,7 @@ export default function SubmitProofPage() {
               <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3">
                 <p className="text-xs text-gray-600">Status</p>
                 <p className="mt-1 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase text-amber-700">
-                  {transaction.status.replace(/_/g, ' ')}
+                  {transaction.status?.replace(/_/g, ' ') || 'N/A'}
                 </p>
               </div>
 
@@ -384,7 +519,15 @@ export default function SubmitProofPage() {
                   You'll Receive (Estimated)
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-green-900">
-                  ₦{(Number(transaction.cash_credited) > 0 ? transaction.cash_credited : Math.round(transaction.net_amount * (transaction.conversion_rate || 0.8))).toLocaleString()}
+                  ₦
+                  {(
+                    Number(transaction.cash_credited || 0) > 0
+                      ? transaction.cash_credited
+                      : Math.round(
+                          (transaction.net_amount || 0) *
+                            (transaction.conversion_rate || 0.8)
+                        )
+                  ).toLocaleString()}
                 </p>
                 <p className="mt-1 text-xs text-green-700">After service fee deducted</p>
               </div>
@@ -392,8 +535,14 @@ export default function SubmitProofPage() {
               {/* Info */}
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
                 <p className="text-xs text-gray-600">
-                  Initiated {new Date(transaction.created_at).toLocaleDateString()} at{' '}
-                  {new Date(transaction.created_at).toLocaleTimeString()}
+                  Initiated{' '}
+                  {transaction.created_at
+                    ? new Date(transaction.created_at).toLocaleDateString()
+                    : 'N/A'}{' '}
+                  at{' '}
+                  {transaction.created_at
+                    ? new Date(transaction.created_at).toLocaleTimeString()
+                    : 'N/A'}
                 </p>
               </div>
             </div>

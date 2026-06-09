@@ -410,13 +410,13 @@ export default function EditProviderPage() {
 
       {/* Confirmation Dialog */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <Card className="rounded-2xl border border-gray-200 bg-white p-8 max-w-md w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 p-4">
+          <Card className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl sm:p-8">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-100">
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-yellow-100">
                 <AlertCircle className="text-yellow-600" size={24} />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-lg font-bold text-gray-900">
                   Confirm Changes
                 </p>
@@ -424,20 +424,20 @@ export default function EditProviderPage() {
                   You're about to update settings for <strong>{provider.name}</strong>. This will affect new conversions.
                 </p>
 
-                <div className="mt-4 rounded-lg bg-gray-50 p-4 text-sm">
+                <div className="mt-4 space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
                   <p className="text-gray-600">
                     Conversion Rate: <span className="font-bold text-gray-900">{conversionRate}</span>
                   </p>
-                  <p className="text-gray-600 mt-2">
+                  <p className="text-gray-600">
                     Service Fee: <span className="font-bold text-gray-900">{serviceFeePercentage}%</span>
                   </p>
-                  <p className="text-gray-600 mt-2">
+                  <p className="text-gray-600">
                     Status: <span className={`font-bold ${isActive ? 'text-green-600' : 'text-gray-600'}`}>
                       {isActive ? 'Active' : 'Inactive'}
                     </span>
                   </p>
                   {logoUrl && (
-                    <p className="text-gray-600 mt-2 truncate">
+                    <p className="text-gray-600 break-all">
                       Logo URL: <span className="font-bold text-gray-900 text-xs">{logoUrl}</span>
                     </p>
                   )}
@@ -445,17 +445,17 @@ export default function EditProviderPage() {
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                className="rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-900 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleConfirmSave}
                 disabled={isUpdatingProvider}
-                className="flex-1 rounded-xl bg-[#d71927] px-4 py-2.5 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60 flex items-center justify-center gap-2"
+                className="rounded-xl bg-[#d71927] px-4 py-2.5 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {isUpdatingProvider ? (
                   <>

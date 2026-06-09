@@ -17,10 +17,13 @@ import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { useUIStore } from '@/store/ui.store';
 import { useAirtimeToCash } from '@/hooks/useAirtimeToCash';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AirtimeCashProvider,
   AirtimeToCashFormData,
+  AirtimeToCashTransaction,
 } from '@/types/airtime-to-cash.types';
+import { airtimeToCashService } from '@/services/airtime-to-cash.service';
 
 const PROVIDER_LOGOS: Record<string, string> = {
   mtn: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/MTN_logo.svg/512px-MTN_logo.svg.png',
@@ -46,6 +49,7 @@ interface FormErrors {
 export default function AirtimeToCashPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
+  const { user } = useAuth();
   const {
     adminProviders,
     adminProvidersLoading,
@@ -71,6 +75,8 @@ export default function AirtimeToCashPage() {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [userHistory, setUserHistory] = useState<AirtimeToCashTransaction[]>([]);
+  const [userHistoryLoading, setUserHistoryLoading] = useState(false);
 
   const selectedProvider = useMemo(
     () => providers.find((p) => p.code === formData.provider),
@@ -106,6 +112,23 @@ export default function AirtimeToCashPage() {
       fetchAdminProviders();
     }
   }, [fetchAdminProviders, adminProviders.length]);
+
+  // Fetch user conversion history
+  useEffect(() => {
+    const fetchUserHistory = async () => {
+      if (!user?.id) return;
+      try {
+        setUserHistoryLoading(true);
+        const history = await airtimeToCashService.getHistory({ per_page: 5 });
+        setUserHistory(history.data?.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch user history:', error);
+      } finally {
+        setUserHistoryLoading(false);
+      }
+    };
+    fetchUserHistory();
+  }, [user?.id]);
 
   // Debug: Log providers and their logos
   useEffect(() => {
@@ -462,90 +485,172 @@ export default function AirtimeToCashPage() {
             </Button>
           </div>
 
-          {/* Right Sidebar: Conversion Summary */}
-          <aside className="rounded-2xl border border-gray-200 bg-white p-5">
-            <p className="text-sm font-bold text-gray-900">Conversion Summary</p>
+          {/* Right Sidebar: Conversion Summary & History */}
+          <div className="flex flex-col gap-6">
+            {/* Conversion Summary */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <p className="text-sm font-bold text-gray-900">Conversion Summary</p>
 
-            <div className="mt-5 space-y-4">
-              {/* Provider */}
-              <div className="flex items-center justify-between rounded-2xl bg-gray-50 px-4 py-3">
-                <span className="text-sm text-gray-600">Provider</span>
-                <span className="text-sm font-bold text-gray-900">
-                  {selectedProvider?.name || 'Not selected'}
-                </span>
-              </div>
+              <div className="mt-5 space-y-4">
+                {/* Provider */}
+                <div className="flex items-center justify-between rounded-2xl bg-gray-50 px-4 py-3">
+                  <span className="text-sm text-gray-600">Provider</span>
+                  <span className="text-sm font-bold text-gray-900">
+                    {selectedProvider?.name || 'Not selected'}
+                  </span>
+                </div>
 
-              {/* Phone Number */}
-              <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-                <span className="text-sm text-gray-600">Your Phone</span>
-                <span className="text-sm font-bold text-gray-900">
-                  {formData.phone_number || 'Not entered'}
-                </span>
-              </div>
+                {/* Phone Number */}
+                <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+                  <span className="text-sm text-gray-600">Your Phone</span>
+                  <span className="text-sm font-bold text-gray-900">
+                    {formData.phone_number || 'Not entered'}
+                  </span>
+                </div>
 
-              {/* Airtime Amount */}
-              <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-                <span className="text-sm text-gray-600">Airtime Amount</span>
-                <span className="text-lg font-extrabold text-[#d71927]">
-                  ₦{airtimeAmount.toLocaleString()}
-                </span>
-              </div>
+                {/* Airtime Amount */}
+                <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+                  <span className="text-sm text-gray-600">Airtime Amount</span>
+                  <span className="text-lg font-extrabold text-[#d71927]">
+                    ₦{airtimeAmount.toLocaleString()}
+                  </span>
+                </div>
 
-              {/* Breakdown */}
-              {airtimeAmount > 0 && selectedProvider && (
-                <>
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="space-y-3">
-                      {/* Service Fee */}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Service Fee ({selectedProvider.service_fee_percentage * 100}%)</span>
-                        <span className="font-semibold text-gray-900">
-                          -₦{conversionCalculation.serviceFee.toLocaleString()}
-                        </span>
+                {/* Breakdown */}
+                {airtimeAmount > 0 && selectedProvider && (
+                  <>
+                    <div className="border-t border-gray-200 pt-4">
+                      <div className="space-y-3">
+                        {/* Service Fee */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Service Fee ({selectedProvider.service_fee_percentage * 100}%)</span>
+                          <span className="font-semibold text-gray-900">
+                            -₦{conversionCalculation.serviceFee.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Net Amount */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Net Amount</span>
+                          <span className="font-semibold text-gray-900">
+                            ₦{conversionCalculation.netAmount.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {/* Conversion Rate */}
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Rate ({selectedProvider.conversion_rate * 100}%)</span>
+                          <span className="font-semibold text-gray-900">
+                            × {selectedProvider.conversion_rate}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Net Amount */}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Net Amount</span>
-                        <span className="font-semibold text-gray-900">
-                          ₦{conversionCalculation.netAmount.toLocaleString()}
-                        </span>
-                      </div>
-
-                      {/* Conversion Rate */}
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Rate ({selectedProvider.conversion_rate * 100}%)</span>
-                        <span className="font-semibold text-gray-900">
-                          × {selectedProvider.conversion_rate}
-                        </span>
+                      {/* Total Cash Credit */}
+                      <div className="mt-4 rounded-2xl bg-gradient-to-br from-green-50 to-green-100 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-green-700">
+                          You'll Receive
+                        </p>
+                        <p className="mt-2 text-2xl font-extrabold text-green-900">
+                          ₦{conversionCalculation.cashCredited.toLocaleString()}
+                        </p>
+                        <p className="mt-1 text-xs text-green-700">to your wallet</p>
                       </div>
                     </div>
+                  </>
+                )}
 
-                    {/* Total Cash Credit */}
-                    <div className="mt-4 rounded-2xl bg-gradient-to-br from-green-50 to-green-100 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-green-700">
-                        You'll Receive
-                      </p>
-                      <p className="mt-2 text-2xl font-extrabold text-green-900">
-                        ₦{conversionCalculation.cashCredited.toLocaleString()}
-                      </p>
-                      <p className="mt-1 text-xs text-green-700">to your wallet</p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Info Box */}
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 mt-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
-                  📝 Next Step
-                </p>
-                <p className="mt-2 text-xs text-blue-900">
-                  After initiating, you'll upload a screenshot of your transfer as proof.
-                </p>
+                {/* Info Box */}
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 mt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
+                    📝 Next Step
+                  </p>
+                  <p className="mt-2 text-xs text-blue-900">
+                    After initiating, you'll upload a screenshot of your transfer as proof.
+                  </p>
+                </div>
               </div>
             </div>
-          </aside>
+
+            {/* User Conversion History */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-gray-900">Your Conversion History</p>
+                <Button
+                  onClick={() => router.push('/dashboard/airtime-to-cash')}
+                  className="text-xs font-bold text-white hover:text-white"
+                >
+                  View All
+                </Button>
+              </div>
+
+              {userHistoryLoading ? (
+                <div className="mt-4 space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 rounded-2xl bg-gray-100 animate-pulse" />
+                  ))}
+                </div>
+              ) : userHistory.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {userHistory.map((transaction) => {
+                    const statusColor = {
+                      pending: 'text-yellow-600 bg-yellow-50',
+                      transfer_submitted: 'text-blue-600 bg-blue-50',
+                      verification_in_progress: 'text-purple-600 bg-purple-50',
+                      approved: 'text-green-600 bg-green-50',
+                      processing: 'text-blue-600 bg-blue-50',
+                      completed: 'text-green-600 bg-green-50',
+                      rejected: 'text-red-600 bg-red-50',
+                    }[transaction.status] || 'text-gray-600 bg-gray-50';
+
+                    return (
+                      <button
+                        key={transaction.id}
+                        onClick={() => router.push(`/dashboard/airtime-to-cash/${transaction.id}/details`)}
+                        className="w-full rounded-2xl border border-gray-200 bg-white p-3 text-left hover:border-gray-300 hover:bg-gray-50 transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {providers.find((p) => p.code === transaction.provider)?.name ||
+                                transaction.provider.toUpperCase()}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              {new Date(transaction.created_at).toLocaleDateString('en-NG', {
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-[#d71927]">
+                              ₦{Number(
+                                transaction.cash_credited > 0
+                                  ? transaction.cash_credited
+                                  : Math.round(Number(transaction.net_amount) * Number(transaction.conversion_rate) * 100) / 100
+                              ).toLocaleString()}
+                            </p>
+                            <p className={`text-xs font-semibold mt-1 px-2 py-1 rounded-full ${statusColor}`}>
+                              {transaction.status
+                                .replace(/_/g, ' ')
+                                .split(' ')
+                                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ')}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-center">
+                  <p className="text-sm text-gray-600">No conversion history yet</p>
+                  <p className="text-xs text-gray-500 mt-1">Start by initiating a conversion above</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </Card>
 

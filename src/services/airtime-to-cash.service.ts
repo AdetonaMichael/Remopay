@@ -70,47 +70,114 @@ class AirtimeToCashService {
   }
 
   /**
-   * Upload screenshot for proof of transfer
-   * POST /v1/airtime/{id}/upload-screenshot
-   * Expects multipart/form-data with a screenshot file.
-   * Returns a secure Cloudinary URL to include in the submit-proof request.
+   * Upload screenshot to backend for proof of transfer
+   * Backend automatically handles Cloudinary uploads with the binary file
+   * 
+   * @param transactionId - The airtime conversion transaction ID
+   * @param file - Binary image file (JPEG, PNG, or GIF)
+   * @returns Promise with success status, message, and transaction data
+   * 
+   * API Endpoint: POST /api/v1/airtime/{id}/submit-proof
+   * Request: multipart/form-data with screenshot file
+   * Response: { success, message, data: { transaction } }
    */
   async uploadScreenshot(
     transactionId: number,
     file: File
-  ): Promise<{ screenshot_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }> {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      transaction: AirtimeToCashTransaction;
+    };
+  }> {
     try {
+      console.log('[uploadScreenshot] Starting upload for transaction:', transactionId);
+      console.log('[uploadScreenshot] File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
+      // Validate file exists
+      if (!file) {
+        throw new Error('File is required');
+      }
+
+      // Create FormData with binary file
+      // Backend will handle Cloudinary upload internally
       const formData = new FormData();
       formData.append('screenshot', file);
 
+      console.log('[uploadScreenshot] Sending FormData to backend...');
+
+      // POST FormData to backend
+      // Axios automatically sets Content-Type to multipart/form-data
       const response = await apiClient.post<any>(
-        `/airtime/${transactionId}/upload-screenshot`,
+        `/airtime/${transactionId}/submit-proof`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+            // Do NOT set Content-Type manually - let axios handle it
           },
         }
       );
 
-      // Extract screenshot data from response
+      console.log('[uploadScreenshot] Backend response:', response.data);
+
+      // Validate response structure
+      if (!response.data) {
+        throw new Error('Empty response from server');
+      }
+
+      // Extract response data - handle different response structures
+      const responseData = response.data?.data || response.data;
+
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message || 'Proof submitted successfully',
+        data: responseData as {
+          transaction: AirtimeToCashTransaction;
+        },
+      };
+    } catch (error: any) {
+      console.error('[uploadScreenshot] Failed:', {
+        status: error.response?.status,
+        message: error.response?.data?.message || error.message,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Submit proof of airtime transfer (screenshot URL)
+   * POST /v1/airtime/{id}/submit-proof
+   * Expects screenshot_url string (from uploadScreenshot).
+   * Returns updated transaction with proof submitted status.
+   */
+  async submitTransferProof(
+    transactionId: number,
+    screenshotUrl: string
+  ): Promise<AirtimeToCashTransaction> {
+    try {
+      const response = await apiClient.post<any>(
+        `/airtime/${transactionId}/submit-proof`,
+        { screenshot_url: screenshotUrl }
+      );
+      
+      // Try nested data first, then direct data
       const data = response.data?.data || response.data;
       
-      if (data && typeof data === 'object' && 'screenshot_url' in data) {
-        return {
-          screenshot_url: data.screenshot_url,
-          public_id: data.public_id,
-          size: data.size,
-          width: data.width,
-          height: data.height,
-          uploaded_at: data.uploaded_at,
-        };
+      if (data && typeof data === 'object') {
+        return data as AirtimeToCashTransaction;
       }
       
-      console.warn('Invalid upload screenshot response structure:', response.data);
-      throw new Error('Failed to extract screenshot URL from response');
+      console.warn('Invalid submit proof response structure:', response.data);
+      throw new Error('Invalid response structure from API');
     } catch (error) {
-      console.error('Failed to upload screenshot:', error);
+      console.error('Failed to submit proof:', error);
       throw error;
     }
   }
@@ -146,31 +213,15 @@ class AirtimeToCashService {
   }
 
   /**
-   * Submit proof of airtime transfer (screenshot URL)
+   * Legacy: Submit proof of airtime transfer
+   * @deprecated Use uploadScreenshot + submitTransferProof instead
    */
   async submitProof(
     transactionId: number,
     request: SubmitProofRequest
   ): Promise<AirtimeToCashTransaction> {
-    try {
-      const response = await apiClient.post<any>(
-        `/airtime/${transactionId}/submit-proof`,
-        request
-      );
-      
-      // Try nested data first, then direct data
-      const data = response.data?.data || response.data;
-      
-      if (data && typeof data === 'object') {
-        return data as AirtimeToCashTransaction;
-      }
-      
-      console.warn('Invalid submit proof response structure:', response.data);
-      throw new Error('Invalid response structure from API');
-    } catch (error) {
-      console.error('Failed to submit proof:', error);
-      throw error;
-    }
+    // Use the new two-step process
+    return this.submitTransferProof(transactionId, request.screenshot_url);
   }
 
   /**

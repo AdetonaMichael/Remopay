@@ -416,6 +416,16 @@ export default function AirtimeToCashDetailsPage() {
               </div>
             </div>
 
+            {/* Submit Proof CTA - Show if no proof uploaded yet */}
+            {!transaction.screenshot_url && transaction.status === 'pending' && (
+              <Button
+                onClick={() => router.push(`/dashboard/airtime-to-cash/${transaction.id}/submit-proof`)}
+                className="w-full rounded-2xl bg-[#d71927] px-4 py-3 text-sm font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b81420]"
+              >
+                Upload Proof
+              </Button>
+            )}
+
             {/* Rates Info */}
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
               <p className="text-xs font-bold uppercase text-gray-600">Exchange Rate</p>

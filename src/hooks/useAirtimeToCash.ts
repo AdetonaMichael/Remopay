@@ -37,7 +37,13 @@ interface UseAirtimeToCashReturn {
   isSubmittingProof: boolean;
   conversionError: string | null;
   initiateConversion: (formData: AirtimeToCashFormData) => Promise<void>;
-  uploadScreenshot: (transactionId: number, file: File) => Promise<{ screenshot_url: string; public_id: string; size: number; width: number; height: number; uploaded_at: string }>;
+  uploadScreenshot: (transactionId: number, file: File) => Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      transaction: AirtimeToCashTransaction;
+    };
+  }>;
   submitProof: (transactionId: number, screenshotUrl: string) => Promise<void>;
 
   // History
@@ -192,16 +198,39 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
   }, []);
 
   // Upload screenshot
-  const uploadScreenshot = useCallback(async (transactionId: number, file: File) => {
-    try {
-      const result = await airtimeToCashService.uploadScreenshot(transactionId, file);
-      return result;
-    } catch (error: any) {
-      const message = error?.message || 'Failed to upload screenshot';
-      setConversionError(message);
-      throw error;
-    }
-  }, []);
+  const uploadScreenshot = useCallback(
+    async (
+      transactionId: number,
+      file: File
+    ): Promise<{
+      success: boolean;
+      message: string;
+      data: {
+        transaction: AirtimeToCashTransaction;
+      };
+    }> => {
+      try {
+        console.log('[useAirtimeToCash] Uploading screenshot for transaction:', transactionId);
+        
+        const result = await airtimeToCashService.uploadScreenshot(transactionId, file);
+        
+        console.log('[useAirtimeToCash] Screenshot uploaded successfully:', result);
+        
+        return result;
+      } catch (error: any) {
+        console.error('[useAirtimeToCash] Screenshot upload failed:', error);
+        
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          'Failed to upload screenshot';
+        
+        setConversionError(message);
+        throw error;
+      }
+    },
+    []
+  );
 
   // Submit proof
   const submitProof = useCallback(async (transactionId: number, screenshotUrl: string) => {

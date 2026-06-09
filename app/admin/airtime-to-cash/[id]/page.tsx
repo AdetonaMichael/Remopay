@@ -451,7 +451,7 @@ export default function AdminTransactionDetailPage() {
                   <div className="mt-6 space-y-4 border-t border-green-200 pt-4">
                     <div>
                       <label className="text-xs font-semibold text-gray-900">
-                        Cash to Credit: <span className="text-lg text-green-600 font-bold">₦{transaction.cash_credited || (transaction.net_amount * transaction.conversion_rate).toFixed(2)}</span>
+                        Cash to Credit: <span className="text-lg text-green-600 font-bold">₦{Number(transaction.cash_credited || 0) > 0 ? Number(transaction.cash_credited).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : (transaction.net_amount * transaction.conversion_rate).toFixed(2)}</span>
                       </label>
                       <p className="text-xs text-gray-600 mt-1">
                         This amount will be credited to user's wallet

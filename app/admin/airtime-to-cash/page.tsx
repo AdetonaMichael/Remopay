@@ -21,11 +21,14 @@ import { Button } from '@/components/shared/Button';
 import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { useUIStore } from '@/store/ui.store';
+import { useAuth } from '@/hooks/useAuth';
 import { airtimeToCashService } from '@/services/airtime-to-cash.service';
 import {
   AdminDashboardData,
   AdminTransactionView,
   AirtimeCashTransactionStatus,
+  HistoryWithSummary,
+  AirtimeToCashTransaction,
 } from '@/types/airtime-to-cash.types';
 
 const STATUS_CONFIG: Record<AirtimeCashTransactionStatus, { color: string; label: string }> = {
@@ -47,6 +50,7 @@ interface FilterState {
 export default function AdminAirtimeToCashPage() {
   const router = useRouter();
   const { addToast } = useUIStore();
+  const { user } = useAuth();
 
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>({
     overview: { total_requests: 0, pending_approval: 0, approved_today: 0, completed_today: 0 },
@@ -69,6 +73,10 @@ export default function AdminAirtimeToCashPage() {
     searchTerm: '',
   });
 
+  // User's own conversion history
+  const [userHistory, setUserHistory] = useState<AirtimeToCashTransaction[]>([]);
+  const [userHistoryLoading, setUserHistoryLoading] = useState(false);
+
   // Fetch dashboard on mount
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -86,7 +94,21 @@ export default function AdminAirtimeToCashPage() {
       }
     };
 
+    const fetchUserHistory = async () => {
+      if (!user?.id) return;
+      try {
+        setUserHistoryLoading(true);
+        const history = await airtimeToCashService.getHistory({ per_page: 5 });
+        setUserHistory(history.data?.data || []);
+      } catch (error: any) {
+        console.error('Failed to fetch user history:', error);
+      } finally {
+        setUserHistoryLoading(false);
+      }
+    };
+
     fetchDashboard();
+    fetchUserHistory();
     
     // Fetch all transactions on mount for recent section
     const fetchAll = async () => {
@@ -99,7 +121,7 @@ export default function AdminAirtimeToCashPage() {
     };
     
     fetchAll();
-  }, [addToast]);
+  }, [addToast, user?.id]);
 
   // Fetch pending when tab changes to pending
   useEffect(() => {
@@ -182,7 +204,7 @@ export default function AdminAirtimeToCashPage() {
       <div className="flex flex-wrap gap-3">
         <Button
           onClick={() => router.push('/admin/airtime-to-cash/providers')}
-          className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-700 flex items-center gap-2"
+          className="rounded-xl bg-[#d71927] px-6 py-2.5 text-sm font-bold text-white hover:bg-[#c01820] flex items-center gap-2"
         >
           <Settings size={18} />
           Manage Providers
@@ -325,7 +347,7 @@ export default function AdminAirtimeToCashPage() {
             <p className="text-lg font-bold text-gray-900">Recent Conversions</p>
             <Button
               onClick={() => setActiveTab('all')}
-              className="rounded-lg text-[#d71927] font-bold text-sm hover:text-red-800 flex items-center gap-2"
+              className="rounded-lg text-white font-bold text-sm hover:text-white flex items-center gap-2"
             >
               View All
               <ChevronRight size={18} />
@@ -378,6 +400,90 @@ export default function AdminAirtimeToCashPage() {
                 );
               })}
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* User's Conversion History Section */}
+      {user && (
+        <Card className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+          <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-6 py-4">
+            <div>
+              <p className="text-lg font-bold text-gray-900">Your Conversion History</p>
+              <p className="text-sm text-gray-600 mt-1">
+                {user.first_name} {user.last_name}
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push('/dashboard/airtime-to-cash')}
+              className="rounded-lg text-white font-bold text-sm hover:text-white flex items-center gap-2"
+            >
+              View All
+              <ChevronRight size={18} />
+            </Button>
+          </div>
+
+          <div className="p-6">
+            {userHistoryLoading ? (
+              <div className="flex items-center justify-center py-8 gap-2">
+                <Loader2 className="animate-spin text-[#d71927]" size={20} />
+                <p className="text-gray-600">Loading your history...</p>
+              </div>
+            ) : userHistory.length > 0 ? (
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {userHistory.map((transaction) => {
+                  const config = STATUS_CONFIG[transaction.status as AirtimeCashTransactionStatus];
+                  
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 hover:bg-gray-50 cursor-pointer transition"
+                      onClick={() =>
+                        router.push(`/dashboard/airtime-to-cash/${transaction.id}/details`)
+                      }
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                          <Send className="text-gray-600" size={20} />
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-gray-900">
+                            {transaction.provider.toUpperCase()}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(transaction.created_at).toLocaleDateString()} •{' '}
+                            {transaction.reference}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-right">
+                        <div>
+                          <p className="font-bold text-gray-900">
+                            ₦{Number(transaction.airtime_amount).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {transaction.cash_credited > 0
+                              ? `→ ₦${transaction.cash_credited.toLocaleString()}`
+                              : `→ ₦${Number(Math.round(Number(transaction.net_amount) * Number(transaction.conversion_rate) * 100) / 100).toLocaleString()}`}
+                          </p>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-lg font-bold ${config?.color || 'bg-gray-100 text-gray-700'}`}>
+                          {config?.label || transaction.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Send className="mx-auto text-gray-300 mb-3" size={32} />
+                <p className="text-gray-600">No conversion history yet</p>
+                <p className="text-sm text-gray-500">Start converting airtime to cash on your dashboard</p>
+              </div>
+            )}
           </div>
         </Card>
       )}
@@ -535,7 +641,7 @@ export default function AdminAirtimeToCashPage() {
                         <p className="text-xs text-gray-600">
                           {transaction.cash_credited > 0
                             ? `→ ₦${transaction.cash_credited.toLocaleString()}`
-                            : 'Pending'}
+                            : `→ ₦${Number(Math.round(Number(transaction.net_amount) * Number(transaction.conversion_rate) * 100) / 100).toLocaleString()}`}
                         </p>
                       </div>
 

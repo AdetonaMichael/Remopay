@@ -150,7 +150,7 @@ export default function DataReviewPage() {
 
       // API client returns the backend response directly (not wrapped in data property)
       const responseData = response as any;
-      if (responseData?.success && responseData?.status === 'completed') {
+      if (responseData?.success && (responseData?.status === 'success' || responseData?.status === 'completed')) {
         // Use backend-generated request_id from response
         setTransactionId(responseData?.request_id || responseData?.vtu_reference || responseData?.reference);
         setTransactionStatus('success');
@@ -252,8 +252,8 @@ export default function DataReviewPage() {
     return (
       <div className="flex min-h-[70vh] items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#EEF2FF]">
-            <Loader2 className="animate-spin text-[#4A5FF7]" size={28} />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#FFE5EB]">
+            <Loader2 className="animate-spin text-[#d71927]" size={28} />
           </div>
           <p className="text-sm font-bold text-gray-900">Loading review...</p>
           <p className="mt-1 text-xs text-gray-600">
@@ -280,7 +280,7 @@ export default function DataReviewPage() {
             <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4A5FF7] bg-white text-sm font-extrabold text-[#4A5FF7]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d71927] bg-white text-sm font-extrabold text-[#d71927]">
                     ✓
                   </div>
                   <div>
@@ -293,10 +293,10 @@ export default function DataReviewPage() {
                   </div>
                 </div>
 
-                <div className="hidden h-[2px] flex-1 bg-[#4A5FF7] sm:block" />
+                <div className="hidden h-[2px] flex-1 bg-[#d71927] sm:block" />
 
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4A5FF7] text-sm font-extrabold text-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71927] text-sm font-extrabold text-white">
                     2
                   </div>
                   <div>
@@ -345,7 +345,7 @@ export default function DataReviewPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-[#DCE3FF]  px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-[#FFE5EB]  px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-gray-900">
                     Total Amount
@@ -355,7 +355,7 @@ export default function DataReviewPage() {
                   </p>
                 </div>
 
-                <p className="text-3xl font-extrabold tracking-tight text-[#4A5FF7]">
+                <p className="text-3xl font-extrabold tracking-tight text-[#d71927]">
                   {formatCurrency(amount)}
                 </p>
               </div>
@@ -422,18 +422,18 @@ export default function DataReviewPage() {
                       method.disabled
                         ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60'
                         : active
-                          ? 'border-[#4A5FF7] bg-[#EEF2FF] shadow-sm shadow-blue-200'
+                          ? 'border-[#d71927] bg-[#FFE5EB] shadow-sm shadow-red-200'
                           : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-start gap-4">
                       <div
                         className={`rounded-2xl p-3 ${
-                          active ? 'bg-[#4A5FF7]' : 'bg-[#EEF2FF]'
+                          active ? 'bg-[#d71927]' : 'bg-[#FFE5EB]'
                         }`}
                       >
                         <Icon
-                          className={active ? 'text-white' : 'text-[#4A5FF7]'}
+                          className={active ? 'text-white' : 'text-[#d71927]'}
                           size={22}
                         />
                       </div>
@@ -447,7 +447,7 @@ export default function DataReviewPage() {
                         </p>
 
                         {method.disabled && (
-                          <span className="mt-3 inline-flex rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-bold text-[#4A5FF7]">
+                          <span className="mt-3 inline-flex rounded-full bg-[#FFE5EB] px-3 py-1 text-xs font-bold text-[#d71927]">
                             Coming soon
                           </span>
                         )}
@@ -457,7 +457,7 @@ export default function DataReviewPage() {
                     <div
                       className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
                         active
-                          ? 'border-[#4A5FF7] bg-[#4A5FF7]'
+                          ? 'border-[#d71927] bg-[#d71927]'
                           : 'border-gray-300 bg-white'
                       }`}
                     >
@@ -506,9 +506,9 @@ export default function DataReviewPage() {
               </div>
             </div>
 
-            <div className="my-6 flex items-center justify-between rounded-2xl bg-[#EEF2FF] px-5 py-4">
+            <div className="my-6 flex items-center justify-between rounded-2xl bg-[#FFE5EB] px-5 py-4">
               <span className="text-base font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-extrabold tracking-tight text-[#4A5FF7]">
+              <span className="text-2xl font-extrabold tracking-tight text-[#d71927]">
                 {formatCurrency(amount)}
               </span>
             </div>
@@ -526,15 +526,15 @@ export default function DataReviewPage() {
             )}
 
             {transactionStatus === 'error' && (
-              <div className="mb-6 rounded-[24px] border border-[#DCE3FF] bg-[#EEF2FF] p-5">
+              <div className="mb-6 rounded-[24px] border border-[#FFE5EB] bg-[#FFF0F3] p-5">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 text-red-600" size={22} />
+                  <AlertCircle className="mt-0.5 text-[#d71927]" size={22} />
                   <div>
-                    <p className="text-sm font-extrabold text-red-900">
+                    <p className="text-sm font-extrabold text-[#7F2434]">
                       Transaction failed
                     </p>
                     {errorMessage && (
-                      <p className="mt-1 text-xs leading-5 text-red-700">
+                      <p className="mt-1 text-xs leading-5 text-[#a13150]">
                         {errorMessage}
                       </p>
                     )}
@@ -572,7 +572,7 @@ export default function DataReviewPage() {
                   fullWidth
                   onClick={handleConfirmPayment}
                   disabled={isProcessing || !hasPIN}
-                  className="mb-3 h-13 rounded-2xl bg-[#4A5FF7] text-base font-bold text-white shadow-sm shadow-blue-300 hover:bg-[#3A4FE7] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mb-3 h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-sm shadow-red-300 hover:bg-[#b80a1f] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isProcessing ? (
                     <span className="flex items-center justify-center gap-2">
@@ -606,7 +606,7 @@ export default function DataReviewPage() {
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-600">
-              <ShieldCheck size={14} className="text-[#4A5FF7]" />
+              <ShieldCheck size={14} className="text-[#d71927]" />
               PIN verification required
             </div>
           </Card>
