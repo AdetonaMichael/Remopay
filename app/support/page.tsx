@@ -48,7 +48,7 @@ export default function SupportPage() {
               {
                 icon: Mail,
                 title: 'Email',
-                desc: 'support@remopay.com',
+                desc: 'remopay.operations@gmail.com',
                 time: 'Typically responds within 2 hours',
               },
               {
@@ -60,7 +60,7 @@ export default function SupportPage() {
               {
                 icon: Phone,
                 title: 'Phone',
-                desc: '+234 (0) 700 123 4567',
+                desc: '+1 833 803 2507',
                 time: 'Mon-Sun: 9AM - 10PM WAT',
               },
               {

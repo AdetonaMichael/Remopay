@@ -4,7 +4,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://remopay.remonode.com';
   const lastModified = new Date();
 
-  // Main pages with high priority
+  // Main pages with highest priority
   const mainPages = [
     {
       url: baseUrl,
@@ -16,19 +16,75 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/about`,
       lastModified,
       changeFrequency: 'monthly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/multi-currency`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+  ];
+
+  // Service feature pages - high priority for SEO
+  const serviceFeaturePages = [
+    {
+      url: `${baseUrl}/services/usd-accounts`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/virtual-dollar-cards`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/virtual-topup`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/airtime-to-cash`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/money-transfer`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/bill-payments`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/services/international-payments`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
+  ];
+
+  // Informational pages - medium priority
+  const infoPages = [
     {
       url: `${baseUrl}/faq`,
       lastModified,
       changeFrequency: 'weekly' as const,
-      priority: 0.8,
+      priority: 0.75,
     },
     {
       url: `${baseUrl}/support`,
       lastModified,
       changeFrequency: 'weekly' as const,
-      priority: 0.8,
+      priority: 0.75,
     },
     {
       url: `${baseUrl}/privacy`,
@@ -44,7 +100,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Auth pages (lower priority - not for SEO)
+  // Auth pages - lower priority (users need to login/signup)
   const authPages = [
     {
       url: `${baseUrl}/auth/login`,
@@ -56,7 +112,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/auth/register`,
       lastModified,
       changeFrequency: 'monthly' as const,
-      priority: 0.5,
+      priority: 0.7, // Higher priority for signup to improve conversions
     },
     {
       url: `${baseUrl}/auth/forgot-password`,
@@ -66,49 +122,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Service pages (for SEO)
-  const servicePages = [
-    {
-      url: `${baseUrl}/dashboard/airtime`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/data`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/bills`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/tv`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/dashboard/virtual-card`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    },
-  ];
-
-  // Main service pages (not under dashboard - public)
-  const mainServicePages = [
-    {
-      url: `${baseUrl}/multi-currency`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-  ];
-
-  return [...mainPages, ...authPages, ...servicePages, ...mainServicePages];
+  // Combine all public pages - EXCLUDE dashboard, admin, agent pages
+  return [...mainPages, ...serviceFeaturePages, ...infoPages, ...authPages];
 }

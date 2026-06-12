@@ -178,7 +178,7 @@ export default function PhoneVerificationPage() {
             Your phone number has been successfully verified. You can now earn rewards through referrals.
           </p>
 
-          <Button onClick={() => window.location.href = '/dashboard/referral/milestones'} className="w-full">
+          <Button onClick={() => window.location.href = '/dashboard/referral'} className="w-full">
             View Referral Milestones
           </Button>
         </Card>

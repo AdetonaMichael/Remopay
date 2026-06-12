@@ -415,7 +415,7 @@ export default function AdminReportsPage() {
 
                         <button
                           onClick={() => handleExportClick(report)}
-                          className="rounded-xl p-2 text-emerald-600 transition hover:bg-emerald-50"
+                          className="rounded-xl p-2 text-white transition hover:bg-emerald-50"
                           title="Export report"
                         >
                           <Download className="h-4 w-4" />

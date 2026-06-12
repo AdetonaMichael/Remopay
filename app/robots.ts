@@ -7,9 +7,9 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
+      // Main search engines - allowed to crawl public pages
       {
-        userAgent: '*',
-
+        userAgent: ['Googlebot', 'Bingbot', 'Slurp', 'DuckDuckBot', 'Baiduspider', 'YandexBot'],
         allow: [
           '/',
           '/about',
@@ -17,48 +17,91 @@ export default function robots(): MetadataRoute.Robots {
           '/support',
           '/privacy',
           '/terms',
+          '/multi-currency',
+          '/auth/login',
+          '/auth/register',
+          '/auth/forgot-password',
         ],
-
         disallow: [
-          // Authenticated areas
+          // Authenticated user areas - should not be indexed
+          '/admin',
+          '/admin/*',
+          '/agent',
+          '/agent/*',
+          '/dashboard',
+          '/dashboard/*',
+          '/wallet',
+          '/wallet/*',
+          '/settings',
+          '/settings/*',
+          '/notifications',
+          '/notifications/*',
+          '/transactions',
+          '/transactions/*',
+          
+          // Authentication flows
+          '/auth/verify-email',
+          '/auth/verify-phone',
+          '/auth/verify-email/*',
+          '/auth/verify-phone/*',
+
+          // Backend/API - never index
+          '/api',
+          '/api/*',
+          '/server',
+          '/server/*',
+          '/internal',
+          '/internal/*',
+
+          // Dynamic query parameters that create duplicate content
+          '/*?*sort=*',
+          '/*?*filter=*',
+          '/*?*search=*',
+          '/*?*page=*',
+
+          // System/temporary files
+          '/_next',
+          '/_next/*',
+          '/static',
+          '/static/*',
+          '/*.json',
+          '/*.xml',
+          '/*.js',
+          '/success',
+          '/error',
+          '/callback',
+          '/not-found',
+        ],
+        crawlDelay: 1, // Be respectful to server
+      },
+
+      // Default for all other user agents
+      {
+        userAgent: '*',
+        allow: [
+          '/',
+          '/about',
+          '/faq',
+          '/support',
+          '/privacy',
+          '/terms',
+          '/multi-currency',
+          '/auth/login',
+          '/auth/register',
+        ],
+        disallow: [
           '/admin',
           '/agent',
           '/dashboard',
           '/wallet',
-          '/transactions',
-          '/settings',
-          '/notifications',
-
-          // Authentication
-          '/auth',
-          '/login',
-          '/signup',
-          '/forgot-password',
-          '/reset-password',
-
-          // Backend/API
           '/api',
-          '/server',
-          '/internal',
-
-          // Search/filter/query pages
-          '/*?*sort=',
-          '/*?*filter=',
-          '/*?*search=',
-
-          // Sensitive/static files
-          '/_next/',
-          '/static/',
-          '/*.json$',
-
-          // Prevent indexing of temporary pages
-          '/success',
-          '/error',
-          '/callback',
+          '/auth/verify',
+          '/_next',
+          '/*.json',
         ],
       },
 
-      // AI Crawlers
+      // Block AI/LLM training crawlers
       {
         userAgent: 'GPTBot',
         disallow: '/',
@@ -83,9 +126,28 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: 'Google-Extended',
         disallow: '/',
       },
+      {
+        userAgent: 'OpenAI-User',
+        disallow: '/',
+      },
+      {
+        userAgent: 'OpenAI',
+        disallow: '/',
+      },
+      {
+        userAgent: 'Applebot',
+        disallow: '/',
+      },
+      {
+        userAgent: 'Applebot-Extended',
+        disallow: '/',
+      },
     ],
 
+    // Sitemap location for search engines
     sitemap: `${baseUrl}/sitemap.xml`,
+    
+    // Host canonical domain
     host: baseUrl,
   };
 }

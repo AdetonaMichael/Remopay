@@ -316,7 +316,7 @@ export default function AdminTransactionsPage() {
           className={`h-11 rounded-xl px-4 font-semibold transition ${
             hasActiveFilters
               ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
-              : 'border border-black/10 text-[#111] hover:bg-[#f8f8f8]'
+              : 'border border-black/10 text-white hover:bg-[#f8f8f8]'
           }`}
         >
           <Filter className="h-4 w-4 mr-2 inline" />

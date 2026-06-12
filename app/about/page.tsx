@@ -160,7 +160,7 @@ export default function AboutPage() {
       </section>
 
       {/* Leadership */}
-      <section className="bg-gray-50/50 px-5 py-20 lg:px-8 border-t border-gray-100">
+      {/* <section className="bg-gray-50/50 px-5 py-20 lg:px-8 border-t border-gray-100">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             Our <span className="text-[#d71927]">Leadership</span>
@@ -201,10 +201,10 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Timeline */}
-      <section className="px-5 py-20 lg:px-8 bg-white">
+      {/* <section className="px-5 py-20 lg:px-8 bg-white">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             Our <span className="text-[#d71927]">Journey</span>
@@ -257,7 +257,7 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Social Responsibility */}
       <section className="bg-gray-50/50 px-5 py-20 lg:px-8 border-t border-gray-100">
@@ -301,7 +301,7 @@ export default function AboutPage() {
       </section>
 
       {/* Careers */}
-      <section className="px-5 py-20 lg:px-8 bg-white">
+      {/* <section className="px-5 py-20 lg:px-8 bg-white">
         <div className="mx-auto max-w-6xl">
           <div className="rounded-lg border border-[#d71927]/20 bg-gradient-to-r from-[#d71927] to-[#a0101a] p-8 lg:p-12">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -344,7 +344,7 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Contact */}
       <section className="border-t border-gray-100 px-5 py-20 lg:px-8 bg-white">
@@ -357,8 +357,8 @@ export default function AboutPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { label: 'Email', value: 'hello@remopay.com' },
-              { label: 'Phone', value: '+234 (0) 700 123 4567' },
+              { label: 'Email', value: 'remopay.operations@gmail.com' },
+              { label: 'Phone', value: '+1 833 803 2507' },
               { label: 'Location', value: 'Lagos, Nigeria' },
             ].map((contact, idx) => (
               <div key={idx} className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-6">

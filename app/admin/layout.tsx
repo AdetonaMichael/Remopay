@@ -24,6 +24,7 @@ import {
   Mail,
   Globe,
   Phone,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -48,6 +49,13 @@ const adminNavItems = [
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'Reports', href: '/admin/reports', icon: FileText },
+  // Ledger System
+  { label: 'Ledger Dashboard', href: '/admin/ledger', icon: BookOpen },
+  { label: 'Ledger Accounts', href: '/admin/ledger/accounts', icon: BookOpen },
+  { label: 'Ledger Entries', href: '/admin/ledger/entries', icon: FileText },
+  { label: 'Reconciliation', href: '/admin/ledger/reconciliation', icon: BarChart3 },
+  { label: 'Settlement Batches', href: '/admin/ledger/settlement', icon: CreditCard },
+  { label: 'Ledger Reports', href: '/admin/ledger/reports', icon: FileText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

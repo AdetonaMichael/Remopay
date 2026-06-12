@@ -6,13 +6,13 @@ import { Providers } from "@/components/Providers";
 // Using system fonts instead of Google Fonts to avoid network dependency during build
 
 export const metadata: Metadata = {
-  title: "Remopay - Your all-in-one payment solution",
-  description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
-  keywords: "airtime, data bundles, bills payment, top-up, VTU, telecom, Africa, Nigeria, MTN, Airtel, Glo, 9mobile, Virtual, Dollar Card, Dollar",
+  title: "Remopay - Digital Finance Platform | USD Accounts, Virtual Cards & Bill Payments",
+  description: "Remopay is a modern digital finance platform with USD accounts, virtual dollar cards, money transfers, bill payments, airtime conversion, and VTU services. Secure international payments for freelancers, remote workers, and businesses.",
+  keywords: "digital finance platform, USD account, virtual dollar card, international payments, online payments, money transfer, bill payments, airtime to cash, virtual top-up, digital wallet, fintech, financial services, cross-border payments, dollar banking, payment solutions, virtual card, freelance payments, remote worker payments, VTU, data bundles, airtime, MTN, Airtel, Glo, 9mobile",
   authors: [{ name: "Remopay" }],
   creator: "Remopay",
   publisher: "Remopay",
-  robots: "index, follow",
+  robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
   metadataBase: new URL("https://remopay.remonode.com"),
   alternates: {
     canonical: "https://remopay.remonode.com",
@@ -46,16 +46,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://remopay.remonode.com",
-    title: "Remopay - Your all-in-one payment solution",
-    description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
+    title: "Remopay - Your All-in-One Digital Finance Solution",
+    description: "Secure USD accounts, virtual dollar cards, international payments, money transfers, bill payments, and airtime conversion - all in one platform.",
     siteName: "Remopay",
     images: [
       {
-        url: "https://remopay.remonode.com/remopay-banner.png",
+        url: "https://remopay.remonode.com/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Remopay - Your all-in-one payment solution",
-        type: "image/png",
+        alt: "Remopay - Digital Finance Platform",
       },
       {
         url: "https://remopay.remonode.com/remopay-banner.png",
@@ -98,9 +97,9 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Remopay",
-    url: "https://remopay.vercel.app",
-    logo: "https://api.remopay.remonode.com/icon.png",
-    description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
+    url: "https://remopay.remonode.com",
+    logo: "https://remopay.remonode.com/icon.png",
+    description: "Remopay is a modern digital finance platform that empowers individuals and businesses with secure USD accounts, virtual dollar cards, seamless money transfers, and everyday payment solutions.",
     sameAs: [
       "https://www.facebook.com/RemonodeTech/",
       "https://www.twitter.com/RemonodeTech",
@@ -112,23 +111,64 @@ export default function RootLayout({
       contactType: "Customer Support",
       email: "support@remonode.com",
       availableLanguage: ["en"],
+      telephone: "+234-xxx-xxxx",
     },
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "NG",
+    },
+    foundingDate: "2024",
+    areaServed: "NG",
+    knowsAbout: [
+      "Digital Finance",
+      "Online Payments",
+      "International Money Transfers",
+      "Virtual Dollar Cards",
+      "USD Banking",
+      "Bill Payments",
+      "Virtual Top-Up Services",
+      "Airtime to Cash Conversion",
+      "Financial Services",
+      "Fintech",
+    ],
+    offers: [
+      {
+        "@type": "Service",
+        name: "USD Accounts",
+        description: "Receive, hold, and manage US Dollar payments conveniently from clients, businesses, and international platforms.",
+      },
+      {
+        "@type": "Service",
+        name: "Virtual Dollar Cards",
+        description: "Secure virtual USD cards for international online payments, subscriptions, advertising, e-commerce, and global transactions.",
+      },
+      {
+        "@type": "Service",
+        name: "Virtual Top-Up Services",
+        description: "Buy airtime, mobile data, electricity tokens, TV subscriptions, examination pins, and more at competitive rates.",
+      },
+      {
+        "@type": "Service",
+        name: "Airtime to Cash Conversion",
+        description: "Instantly convert excess airtime into cash directly within the platform.",
+      },
+    ],
   };
 
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Remopay",
-    url: "https://remopay.vercel.app",
-    description: "Make Payment, Virtual Dollar Card and Virtual Top Up Services (Data | Airtime | Electricity | TV Subscription)",
+    url: "https://remopay.remonode.com",
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://afridatawebv3.com/search?q={search_term_string}",
+        urlTemplate: "https://remopay.remonode.com/search?q={search_term_string}",
       },
-      query_input: "required name=search_term_string",
+      query: "required name=search_term_string",
     },
+    description: "Digital Finance Platform - USD Accounts, Virtual Cards & Bill Payments",
   };
 
   const serviceSchema = {

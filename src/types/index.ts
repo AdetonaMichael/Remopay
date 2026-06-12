@@ -18,6 +18,9 @@ export * from './tier-upgrade.types';
 // Notification types
 export * from './notification.types';
 
+// Ledger types
+export * from './ledger.types';
+
 // Virtual Card types
 export * from './card.types';
 

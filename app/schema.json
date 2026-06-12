@@ -1,0 +1,79 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Remopay",
+  "url": "https://remopay.remonode.com",
+  "logo": "https://remopay.remonode.com/icon.png",
+  "description": "Remopay is a modern digital finance platform that empowers individuals and businesses with secure USD accounts, virtual dollar cards, seamless money transfers, and everyday payment solutions.",
+  "sameAs": [
+    "https://twitter.com/remopay",
+    "https://facebook.com/remopay",
+    "https://linkedin.com/company/remopay"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+234-xxx-xxxx",
+    "contactType": "Customer Support",
+    "email": "support@remopay.remonode.com"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "NG"
+  },
+  "potentialAction": {
+    "@type": "TradeAction",
+    "target": "https://remopay.remonode.com/auth/register"
+  },
+  "serviceArea": {
+    "@type": "Country",
+    "name": "Nigeria"
+  },
+  "offers": [
+    {
+      "@type": "Service",
+      "name": "USD Accounts",
+      "description": "Receive, hold, and manage US Dollar payments conveniently from clients, businesses, and international platforms.",
+      "url": "https://remopay.remonode.com/services/usd-accounts"
+    },
+    {
+      "@type": "Service",
+      "name": "Virtual Dollar Cards",
+      "description": "Secure virtual USD cards for international online payments, subscriptions, advertising, e-commerce, and global transactions.",
+      "url": "https://remopay.remonode.com/services/virtual-dollar-cards"
+    },
+    {
+      "@type": "Service",
+      "name": "Virtual Top-Up Services",
+      "description": "Buy airtime, mobile data, electricity tokens, TV subscriptions, examination pins, and more at competitive rates.",
+      "url": "https://remopay.remonode.com/services/virtual-topup"
+    },
+    {
+      "@type": "Service",
+      "name": "Airtime to Cash Conversion",
+      "description": "Instantly convert excess airtime into cash directly within the platform.",
+      "url": "https://remopay.remonode.com/services/airtime-to-cash"
+    },
+    {
+      "@type": "Service",
+      "name": "Wallet Transfers",
+      "description": "Fast and secure transfers between Remopay users.",
+      "url": "https://remopay.remonode.com/services/money-transfer"
+    },
+    {
+      "@type": "Service",
+      "name": "Bank Transfers",
+      "description": "Send funds seamlessly to local and external bank accounts.",
+      "url": "https://remopay.remonode.com/services/money-transfer"
+    }
+  ],
+  "knowsAbout": [
+    "Digital Finance",
+    "Online Payments",
+    "International Transfers",
+    "Virtual Cards",
+    "USD Banking",
+    "Bill Payments",
+    "VTU Services",
+    "Airtime Conversion"
+  ]
+}
