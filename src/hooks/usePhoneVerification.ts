@@ -11,7 +11,7 @@ export const usePhoneVerification = (onVerified?: () => void) => {
 
   // Form state
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationMethod, setVerificationMethod] = useState<'sms' | 'call'>('sms');
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'sms'>('whatsapp');
   const [otp, setOtp] = useState('');
 
   // Verification state
@@ -179,12 +179,12 @@ export const usePhoneVerification = (onVerified?: () => void) => {
       console.log('[usePhoneVerification] Sending OTP:', { 
         originalPhone: phoneNumber, 
         formattedPhone,
-        method: verificationMethod 
+        channel: verificationMethod 
       });
 
       const response = await authService.sendPhoneVerificationOTP({
         phone_number: formattedPhone,
-        method: verificationMethod,
+        channel: verificationMethod,
       });
 
       if (response.success && response.data) {
@@ -201,12 +201,12 @@ export const usePhoneVerification = (onVerified?: () => void) => {
           verificationId: verification_id,
           maskedPhone: phone_number,
           expiresIn: expires_in_minutes,
-          method: verificationMethod,
+          channel: verificationMethod,
         });
         
         addToast({
           type: 'success',
-          message: `OTP sent via ${verificationMethod.toUpperCase()} to ${phone_number}`,
+          message: `OTP sent via ${verificationMethod === 'whatsapp' ? 'WhatsApp' : 'SMS'} to ${phone_number}`,
         });
       } else {
         const errorMsg = response.message || 'Failed to send OTP';

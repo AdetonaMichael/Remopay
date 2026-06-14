@@ -109,15 +109,27 @@ export interface VerifyEmailWithOTPRequest {
 // ============= Phone Verification Types =============
 export interface SendPhoneVerificationOTPRequest {
   phone_number: string;
-  method: 'sms' | 'call';
+  channel: 'whatsapp' | 'sms';
 }
 
 export interface SendPhoneVerificationOTPResponse {
   verification_id: number;
   phone_number: string; // Masked: **********0935
-  method: 'sms' | 'call';
+  channel: 'whatsapp' | 'sms';
   expires_in_minutes: number;
   message: string;
+}
+
+export interface ResendPhoneVerificationOTPRequest {
+  verification_id: number;
+  channel?: 'whatsapp' | 'sms';
+}
+
+export interface ResendPhoneVerificationOTPResponse {
+  verification_id: number;
+  channel: 'whatsapp' | 'sms';
+  message: string;
+  expires_in_minutes: number;
 }
 
 export interface VerifyPhoneWithOTPRequest {

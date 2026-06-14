@@ -161,19 +161,24 @@ export function VerifyPhoneForm() {
                   <div>
                     <label className="mb-3 block text-sm font-bold">Receive code via</label>
                     <div className="grid grid-cols-2 gap-3">
-                      {['sms', 'call'].map((method) => (
+                      {(['whatsapp', 'sms'] as const).map((channel) => (
                         <button
-                          key={method}
+                          key={channel}
                           type="button"
-                          onClick={() => setVerificationMethod(method as 'sms' | 'call')}
+                          onClick={() => setVerificationMethod(channel)}
                           disabled={isLoading}
-                          className={`rounded-xl py-2 px-4 font-bold transition-all disabled:opacity-60 ${
-                            verificationMethod === method
+                          className={`rounded-xl py-2 px-4 font-bold transition-all disabled:opacity-60 relative ${
+                            verificationMethod === channel
                               ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/25'
                               : 'border border-white/20 bg-white/10 text-white hover:bg-white/20'
                           }`}
                         >
-                          {method === 'sms' ? '📱 SMS' : '📞 Voice Call'}
+                          <div>
+                            {channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}
+                          </div>
+                          {channel === 'whatsapp' && (
+                            <span className="text-xs text-white/80">(Recommended)</span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -188,7 +193,7 @@ export function VerifyPhoneForm() {
                   >
                     {isLoading ? (
                       <>
-                        <span className="inline-block animate-spin">⏳</span>
+                        <RefreshCcw size={16} className="inline-block animate-spin mr-2" />
                         Sending...
                       </>
                     ) : sendCooldown > 0 ? (
@@ -231,6 +236,7 @@ export function VerifyPhoneForm() {
                   <p className="mt-3 text-sm leading-6 text-white/70">
                     We sent a 6-digit code to <span className="font-bold text-white">{maskedPhoneNumber}</span>
                   </p>
+                  <p className="mt-2 text-sm text-white/60">Code expires in {formatTimeRemaining()}</p>
                 </div>
 
                 <form className="space-y-5">
@@ -293,7 +299,7 @@ export function VerifyPhoneForm() {
                   >
                     {isLoading ? (
                       <>
-                        <span className="inline-block animate-spin">⏳</span>
+                        <RefreshCcw size={16} className="inline-block animate-spin mr-2" />
                         Verifying...
                       </>
                     ) : (
@@ -349,7 +355,7 @@ export function VerifyPhoneForm() {
                 </div>
 
                 <div className="mt-6 flex items-center justify-center gap-2 text-sm text-white/60">
-                  <span className="inline-block animate-spin">⏳</span>
+                  <RefreshCcw size={16} className="inline-block animate-spin" />
                   <span>Redirecting you to your dashboard...</span>
                 </div>
               </>
