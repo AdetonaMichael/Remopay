@@ -43,7 +43,7 @@ const adminNavItems = [
   { label: 'Loyalty Tiers', href: '/admin/loyalty', icon: Award },
   { label: 'Loyalty Users', href: '/admin/loyalty/users', icon: Users },
   { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
-  { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle },
+  { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle }, 
   { label: 'Advertisements', href: '/admin/advertisements', icon: Zap },
   { label: 'Email Campaigns', href: '/admin/promotional-emails', icon: Mail },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },

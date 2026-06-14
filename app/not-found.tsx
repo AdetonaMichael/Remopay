@@ -1,67 +1,93 @@
 'use client';
 
 import Link from 'next/link';
-import { AlertCircle, Home } from 'lucide-react';
+import { AlertCircle, Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
 
 function NotFoundContent() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <div className="max-w-md w-full text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="max-w-md w-full">
         {/* Icon */}
-        <div className="mb-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100">
-            <AlertCircle className="h-8 w-8 text-yellow-600" />
+        <div className="flex justify-center mb-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-yellow-500/20 rounded-full blur-3xl opacity-50 animate-pulse" />
+            <div className="relative flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-yellow-500/50 shadow-2xl shadow-yellow-500/20">
+              <AlertCircle className="h-12 w-12 text-yellow-500" />
+            </div>
           </div>
         </div>
 
         {/* Content */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">404</h1>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-3">Page Not Found</h2>
-        <p className="text-gray-600 text-sm mb-8">
-          The page you're looking for doesn't exist or may have been moved.
-        </p>
+        <div className="text-center space-y-4">
+          <h1 className="text-5xl font-bold text-white mb-2">
+            404
+          </h1>
+          
+          <h2 className="text-2xl font-semibold text-slate-100">
+            Page Not Found
+          </h2>
+          
+          <p className="text-slate-300 text-base leading-relaxed">
+            The page you're looking for doesn't exist or may have been moved to a different location.
+          </p>
 
-        {/* Debug Info (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded text-left text-xs text-blue-800">
-            <p className="font-semibold mb-1">Debug Info:</p>
-            <p className="font-mono break-all">This page was not found in the application.</p>
+          {/* Status Indicator */}
+          <div className="mt-6 p-4 bg-slate-700/50 border border-slate-600 rounded-lg backdrop-blur">
+            <p className="text-sm font-medium text-slate-300">
+              This resource could not be found
+            </p>
           </div>
-        )}
+        </div>
+
+        {/* Helpful Links */}
+        <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <p className="text-sm font-semibold text-blue-300 mb-3">Here are some helpful links:</p>
+          <ul className="text-sm text-slate-300 space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">•</span>
+              <span>Go back to the home page</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">•</span>
+              <span>Check the URL for typos</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">•</span>
+              <span>Contact support for help</span>
+            </li>
+          </ul>
+        </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3">
+        <div className="flex gap-3 mt-8">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-semibold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50"
           >
-            <Home className="h-4 w-4" />
-            Go to Home
+            <Home className="h-5 w-5" />
+            Go Home
           </Link>
+          
           <button
             onClick={() => window.history.back()}
-            className="px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
           >
+            <RotateCw className="h-5 w-5" />
             Go Back
           </button>
         </div>
 
-        {/* Helpful Links */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-600 mb-3">Quick Links:</p>
-          <div className="space-y-2">
-            <Link href="/dashboard" className="block text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Dashboard
-            </Link>
-            <Link href="/support" className="block text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Support
-            </Link>
-            <Link href="/faq" className="block text-sm text-blue-600 hover:text-blue-700 font-medium">
-              FAQ
-            </Link>
-          </div>
-        </div>
+        {/* Support Link */}
+        <p className="text-center text-xs text-slate-400 mt-8">
+          Need help?{' '}
+          <a 
+            href="mailto:support@remopay.com" 
+            className="text-red-400 font-semibold hover:text-red-300 transition-colors"
+          >
+            Contact Support
+          </a>
+        </p>
       </div>
     </div>
   );

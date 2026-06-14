@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Eye,
@@ -103,6 +103,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [totalUsersCount, setTotalUsersCount] = useState(0);
 
   // ── State - Selected User ───────────────────────────────────────────────────
 
@@ -110,6 +112,45 @@ export default function AdminUsersPage() {
   const [selectedUsers, setSelectedUsers] = useState<Set<string | number>>(new Set());
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedBulkAction, setSelectedBulkAction] = useState<BulkAction>('verify');
+  const summaryRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollSummaryPrev, setCanScrollSummaryPrev] = useState(false);
+  const [canScrollSummaryNext, setCanScrollSummaryNext] = useState(false);
+
+  const updateSummaryScrollState = () => {
+    const el = summaryRef.current;
+    if (!el) return;
+    setCanScrollSummaryPrev(el.scrollLeft > 0);
+    setCanScrollSummaryNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  };
+
+  const scrollSummary = (direction: 'left' | 'right') => {
+    const el = summaryRef.current;
+    if (!el) return;
+    const offset = el.clientWidth * 0.75;
+    el.scrollBy({
+      left: direction === 'left' ? -offset : offset,
+      behavior: 'smooth',
+    });
+  };
+
+  useEffect(() => {
+    const el = summaryRef.current;
+    if (!el) return;
+
+    const handleScroll = () => {
+      setCanScrollSummaryPrev(el.scrollLeft > 0);
+      setCanScrollSummaryNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+
+    handleScroll();
+    el.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      el.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [users]);
 
   // Use the standardized filter hook
   const {
@@ -211,6 +252,12 @@ export default function AdminUsersPage() {
     if (user && !isAdmin) router.push('/dashboard');
   }, [user, isAdmin, router]);
 
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchUsers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Data fetching ───────────────────────────────────────────────────────────
 
   const fetchUsers = async (page = 1) => {
@@ -228,15 +275,25 @@ export default function AdminUsersPage() {
         filterParams.verified = filters.verified === 'verified';
       }
 
-      const response = await adminService.getUsers(page, 50, filterParams);
+      const response = await adminService.getUsers(page, 10, filterParams);
 
       if (response?.data) {
         const userData = Array.isArray(response.data)
           ? response.data
           : response.data.data ?? [];
         setUsers(userData);
-        if (response.data.pagination) {
-          setTotalPages(response.data.pagination.last_page ?? 1);
+        if (response.pagination) {
+          setTotalPages(response.pagination.last_page ?? 1);
+        }
+        
+        // Use stats from API response
+        if (response.stats) {
+          setTotalUsersCount(response.stats.total_users ?? 0);
+          setWalletBalance(response.stats.total_wallet_balance ?? 0);
+        } else {
+          // Fallback if stats not provided
+          setTotalUsersCount(response.pagination?.total ?? userData.length);
+          setWalletBalance(0);
         }
       }
     } catch (error) {
@@ -301,10 +358,18 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Fetch users when page changes
   useEffect(() => {
     fetchUsers(currentPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, filters]);
+  }, [currentPage]);
+
+  // Reset to page 1 when filters change (already handled by useFilters onFiltersChange)
+  useEffect(() => {
+    // Fetch with page 1 when filters change
+    fetchUsers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.status, filters.verified]);
 
   // ── Action Handlers ────────────────────────────────────────────────────────
 
@@ -591,51 +656,90 @@ export default function AdminUsersPage() {
       `}</style>
 
       {/* ── Summary cards ────────────────────────────────────────────────── */}
-      <section className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-4">
-        {[
-          {
-            title: 'All Users',
-            value: summary.total,
-            note: 'Registered user accounts',
-            Icon: Users2,
-          },
-          {
-            title: 'Active Accounts',
-            value: summary.active,
-            note: 'Users currently active',
-            Icon: UserCheck,
-          },
-          {
-            title: 'Suspended Accounts',
-            value: summary.suspended,
-            note: 'Restricted user accounts',
-            Icon: ShieldCheck,
-          },
-          {
-            title: 'Inactive Accounts',
-            value: summary.inactive,
-            note: 'Dormant or unused accounts',
-            Icon: UserMinus,
-          },
-        ].map(({ title, value, note, Icon }) => (
-          <Card
-            key={title}
-            className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
+      <section className="relative">
+        {/* Desktop Navigation Buttons */}
+        {canScrollSummaryPrev && (
+          <button
+            onClick={() => scrollSummary('left')}
+            className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 -translate-x-12 md:block"
+            aria-label="Scroll cards left"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-[#6b7280]">{title}</p>
-                <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
-                  {value}
-                </p>
-                <p className="mt-2 text-sm text-[#6b7280]">{note}</p>
-              </div>
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Icon className="h-5 w-5 text-[#4a5ff7]" />
-              </div>
+            <div className="rounded-full bg-white shadow-lg border border-gray-200 p-3 hover:bg-gray-50 transition">
+              <ChevronLeft className="h-5 w-5 text-gray-700" />
             </div>
-          </Card>
-        ))}
+          </button>
+        )}
+        
+        {canScrollSummaryNext && (
+          <button
+            onClick={() => scrollSummary('right')}
+            className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-12 md:block"
+            aria-label="Scroll cards right"
+          >
+            <div className="rounded-full bg-white shadow-lg border border-gray-200 p-3 hover:bg-gray-50 transition">
+              <ChevronRight className="h-5 w-5 text-gray-700" />
+            </div>
+          </button>
+        )}
+
+        <div
+          ref={summaryRef}
+          className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-2 md:overflow-x-visible xl:grid-cols-5"
+          onScroll={updateSummaryScrollState}
+        >
+          {[
+            {
+              title: 'All Users',
+              value: summary.total,
+              note: 'Registered user accounts',
+              Icon: Users2,
+            },
+            {
+              title: 'Active Accounts',
+              value: summary.active,
+              note: 'Users currently active',
+              Icon: UserCheck,
+            },
+            {
+              title: 'Suspended Accounts',
+              value: summary.suspended,
+              note: 'Restricted user accounts',
+              Icon: ShieldCheck,
+            },
+            {
+              title: 'Inactive Accounts',
+              value: summary.inactive,
+              note: 'Dormant or unused accounts',
+              Icon: UserMinus,
+            },
+            {
+              title: 'Total Wallet Balance',
+              value: `₦${walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              note: 'Combined wallet balance',
+              Icon: Users2,
+              bgColor: 'bg-[#fef2f2]',
+              iconColor: 'text-[#d71927]',
+            },
+          ].map(({ title, value, note, Icon, bgColor, iconColor }) => (
+            <Card
+              key={title}
+              className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-[#6b7280]">{title}</p>
+                  <p className="mt-3 text-3xl font-extrabold tracking-tight text-[#111827]">
+                    {value}
+                  </p>
+                  <p className="mt-2 text-sm text-[#6b7280]">{note}</p>
+                </div>
+                <div className={`rounded-2xl ${bgColor || 'bg-[#eef2ff]'} p-3`}>
+                  <Icon className={`h-5 w-5 ${iconColor || 'text-[#4a5ff7]'}`} />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </section>
 
       {/* ── Filters with FilterPanel ────────────────────────────────── */}
@@ -926,7 +1030,7 @@ export default function AdminUsersPage() {
             {users.length}
           </span>{' '}
           of{' '}
-          <span className="font-semibold text-[#111827]">{users.length}</span>{' '}
+          <span className="font-semibold text-[#111827]">{totalUsersCount}</span>{' '}
           users
         </div>
 

@@ -149,7 +149,9 @@ class PaymentService {
 
       const response = await apiClient.post('/vtu/pay', apiPayload);
 
-      debug.log('[PaymentService] Airtime purchase successful');
+      debug.log('[PaymentService] Airtime purchase successful', { 
+        success: response?.success,
+      });
       return response;
     } catch (error: any) {
       debug.error('[PaymentService] Airtime purchase failed', error);

@@ -173,7 +173,7 @@ export default function ElectricityReviewPage() {
 
       // API client returns the backend response directly (not wrapped in data property)
       const responseData = response as any;
-      if (responseData?.success && responseData?.status === 'completed') {
+      if (responseData?.success && (responseData?.status === 'success' || responseData?.status === 'completed')) {
         success('Electricity bill payment successful!');
         setTransactionStatus('success');
         setShowPINModal(false);

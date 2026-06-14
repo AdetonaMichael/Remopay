@@ -40,6 +40,7 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     '/privacy',
     '/terms',
     '/support',
+    '/offline',
   ];
 
   useEffect(() => {

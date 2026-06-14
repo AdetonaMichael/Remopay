@@ -77,6 +77,20 @@ export default function SubmitProofPage() {
           throw new Error('Transaction data is empty');
         }
         
+        // Try to retrieve instructions from sessionStorage
+        if (typeof window !== 'undefined') {
+          const storedInstructions = sessionStorage.getItem(
+            `airtime-to-cash-instructions-${transactionId}`
+          );
+          if (storedInstructions) {
+            try {
+              data.instructions = JSON.parse(storedInstructions);
+            } catch (e) {
+              console.warn('Failed to parse stored instructions');
+            }
+          }
+        }
+        
         setTransaction(data as AirtimeToCashTransaction);
       } catch (error: any) {
         console.error('[SubmitProofPage] Failed to load transaction:', error);
@@ -351,7 +365,7 @@ export default function SubmitProofPage() {
               <ol className="space-y-2 text-sm text-gray-700">
                 <li>
                   1. Send <strong>₦{transaction.airtime_amount?.toLocaleString() || '0'}</strong> airtime to{' '}
-                  <strong>{transaction.provider?.toUpperCase() || 'PROVIDER'}</strong> number: <strong>08010000000</strong>
+                  <strong>{transaction.provider?.toUpperCase() || 'PROVIDER'}</strong> number: <strong>{transaction.receiving_number || transaction.instructions?.receiving_number || 'N/A'}</strong>
                 </li>
                 <li>2. Take a screenshot showing successful transfer</li>
                 <li>3. Upload the screenshot below</li>

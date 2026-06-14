@@ -293,6 +293,30 @@ export default function AirtimeToCashDetailsPage() {
                   </div>
                 </div>
 
+                {transaction.receiving_number && (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <p className="text-xs font-bold uppercase text-blue-600">Send Airtime To</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="font-mono text-lg font-bold text-blue-900">
+                        {transaction.receiving_number}
+                      </p>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(transaction.receiving_number || '');
+                          addToast({
+                            message: 'Receiving number copied!',
+                            type: 'success',
+                          });
+                        }}
+                        className="rounded-lg bg-blue-200 p-2 hover:bg-blue-300"
+                        title="Copy receiving number"
+                      >
+                        <Copy size={16} className="text-blue-700" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-2xl border border-gray-200 p-4">
                   <p className="text-xs font-bold uppercase text-gray-600">Settlement Method</p>
                   <p className="mt-2 text-lg font-bold text-gray-900 capitalize">

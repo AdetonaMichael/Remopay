@@ -60,6 +60,7 @@ export interface AirtimeToCashTransaction {
   settlement_method: 'wallet';
   status: AirtimeCashTransactionStatus;
   reference: string; // Unique reference code
+  receiving_number?: string; // Number to send airtime to
   screenshot_url?: string;
   screenshot_uploaded_at?: string;
   approved_by?: number;
@@ -69,6 +70,7 @@ export interface AirtimeToCashTransaction {
   rejected_at?: string;
   completed_at?: string;
   notes?: string;
+  instructions?: ConversionInstructions; // Instructions for completing the conversion
   created_at: string;
   updated_at: string;
 }

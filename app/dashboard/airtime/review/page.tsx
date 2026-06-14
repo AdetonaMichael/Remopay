@@ -106,7 +106,7 @@ export default function AirtimeReviewPage() {
 
       // API client returns the backend response directly (not wrapped in data property)
       const responseData = response as any;
-      if (responseData?.success && responseData?.status === 'completed') {
+      if (responseData?.success && (responseData?.status === 'success' || responseData?.status === 'completed')) {
         // Use backend-generated request_id from response
         setTransactionId(responseData?.request_id || responseData?.vtu_reference || responseData?.reference);
         setTransactionStatus('success');

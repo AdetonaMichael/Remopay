@@ -182,18 +182,18 @@ export function PhoneVerificationModal({ onVerified }: { onVerified?: () => void
                   Receive code via
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {['sms', 'call'].map((method) => (
+                  {(['whatsapp', 'sms'] as const).map((channel) => (
                     <button
-                      key={method}
-                      onClick={() => setVerificationMethod(method as 'sms' | 'call')}
+                      key={channel}
+                      onClick={() => setVerificationMethod(channel)}
                       disabled={isLoading}
                       className={`py-2 px-4 rounded-lg font-medium transition-all ${
-                        verificationMethod === method
+                        verificationMethod === channel
                           ? 'bg-blue-600 text-white shadow-md'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {method === 'sms' ? 'SMS' : ' Voice Call'}
+                      {channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}
                     </button>
                   ))}
                 </div>

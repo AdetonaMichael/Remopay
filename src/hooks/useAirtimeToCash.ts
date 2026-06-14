@@ -182,6 +182,14 @@ export function useAirtimeToCash(): UseAirtimeToCashReturn {
       // Safely extract transaction
       if (response && response.transaction) {
         setTransaction(response.transaction);
+        
+        // Store instructions in sessionStorage for later use on submit-proof page
+        if (response.instructions && typeof window !== 'undefined') {
+          sessionStorage.setItem(
+            `airtime-to-cash-instructions-${response.transaction.id}`,
+            JSON.stringify(response.instructions)
+          );
+        }
       } else {
         throw new Error('No transaction data in response');
       }

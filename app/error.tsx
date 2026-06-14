@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { AlertCircle, Home, RotateCw } from 'lucide-react';
 import { ErrorPageProvider } from '@/contexts/ErrorPageContext';
 
 function ErrorContent({
@@ -9,57 +12,110 @@ function ErrorContent({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
+  // Detect connection errors and redirect to offline page
+  useEffect(() => {
+    const isConnectionError = 
+      error?.message?.includes('Connection failed') ||
+      error?.message?.includes('connection') ||
+      error?.message?.includes('Network') ||
+      error?.message?.includes('Failed to fetch');
+
+    if (isConnectionError) {
+      router.push('/offline');
+    }
+  }, [error, router]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-4">
-          <div className="inline-flex items-center justify-center h-12 w-12 rounded-md bg-red-100">
-            <svg
-              className="h-6 w-6 text-red-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="max-w-md w-full">
+        {/* Icon */}
+        <div className="flex justify-center mb-8">
+          <div className="relative">
+            <div className="absolute inset-0 bg-red-500/20 rounded-full blur-3xl opacity-50 animate-pulse" />
+            <div className="relative flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-red-500/50 shadow-2xl shadow-red-500/20">
+              <AlertCircle className="h-12 w-12 text-red-500" />
+            </div>
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Something went wrong
-        </h1>
-        <p className="text-gray-600 text-sm mb-4">
-          We encountered an unexpected error. Please try again.
-        </p>
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-left text-xs text-red-800 overflow-auto max-h-40">
-            <p className="font-mono font-bold mb-2">Error Details:</p>
-            <p>{error.message}</p>
-            {error.digest && <p className="text-xs text-gray-600 mt-2">Digest: {error.digest}</p>}
+
+        {/* Content */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-white">
+            Oops! Something Went Wrong
+          </h1>
+          
+          <p className="text-slate-300 text-base leading-relaxed">
+            We encountered an unexpected error while processing your request. Our team has been notified.
+          </p>
+
+          {/* Error Details (Development Only) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-left">
+              <p className="text-xs font-semibold text-red-300 mb-2">Error Details:</p>
+              <p className="text-xs font-mono text-slate-300 break-all mb-2">{error.message}</p>
+              {error.digest && (
+                <p className="text-xs text-slate-400">
+                  <span className="text-slate-500 font-medium">Digest:</span> {error.digest}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Helpful Info */}
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <p className="text-sm font-semibold text-blue-300 mb-3">What you can try:</p>
+            <ul className="text-sm text-slate-300 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold">•</span>
+                <span>Refresh the page</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold">•</span>
+                <span>Clear your browser cache</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold">•</span>
+                <span>Try again in a few moments</span>
+              </li>
+            </ul>
           </div>
-        )}
-        <div className="flex gap-3 mt-6">
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 mt-8">
           <button
             onClick={() => reset()}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg font-semibold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50"
           >
+            <RotateCw className="h-5 w-5" />
             Try Again
           </button>
+          
           <button
             onClick={() => {
               if (typeof window !== 'undefined') {
                 window.location.href = '/';
               }
             }}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
           >
-            Go Home
+            <Home className="h-5 w-5" />
+            Home
           </button>
         </div>
+
+        {/* Support Link */}
+        <p className="text-center text-xs text-slate-400 mt-8">
+          Experiencing persistent issues?{' '}
+          <a 
+            href="mailto:support@remopay.com" 
+            className="text-red-400 font-semibold hover:text-red-300 transition-colors"
+          >
+            Contact Support
+          </a>
+        </p>
       </div>
     </div>
   );

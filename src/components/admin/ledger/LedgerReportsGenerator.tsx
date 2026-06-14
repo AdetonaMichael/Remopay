@@ -216,7 +216,7 @@ export const LedgerReportsGenerator: React.FC<LedgerReportsGeneratorProps> = ({ 
                           <td className="px-4 py-2 text-right text-gray-900 font-medium">
                             ₦{account.balance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                           </td>
-                          <td className="px-4 py-2 text-gray-600">{account.side.toUpperCase()}</td>
+                          <td className="px-4 py-2 text-gray-600">{account.side?.toUpperCase() || 'N/A'}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -22,6 +22,7 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { PINVerificationModal } from '@/components/shared/PINVerificationModal';
+import { RecipientSelector } from '@/components/vtu';
 import { paymentService } from '@/services/payment.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
@@ -88,15 +89,7 @@ export default function DataReviewPage() {
   };
 
   const handlePhoneChange = (value: string) => {
-    let phone = value.replace(/\D/g, '').slice(0, 11);
-
-    if (phone.length > 7) {
-      phone = `${phone.slice(0, 3)} ${phone.slice(3, 7)} ${phone.slice(7)}`;
-    } else if (phone.length > 3) {
-      phone = `${phone.slice(0, 3)} ${phone.slice(3)}`;
-    }
-
-    setPhoneNumber(phone);
+    setPhoneNumber(value.replace(/\s/g, ''));
     setPhoneError('');
   };
 
@@ -368,16 +361,20 @@ export default function DataReviewPage() {
             </h2>
 
             <div className="mt-6">
-              <Input
-                label="Phone Number"
-                type="tel"
-                placeholder="080 1234 5678"
+              <RecipientSelector
                 value={phoneNumber}
-                onChange={(event) => handlePhoneChange(event.target.value)}
-                onBlur={validatePhoneNumber}
+                onChange={(value) => {
+                  handlePhoneChange(value);
+                  setPhoneError('');
+                }}
+                label="Recipient Phone Number"
+                placeholder="Enter or select a phone number"
                 error={phoneError}
-                helperText="Enter the Nigerian number that should receive the data bundle."
-                icon={<Phone size={18} />}
+                transactionType="data"
+                serviceIdentifier={formData.provider || 'mtn'}
+                showQuickSelect={true}
+                showManager={true}
+                credentialType="phone"
               />
             </div>
           </Card>

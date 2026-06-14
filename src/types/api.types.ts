@@ -12,6 +12,8 @@ export interface ApiResponse<T = any> {
   data?: T;
   error_code?: string;
   errors?: Record<string, string[]>;
+  pagination?: PaginationMeta;
+  stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data
   // VTU API specific fields
   content?: T;
   response_description?: string;
@@ -30,6 +32,7 @@ export interface PaginationMeta {
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: PaginationMeta;
+  stats?: Record<string, any>; // Optional stats object for endpoints that return aggregated data
 }
 
 // ============= User & Auth Types =============
@@ -757,6 +760,86 @@ export interface AdvertisementAdmin extends Advertisement {
   updated_at: string;
   created_by?: string;
   updated_by?: string;
+}
+
+// ============= VTU Recipients Types =============
+export interface VtuRecipient {
+  id: number;
+  credential: string;
+  credential_type: 'phone' | 'meter' | 'card';
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+  recipient_email?: string | null;
+  transaction_type: string; // Backend returns: "Airtime Recharge", "Data Services", etc.
+  service_identifier: string;
+  usage_count: number;
+  last_used_at?: string | null;
+  is_active: boolean;
+  metadata?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GetAllRecipientsRequest {
+  transaction_type?: string;
+  service_identifier?: string;
+  credential_type?: string;
+  search?: string;
+  page?: number;
+  per_page?: number;
+  sort_by?: 'last_used_at' | 'frequently_used' | 'recently_added';
+}
+
+export type GetAllRecipientsResponse = VtuRecipient[];
+
+export interface RecipientSearchSuggestion {
+  id: number;
+  credential: string;
+  credential_type: 'phone' | 'meter' | 'card';
+  recipient_name?: string | null;
+  service_identifier: string;
+  transaction_type: string;
+  usage_count: number;
+  last_used_at?: string | null;
+}
+
+export interface SearchRecipientsSuggestRequest {
+  credential: string;
+  transaction_type?: string;
+  service_identifier?: string;
+  limit?: number;
+}
+
+export type SearchRecipientsSuggestResponse = RecipientSearchSuggestion[];
+
+export interface UpdateVtuRecipientRequest {
+  recipient_name?: string;
+  recipient_phone?: string;
+  recipient_email?: string;
+  is_active?: boolean;
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateVtuRecipientResponse {
+  success: boolean;
+  message: string;
+  data: VtuRecipient;
+}
+
+export interface RecordUsageResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: number;
+    credential: string;
+    usage_count: number;
+    last_used_at: string;
+  };
+}
+
+export interface DeleteRecipientResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface AdvertisementResponse {

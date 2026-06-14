@@ -39,6 +39,7 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
     '/privacy',
     '/terms',
     '/support',
+    '/offline',
   ];
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
+import { RecipientSelector } from '@/components/vtu';
 import { vtuService } from '@/services/vtu.service';
 import { useUIStore } from '@/store/ui.store';
 import { VTUProvider } from '@/types/vtu.types';
@@ -255,29 +256,21 @@ export default function AirtimePage() {
             </div>
 
             <div>
-              <label className="mb-3 block text-sm font-bold text-gray-900">
-                Recipient Phone Number
-              </label>
-
-              <div className="relative">
-                <Phone
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <Input
-                  type="tel"
-                  placeholder="080 1234 5678"
-                  value={formData.phone}
-                  onChange={(event) => handlePhoneChange(event.target.value)}
-                  className="h-13 rounded-2xl border-gray-200 bg-white pl-12 text-base focus:border-[#d71927]"
-                />
-              </div>
-
-              {errors.phone && (
-                <p className="mt-3 text-sm font-medium text-red-600">
-                  {errors.phone}
-                </p>
-              )}
+              <RecipientSelector
+                value={formData.phone}
+                onChange={(value) => {
+                  handlePhoneChange(value);
+                  setErrors((prev) => ({ ...prev, phone: '' }));
+                }}
+                label="Recipient Phone Number"
+                placeholder="Enter or select a phone number"
+                error={errors.phone}
+                transactionType="airtime"
+                serviceIdentifier={formData.provider || 'mtn'}
+                showQuickSelect={true}
+                showManager={true}
+                credentialType="phone"
+              />
             </div>
 
             <div>

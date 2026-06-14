@@ -85,8 +85,23 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
               console.warn('[AuthInitializer] Failed to refresh user data:', response.message);
             }
           } catch (error: any) {
-            console.error('[AuthInitializer] Error refreshing user data:', error);
-            // Don't fail initialization if refresh fails - user can continue
+            // Check if it's a network error vs API error
+            const isNetworkError = 
+              error?.message?.includes('network') ||
+              error?.message?.includes('Network') ||
+              error?.code === 'ERR_NETWORK' ||
+              error?.response?.status === 0 ||
+              (error?.response?.status >= 500 && error?.response?.status < 600) ||
+              error instanceof TypeError; // Network errors throw TypeError in fetch
+            
+            if (isNetworkError) {
+              console.error('[AuthInitializer] Network error refreshing user data:', error);
+              // Don't redirect - let the error page handle it
+              throw new Error('Connection failed. Please check your internet connection and try again.');
+            } else {
+              console.error('[AuthInitializer] Error refreshing user data:', error);
+              // Don't fail initialization if non-network errors occur
+            }
           }
         } else if (!token) {
           // No token - user is not authenticated
@@ -96,6 +111,21 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } catch (error: any) {
         console.error('[AuthInitializer] Auth initialization error:', error);
+        // Detect and handle connection/network errors
+        const isNetworkError = 
+          error?.message?.includes('network') ||
+          error?.message?.includes('Network') ||
+          error?.message?.includes('Connection') ||
+          error?.code === 'ERR_NETWORK' ||
+          error?.response?.status === 0 ||
+          (error?.response?.status >= 500 && error?.response?.status < 600) ||
+          error instanceof TypeError;
+        
+        if (isNetworkError) {
+          console.error('[AuthInitializer] Network error detected, redirecting to offline page');
+          router.push('/offline');
+          return;
+        }
       } finally {
         setIsLoading(false);
         setRoutingResolved(true);
@@ -127,6 +157,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/terms',
       '/support',
       '/multi-currency',
+      '/offline',
       '/error',
     ];
 
