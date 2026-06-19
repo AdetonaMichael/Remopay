@@ -434,6 +434,77 @@ class PaymentService {
       throw error;
     }
   }
+
+  /**
+   * Get Paystack merchant balance
+   * Returns balance in kobo (divide by 100 to get naira)
+   */
+  async getPaystackBalance(): Promise<ApiResponse<{ data: Array<{ currency: string; balance: number }> }>> {
+    try {
+      debug.log('[PaymentService] Fetching Paystack merchant balance');
+
+      const response = await apiClient.get('/payment/merchant-balance');
+
+      debug.log('[PaymentService] Paystack balance fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch Paystack balance', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get VTPass balance
+   * Returns response with code and contents (not wrapped in ApiResponse success wrapper)
+   */
+  async getVTPassBalance(): Promise<any> {
+    try {
+      debug.log('[PaymentService] Fetching VTPass balance');
+
+      const response = await apiClient.get('/vtu/balance');
+
+      debug.log('[PaymentService] VTPass balance fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch VTPass balance', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get Maplerad balance
+   */
+  async getMapleradBalance(): Promise<ApiResponse<any>> {
+    try {
+      debug.log('[PaymentService] Fetching Maplerad balance');
+
+      const response = await apiClient.get('/payment/maplerad-balance');
+
+      debug.log('[PaymentService] Maplerad balance fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch Maplerad balance', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get Telnyx balance
+   * Returns available credit for SMS operations
+   */
+  async getTelnyxBalance(): Promise<ApiResponse<any>> {
+    try {
+      debug.log('[PaymentService] Fetching Telnyx merchant balance');
+
+      const response = await apiClient.get('/telnyx/merchant-balance');
+
+      debug.log('[PaymentService] Telnyx balance fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch Telnyx balance', error);
+      throw error;
+    }
+  }
 }
 
 export const paymentService = new PaymentService();

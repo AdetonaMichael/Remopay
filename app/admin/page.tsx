@@ -26,6 +26,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { adminService } from '@/services/admin.service';
+import { paymentService } from '@/services/payment.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -182,6 +183,26 @@ function formatCompactCurrency(value: number | null | undefined): string {
   return `₦${value.toLocaleString()}`;
 }
 
+/**
+ * Format balance as full currency value (no compact notation)
+ */
+function formatFullCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '₦0.00';
+  }
+  return `₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * Format USD currency value
+ */
+function formatUSDCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '$0.00';
+  }
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 function getStatusBadge(status: string) {
   const statusConfig: Record<string, { variant: any; text: string }> = {
     completed: { variant: 'success', text: 'Completed' },
@@ -202,6 +223,16 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+
+  // Provider balances state
+  const [providerBalances, setProviderBalances] = useState<{
+    paystack: number | null;
+    vtpass: number | null;
+    maplerad: number | null;
+    telnyx: number | null;
+  }>({ paystack: null, vtpass: null, maplerad: null, telnyx: null });
+  const [balancesLoading, setBalancesLoading] = useState(true);
+  const [scrollPosition, setScrollPosition] = useState(0);
 
   // Transaction state
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -349,6 +380,136 @@ export default function AdminDashboardPage() {
     fetchDashboard();
   }, []);
 
+  // Fetch provider balances
+  useEffect(() => {
+    const fetchProviderBalances = async () => {
+      try {
+        setBalancesLoading(true);
+        const balances: { paystack: number | null; vtpass: number | null; maplerad: number | null; telnyx: number | null } = { paystack: null, vtpass: null, maplerad: null, telnyx: null };
+
+        // Fetch Paystack balance
+        try {
+          const paystackResponse = await paymentService.getPaystackBalance();
+          console.log('[AdminDashboard] Paystack Raw Response:', JSON.stringify(paystackResponse, null, 2));
+          
+          let balanceValue = null;
+          
+          // Try multiple paths to find the balance
+          // Path 1: response.data[0].balance (most likely)
+          if (paystackResponse?.data && Array.isArray(paystackResponse.data) && paystackResponse.data.length > 0) {
+            balanceValue = paystackResponse.data[0].balance;
+            console.log('[AdminDashboard] Found balance via path 1 (response.data[0].balance):', balanceValue);
+          }
+          // Path 2: response.data.data[0].balance (nested)
+          else if (paystackResponse?.data?.data && Array.isArray(paystackResponse.data.data) && paystackResponse.data.data.length > 0) {
+            balanceValue = paystackResponse.data.data[0].balance;
+            console.log('[AdminDashboard] Found balance via path 2 (response.data.data[0].balance):', balanceValue);
+          }
+          // Path 3: response.balance (if balance is at root)
+          else if (typeof (paystackResponse as any)?.balance === 'number') {
+            balanceValue = (paystackResponse as any).balance;
+            console.log('[AdminDashboard] Found balance via path 3 (response.balance):', balanceValue);
+          }
+          // Path 4: Check if data itself is the balance value
+          else if (typeof (paystackResponse as any)?.data === 'number') {
+            balanceValue = (paystackResponse as any).data;
+            console.log('[AdminDashboard] Found balance via path 4 (response.data is number):', balanceValue);
+          }
+          
+          console.log('[AdminDashboard] Final balanceValue before conversion:', balanceValue, 'Type:', typeof balanceValue);
+          
+          if (balanceValue !== null && balanceValue !== undefined) {
+            // Handle both number and string
+            let balanceNum = balanceValue;
+            if (typeof balanceNum === 'string') {
+              balanceNum = parseFloat(balanceNum);
+            }
+            
+            console.log('[AdminDashboard] Balance as number:', balanceNum);
+            console.log('[AdminDashboard] Is valid number:', !isNaN(balanceNum));
+            
+            if (!isNaN(balanceNum)) {
+              // Convert from kobo to naira (even if 0)
+              balances.paystack = balanceNum / 100;
+              console.log('[AdminDashboard] ✓ Paystack Balance Set (Naira):', balances.paystack);
+            } else {
+              console.warn('[AdminDashboard] Balance is not a valid number:', balanceNum);
+            }
+          } else {
+            console.warn('[AdminDashboard] Could not find balance in any expected location');
+            console.log('[AdminDashboard] Response keys:', Object.keys(paystackResponse || {}));
+          }
+        } catch (err: any) {
+          console.error('[AdminDashboard] Exception fetching Paystack balance:', err);
+          console.error('[AdminDashboard] Error Stack:', err?.stack);
+          console.error('[AdminDashboard] Full Error Object:', JSON.stringify(err, null, 2));
+        }
+
+        // Fetch VTPass balance
+        try {
+          const vtpassResponse = await paymentService.getVTPassBalance();
+          // VTPass returns { code: 1, contents: { balance: "74.60" } }
+          if (vtpassResponse.code === 1 && vtpassResponse.contents?.balance) {
+            balances.vtpass = parseFloat(vtpassResponse.contents.balance);
+          }
+        } catch (err: any) {
+          console.warn('[AdminDashboard] Failed to fetch VTPass balance:', err?.message);
+        }
+
+        // Fetch Maplerad balance
+        try {
+          const mapleradResponse = await paymentService.getMapleradBalance();
+          console.log('[AdminDashboard] Maplerad Response:', mapleradResponse);
+          if (mapleradResponse.success && mapleradResponse.data?.balance) {
+            let balanceValue = mapleradResponse.data.balance;
+            if (typeof balanceValue === 'string') {
+              balanceValue = parseFloat(balanceValue);
+            }
+            if (!isNaN(balanceValue)) {
+              balances.maplerad = balanceValue;
+              console.log('[AdminDashboard] ✓ Maplerad Balance Set:', balances.maplerad);
+            }
+          }
+        } catch (err: any) {
+          console.error('[AdminDashboard] Failed to fetch Maplerad balance:', err?.message);
+        }
+
+        // Fetch Telnyx balance (available_credit in USD)
+        try {
+          const telnyxResponse = await paymentService.getTelnyxBalance();
+          console.log('[AdminDashboard] Telnyx Response:', telnyxResponse);
+          
+          if (telnyxResponse.success && telnyxResponse.data) {
+            // Use available_credit as it's the most relevant for transaction purposes
+            const creditValue = telnyxResponse.data.available_credit;
+            console.log('[AdminDashboard] Telnyx available_credit:', creditValue);
+            
+            if (creditValue !== undefined && creditValue !== null) {
+              let balanceValue = creditValue;
+              if (typeof balanceValue === 'string') {
+                balanceValue = parseFloat(balanceValue);
+              }
+              if (!isNaN(balanceValue)) {
+                balances.telnyx = balanceValue;
+                console.log('[AdminDashboard] ✓ Telnyx Balance Set (USD):', balances.telnyx);
+              }
+            }
+          }
+        } catch (err: any) {
+          console.error('[AdminDashboard] Failed to fetch Telnyx balance:', err?.message);
+        }
+
+        setProviderBalances(balances);
+      } catch (err: any) {
+        console.error('[AdminDashboard] Error fetching provider balances:', err);
+      } finally {
+        setBalancesLoading(false);
+      }
+    };
+
+    fetchProviderBalances();
+  }, []);
+
   const handleRetry = () => {
     setRetrying(true);
     setError(null);
@@ -396,22 +557,22 @@ export default function AdminDashboardPage() {
   if (error || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707]">
-        <div className="w-full max-w-md rounded-[24px] border border-[#e5e7eb] bg-white p-8 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-            <AlertCircle className="h-8 w-8 text-red-500" />
+        <div className="w-full max-w-md rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-6 sm:p-8 text-center shadow-[0_10px_35px_rgba(0,0,0,0.04)] mx-4">
+          <div className="mx-auto mb-4 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-red-50">
+            <AlertCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
           </div>
-          <h3 className="text-lg font-semibold text-[#111827] mb-2">
+          <h3 className="text-base sm:text-lg font-semibold text-[#111827] mb-2">
             Unable to Load Dashboard
           </h3>
-          <p className="text-sm text-[#6b7280] mb-6">
+          <p className="text-xs sm:text-sm text-[#6b7280] mb-6">
             {error || 'Failed to load dashboard data. Please check your connection and try again.'}
           </p>
           <button
             onClick={handleRetry}
             disabled={retrying}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#4a5ff7] px-6 py-2 text-sm font-medium text-white hover:bg-[#3a4fe7] disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#4a5ff7] px-5 sm:px-6 py-2 text-xs sm:text-sm font-medium text-white hover:bg-[#3a4fe7] disabled:opacity-50 transition-colors"
           >
-            <RefreshCw className={`h-4 w-4 ${retrying ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${retrying ? 'animate-spin' : ''}`} />
             {retrying ? 'Retrying...' : 'Try Again'}
           </button>
         </div>
@@ -487,6 +648,34 @@ export default function AdminDashboardPage() {
       color: 'bg-green-50 text-green-600',
       subtext: `${safeVtuStats.completed_transactions.toLocaleString()} completed`,
     },
+    {
+      label: 'Paystack Balance',
+      value: formatFullCurrency(providerBalances.paystack),
+      icon: CreditCard,
+      color: 'bg-indigo-50 text-indigo-600',
+      subtext: balancesLoading ? 'Loading...' : 'Merchant Balance',
+    },
+    {
+      label: 'VTPass Balance',
+      value: formatFullCurrency(providerBalances.vtpass),
+      icon: Network,
+      color: 'bg-orange-50 text-orange-600',
+      subtext: balancesLoading ? 'Loading...' : 'Provider Balance',
+    },
+    {
+      label: 'Maplerad Balance',
+      value: formatFullCurrency(providerBalances.maplerad),
+      icon: Zap,
+      color: 'bg-pink-50 text-pink-600',
+      subtext: balancesLoading ? 'Loading...' : 'Provider Balance',
+    },
+    {
+      label: 'Telnyx Balance',
+      value: formatUSDCurrency(providerBalances.telnyx),
+      icon: Activity,
+      color: 'bg-cyan-50 text-cyan-600',
+      subtext: balancesLoading ? 'Loading...' : 'SMS Provider (USD)',
+    },
   ];
 
   return (
@@ -496,82 +685,127 @@ export default function AdminDashboardPage() {
         * {
           font-family: 'Plus Jakarta Sans', sans-serif;
         }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
 
-      <div className="space-y-8 p-4 sm:p-6 md:p-8">
+      <div className="space-y-5 sm:space-y-6 md:space-y-8 p-3 sm:p-5 md:p-8">
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <section>
-          <h1 className="text-3xl font-bold text-[#111827]">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#111827]">
             Dashboard
           </h1>
-          <p className="mt-2 text-sm text-[#6b7280]">
+          <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-[#6b7280]">
             Real-time system metrics and performance analytics
           </p>
         </section>
 
-        {/* ── KPI Cards (Horizontally Scrollable) ────────────────────────── */}
+        {/* ── KPI Cards (Horizontally Scrollable with Navigation) ────────── */}
         <section>
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-x-visible lg:grid-cols-4">
-            {kpiCards.map((kpi) => {
-              const Icon = kpi.icon;
-              return (
-                <Card
-                  key={kpi.label}
-                  className="min-w-full snap-start rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] md:min-w-0"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-[#6b7280]">
-                        {kpi.label}
-                      </p>
-                      <p className="mt-3 text-2xl font-bold text-[#111827]">
-                        {kpi.value}
-                      </p>
-                      <p className="mt-2 text-xs text-[#6b7280]">
-                        {kpi.subtext}
-                      </p>
+          <div className="relative">
+            {/* Left Navigation Button */}
+            <button
+              onClick={() => {
+                const container = document.getElementById('kpi-cards-container');
+                if (container) {
+                  container.scrollBy({ left: -400, behavior: 'smooth' });
+                }
+              }}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 hidden lg:flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white border border-[#e5e7eb] shadow-md hover:shadow-lg transition-shadow hover:bg-[#f9fafb]"
+              aria-label="Scroll left"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#6b7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Right Navigation Button */}
+            <button
+              onClick={() => {
+                const container = document.getElementById('kpi-cards-container');
+                if (container) {
+                  container.scrollBy({ left: 400, behavior: 'smooth' });
+                }
+              }}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 hidden lg:flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white border border-[#e5e7eb] shadow-md hover:shadow-lg transition-shadow hover:bg-[#f9fafb]"
+              aria-label="Scroll right"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-[#6b7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Cards Container */}
+            <div
+              id="kpi-cards-container"
+              className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth scrollbar-hide lg:pr-10 lg:pl-10"
+            >
+              {kpiCards.map((kpi) => {
+                const Icon = kpi.icon;
+                return (
+                  <Card
+                    key={kpi.label}
+                    className="min-w-[230px] sm:min-w-[270px] md:min-w-[300px] snap-start rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_15px_45px_rgba(0,0,0,0.08)] hover:border-[#d1d5db] flex-shrink-0"
+                  >
+                    <div className="flex items-start justify-between gap-3 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-[#6b7280]">
+                          {kpi.label}
+                        </p>
+                        <p className="mt-2 sm:mt-3 text-lg sm:text-xl md:text-2xl font-bold text-[#111827] break-words">
+                          {kpi.value}
+                        </p>
+                        <p className="mt-1 sm:mt-2 text-[11px] sm:text-xs text-[#6b7280]">
+                          {kpi.subtext}
+                        </p>
+                      </div>
+                      <div className={`rounded-xl sm:rounded-2xl ${kpi.color} p-2 sm:p-2.5 md:p-3 flex-shrink-0`}>
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
                     </div>
-                    <div className={`rounded-2xl ${kpi.color} p-3`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         </section>
 
         {/* ── Charts Grid ────────────────────────────────────────────────── */}
-        <section className="grid gap-6 md:grid-cols-2">
+        <section className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-2">
           {/* Service Distribution */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <BarChart3 className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Service Distribution
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   Transaction breakdown by service type
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {services.service_distribution && services.service_distribution.length > 0 ? (
                 services.service_distribution.map((service) => (
                   <div key={service.type}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#111827]">
+                    <div className="mb-1.5 sm:mb-2 flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-medium text-[#111827]">
                         {service.type.replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <span className="text-sm font-bold text-[#4a5ff7]">
+                      <span className="text-xs sm:text-sm font-bold text-[#4a5ff7]">
                         {service.percentage.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                    <div className="h-1.5 sm:h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
                       <div
                         className="h-full rounded-full bg-[#4a5ff7]"
                         style={{ width: `${Math.max(service.percentage, 2)}%` }}
@@ -580,253 +814,253 @@ export default function AdminDashboardPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No service distribution data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No service distribution data available</p>
               )}
             </div>
           </Card>
 
           {/* Network Performance */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Network className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <Network className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Network Performance
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   VTU transactions by network
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {services.vtu_by_network && services.vtu_by_network.length > 0 ? (
                 services.vtu_by_network.map((network) => (
                   <div
                     key={network.network}
-                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
+                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-3 sm:pb-4 last:border-b-0"
                   >
                     <div>
-                      <p className="font-semibold text-[#111827]">
+                      <p className="text-sm sm:text-base font-semibold text-[#111827]">
                         {network.network}
                       </p>
-                      <p className="text-xs text-[#6b7280]">
+                      <p className="text-[11px] sm:text-xs text-[#6b7280]">
                         {network.transaction_count} transactions
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-[#111827]">
+                      <p className="text-sm sm:text-base font-bold text-[#111827]">
                         {formatCompactCurrency(network.volume)}
                       </p>
-                      <p className="text-xs text-[#6b7280]">
+                      <p className="text-[11px] sm:text-xs text-[#6b7280]">
                         {formatCompactCurrency(network.commission)} commission
                       </p>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No network performance data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No network performance data available</p>
               )}
             </div>
           </Card>
         </section>
 
         {/* ── Performance & Top Performers Grid ──────────────────────────– */}
-        <section className="grid gap-6 md:grid-cols-2">
+        <section className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-2">
           {/* Success Rate by Type */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <TrendingUp className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Success Rates
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   By transaction type
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {performance?.success_rate_by_type && performance.success_rate_by_type.length > 0 ? (
                 performance.success_rate_by_type.map((type) => (
                   <div key={type.type}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-[#111827]">
+                    <div className="mb-1.5 sm:mb-2 flex items-center justify-between">
+                      <span className="text-xs sm:text-sm font-medium text-[#111827]">
                         {type.type.replace(/_/g, ' ').toUpperCase()}
                       </span>
-                      <span className="text-sm font-bold text-green-600">
+                      <span className="text-xs sm:text-sm font-bold text-green-600">
                         {type.success_rate.toFixed(1)}%
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
+                    <div className="h-1.5 sm:h-2 overflow-hidden rounded-full bg-[#f3f4f6]">
                       <div
                         className="h-full rounded-full bg-green-500"
                         style={{ width: `${type.success_rate}%` }}
                       />
                     </div>
-                    <p className="mt-1 text-xs text-[#6b7280]">
+                    <p className="mt-1 text-[11px] sm:text-xs text-[#6b7280]">
                       {type.successful} of {type.total} successful
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No success rate data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No success rate data available</p>
               )}
             </div>
           </Card>
 
           {/* Top Performers */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Zap className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Top Networks
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   By transaction volume
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {topPerformers?.top_networks && topPerformers.top_networks.length > 0 ? (
                 topPerformers.top_networks.slice(0, 4).map((network, idx) => (
                   <div key={network.network} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                      <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-[#eef2ff] text-[11px] sm:text-xs font-bold text-[#4a5ff7]">
                         {idx + 1}
                       </div>
-                      <span className="font-medium text-[#111827]">
+                      <span className="text-sm sm:text-base font-medium text-[#111827]">
                         {network.network}
                       </span>
                     </div>
-                    <span className="text-sm font-bold text-[#111827]">
+                    <span className="text-xs sm:text-sm font-bold text-[#111827]">
                       {formatCompactCurrency(network.volume)}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No network data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No network data available</p>
               )}
             </div>
           </Card>
         </section>
 
         {/* ── Recent & Health Grid ───────────────────────────────────────– */}
-        <section className="grid gap-6 md:grid-cols-2">
+        <section className="grid gap-4 sm:gap-5 md:gap-6 md:grid-cols-2">
           {/* Top Users */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Users className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   Top Users
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   By transaction volume
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {topPerformers?.top_users_by_volume && topPerformers.top_users_by_volume.length > 0 ? (
                 topPerformers.top_users_by_volume.slice(0, 5).map((user, idx) => (
                   <div
                     key={user.user_id}
-                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-4 last:border-b-0"
+                    className="flex items-center justify-between border-b border-[#f1f5f9] pb-3 sm:pb-4 last:border-b-0"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                      <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[#eef2ff] text-[11px] sm:text-xs font-bold text-[#4a5ff7]">
                         {idx + 1}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-[#111827]">
+                        <p className="text-xs sm:text-sm font-semibold text-[#111827]">
                           {user.name}
                         </p>
-                        <p className="text-xs text-[#6b7280]">
+                        <p className="text-[11px] sm:text-xs text-[#6b7280]">
                           {user.transaction_count} transactions
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-[#111827]">
+                    <p className="text-xs sm:text-sm font-bold text-[#111827]">
                       {formatCompactCurrency(user.total_volume)}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-[#6b7280]">No user data available</p>
+                <p className="text-xs sm:text-sm text-[#6b7280]">No user data available</p>
               )}
             </div>
           </Card>
 
           {/* System Health */}
-          <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="rounded-2xl bg-[#eef2ff] p-3">
-                <Activity className="h-5 w-5 text-[#4a5ff7]" />
+          <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+            <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+              <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
               </div>
               <div>
-                <h3 className="font-semibold text-[#111827]">
+                <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                   System Health
                 </h3>
-                <p className="text-xs text-[#6b7280]">
+                <p className="text-[11px] sm:text-xs text-[#6b7280]">
                   Status and alerts
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-2xl bg-[#f8fafc] p-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#6b7280]">
+                  <span className="text-xs sm:text-sm font-medium text-[#6b7280]">
                     Failed Transactions (24h)
                   </span>
-                  <span className="text-lg font-bold text-[#111827]">
+                  <span className="text-base sm:text-lg font-bold text-[#111827]">
                     {health.transaction_health.failed_last_24h}
                   </span>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#f8fafc] p-4">
+              <div className="rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#6b7280]">
+                  <span className="text-xs sm:text-sm font-medium text-[#6b7280]">
                     Unverified Users
                   </span>
-                  <span className="text-lg font-bold text-[#111827]">
+                  <span className="text-base sm:text-lg font-bold text-[#111827]">
                     {health.user_health.unverified_users}
                   </span>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#f8fafc] p-4">
+              <div className="rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[#6b7280]">
+                  <span className="text-xs sm:text-sm font-medium text-[#6b7280]">
                     Active Offer Codes
                   </span>
-                  <span className="text-lg font-bold text-[#111827]">
+                  <span className="text-base sm:text-lg font-bold text-[#111827]">
                     {health.offers.active_codes}
                   </span>
                 </div>
               </div>
 
               {health?.alerts && health.alerts.length > 0 && (
-                <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                  <p className="text-xs font-semibold text-yellow-700">
+                <div className="rounded-xl sm:rounded-2xl border border-yellow-200 bg-yellow-50 p-3 sm:p-4">
+                  <p className="text-[11px] sm:text-xs font-semibold text-yellow-700">
                     Alerts
                   </p>
                   <div className="mt-2 space-y-2">
                     {health.alerts.slice(0, 2).map((alert, idx) => (
-                      <p key={idx} className="text-xs text-yellow-600">
+                      <p key={idx} className="text-[11px] sm:text-xs text-yellow-600">
                         • {alert.message}
                       </p>
                     ))}
@@ -838,48 +1072,48 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* ── Transaction Trends ─────────────────────────────────────────– */}
-        <Card className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
-          <div className="mb-6 flex items-center gap-3">
-            <div className="rounded-2xl bg-[#eef2ff] p-3">
-              <Clock className="h-5 w-5 text-[#4a5ff7]" />
+        <Card className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-5 md:p-6 shadow-[0_10px_35px_rgba(0,0,0,0.04)]">
+          <div className="mb-4 sm:mb-5 md:mb-6 flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl sm:rounded-2xl bg-[#eef2ff] p-2 sm:p-2.5 md:p-3">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-[#4a5ff7]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#111827]">
+              <h3 className="text-sm sm:text-base font-semibold text-[#111827]">
                 Hourly Breakdown (Today)
               </h3>
-              <p className="text-xs text-[#6b7280]">
+              <p className="text-[11px] sm:text-xs text-[#6b7280]">
                 Transaction volume by hour
               </p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8">
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8">
             {performance?.hourly_trend_today && performance.hourly_trend_today.filter((h) => h.transaction_count > 0).length > 0 ? (
               performance.hourly_trend_today.filter((h) => h.transaction_count > 0).map((hour) => (
                 <div
                   key={hour.hour}
-                  className="rounded-2xl bg-[#f8fafc] p-4 text-center"
+                  className="rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:p-4 text-center"
                 >
-                  <p className="text-xs font-medium text-[#6b7280]">
+                  <p className="text-[11px] sm:text-xs font-medium text-[#6b7280]">
                     {hour.hour}:00
                   </p>
-                  <p className="mt-2 text-lg font-bold text-[#111827]">
+                  <p className="mt-1.5 sm:mt-2 text-base sm:text-lg font-bold text-[#111827]">
                     {hour.transaction_count}
                   </p>
-                  <p className="mt-1 text-xs text-[#6b7280]">
+                  <p className="mt-1 text-[11px] sm:text-xs text-[#6b7280]">
                     {formatCompactCurrency(hour.volume)}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-[#6b7280] col-span-full text-center">No hourly trend data available</p>
+              <p className="text-xs sm:text-sm text-[#6b7280] col-span-full text-center">No hourly trend data available</p>
             )}
           </div>
         </Card>
 
         {/* ── Footer ─────────────────────────────────────────────────────– */}
-        <div className="rounded-[24px] border border-[#e5e7eb] bg-white p-6 text-center">
-          <p className="text-xs text-[#6b7280]">
+        <div className="rounded-2xl sm:rounded-3xl border border-[#e5e7eb] bg-white p-4 sm:p-6 text-center">
+          <p className="text-[11px] sm:text-xs text-[#6b7280]">
             Last updated: {new Date(data.timestamp).toLocaleString()}
           </p>
         </div>

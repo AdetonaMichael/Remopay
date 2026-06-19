@@ -21,6 +21,12 @@ export default function robots(): MetadataRoute.Robots {
           '/auth/login',
           '/auth/register',
           '/auth/forgot-password',
+          '/vtu',
+          '/vtu/*',
+          '/vtu/airtime',
+          '/vtu/data',
+          '/vtu/tv',
+          '/vtu/bills',
         ],
         disallow: [
           // Authenticated user areas - should not be indexed
@@ -88,6 +94,8 @@ export default function robots(): MetadataRoute.Robots {
           '/multi-currency',
           '/auth/login',
           '/auth/register',
+          '/vtu',
+          '/vtu/*',
         ],
         disallow: [
           '/admin',

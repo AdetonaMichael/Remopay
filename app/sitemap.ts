@@ -72,6 +72,40 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // VTU pages - high priority
+  const vtuPages = [
+    {
+      url: `${baseUrl}/vtu`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/vtu/airtime`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vtu/data`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vtu/tv`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/vtu/bills`,
+      lastModified,
+      changeFrequency: 'weekly' as const,
+      priority: 0.85,
+    },
+  ];
+
   // Informational pages - medium priority
   const infoPages = [
     {
@@ -123,5 +157,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   // Combine all public pages - EXCLUDE dashboard, admin, agent pages
-  return [...mainPages, ...serviceFeaturePages, ...infoPages, ...authPages];
+  return [...mainPages, ...serviceFeaturePages, ...vtuPages, ...infoPages, ...authPages];
 }

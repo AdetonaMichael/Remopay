@@ -59,18 +59,21 @@ function getStatusBadgeStyle(status: string) {
 export default function ReferralPage() {
   // State management
   const [referralLinks, setReferralLinks] = useState<ReferralLink[]>([]);
+  const [userReferralLinks, setUserReferralLinks] = useState<ReferralLink[]>([]);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [milestones, setMilestones] = useState<ReferralMilestone[]>([]);
   const [programs, setPrograms] = useState<ReferralProgram[]>([]);
 
   // Loading states
   const [loadingLinks, setLoadingLinks] = useState(true);
+  const [loadingUserReferrals, setLoadingUserReferrals] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingMilestones, setLoadingMilestones] = useState(true);
   const [loadingPrograms, setLoadingPrograms] = useState(true);
 
   // Error states
   const [errorLinks, setErrorLinks] = useState<string | null>(null);
+  const [errorUserReferrals, setErrorUserReferrals] = useState<string | null>(null);
   const [errorStats, setErrorStats] = useState<string | null>(null);
   const [errorMilestones, setErrorMilestones] = useState<string | null>(null);
   const [errorPrograms, setErrorPrograms] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export default function ReferralPage() {
   const fetchAllData = async () => {
     Promise.all([
       fetchReferralLinks(),
+      fetchUserReferralData(),
       fetchStats(),
       fetchMilestones(),
       fetchPrograms(),
@@ -109,6 +113,21 @@ export default function ReferralPage() {
       setErrorLinks(error.message || 'Failed to load referral links');
     } finally {
       setLoadingLinks(false);
+    }
+  };
+
+  const fetchUserReferralData = async () => {
+    try {
+      setLoadingUserReferrals(true);
+      setErrorUserReferrals(null);
+      if (!user?.id) return;
+      const data = await referralService.getUserReferralData(user.id);
+      setUserReferralLinks(data.referralLinks || []);
+    } catch (error: any) {
+      console.error('[ReferralPage] Error fetching user referral data:', error);
+      setErrorUserReferrals(error.message || 'Failed to load your referral data');
+    } finally {
+      setLoadingUserReferrals(false);
     }
   };
 
@@ -314,7 +333,75 @@ export default function ReferralPage() {
         </div>
       </section>
 
-      {/* Statistics Section */}
+      {/* Your Referrals by Link Section */}
+      <section className="rounded-[32px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)] sm:p-8">
+        <h2 className="text-2xl font-black tracking-tight text-[#111]">Your Referral Links</h2>
+        <p className="mt-1 text-sm font-medium text-black/50">View referrals by each of your links</p>
+
+        {loadingUserReferrals ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : errorUserReferrals ? (
+          <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <p className="text-sm text-red-600 flex items-center gap-2">
+              <AlertCircle size={16} />
+              {errorUserReferrals}
+            </p>
+          </div>
+        ) : userReferralLinks.length > 0 ? (
+          <div className="mt-6 space-y-4">
+            {userReferralLinks.map((link) => {
+              const referralCount = link.referrals?.length || 0;
+              return (
+                <div key={link.code} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-black text-[#111] text-lg">{link.program}</h3>
+                        <span className="inline-block rounded-full bg-[#d71927]/10 px-3 py-1 text-xs font-black text-[#d71927]">
+                          {referralCount} {referralCount === 1 ? 'referral' : 'referrals'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-black/60 font-mono">{link.code}</p>
+                      <p className="text-xs text-black/40 mt-2">Created: {formatDate(link.created_at)}</p>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <div className="rounded-2xl bg-[#d71927]/10 p-4">
+                        <Users className="h-6 w-6 text-[#d71927]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Referrals List */}
+                  {link.referrals && link.referrals.length > 0 && (
+                    <div className="mt-4 border-t border-black/5 pt-4">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-black/40 mb-3">
+                        Referred Users
+                      </p>
+                      <div className="space-y-2">
+                        {link.referrals.map((referral) => (
+                          <div key={referral.id} className="flex items-center justify-between rounded-lg bg-white p-3 border border-black/5">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-black/80 truncate">{referral.name}</p>
+                              <p className="text-xs text-black/50 truncate">{referral.email}</p>
+                            </div>
+                            <p className="text-xs text-black/40 ml-3">{formatDate(referral.created_at)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+            <p className="text-sm text-amber-600">No referral data available yet. Share your referral links to get started.</p>
+          </div>
+        )}
+      </section>
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {loadingStats ? (
           <div className="col-span-full flex justify-center py-8">

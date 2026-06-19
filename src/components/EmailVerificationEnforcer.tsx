@@ -40,6 +40,11 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
     '/terms',
     '/support',
     '/offline',
+    '/vtu',
+    '/vtu/airtime',
+    '/vtu/data',
+    '/vtu/tv',
+    '/vtu/bills',
   ];
 
   useEffect(() => {

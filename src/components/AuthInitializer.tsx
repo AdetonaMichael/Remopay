@@ -159,6 +159,11 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/multi-currency',
       '/offline',
       '/error',
+      '/vtu',
+      '/vtu/airtime',
+      '/vtu/data',
+      '/vtu/tv',
+      '/vtu/bills',
     ];
 
     const isPublicRoute = publicAndAuthRoutes.some(route => {

@@ -41,6 +41,11 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     '/terms',
     '/support',
     '/offline',
+    '/vtu',
+    '/vtu/airtime',
+    '/vtu/data',
+    '/vtu/tv',
+    '/vtu/bills',
   ];
 
   useEffect(() => {
@@ -60,6 +65,14 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
   useEffect(() => {
     if (!isClient) return;
     if (!pathname) return;
+
+    // Skip enforcement if disabled via environment variable
+    if (process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION === 'true') {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[PhoneVerificationEnforcer] Enforcement disabled via NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION');
+      }
+      return;
+    }
 
     // Wait for store to be hydrated from localStorage before enforcing
     if (!isHydrated) {
