@@ -1,12 +1,19 @@
 /**
  * Tier Upgrade Service
- * Handles tier upgrade requests using individual tier endpoints
- * Backend API: https://gateway.remonode.com/remopay/api/v1/payment/customers
+ * Handles tier upgrade requests using two different approaches:
  * 
- * Updated: May 10, 2026
+ * 1. Legacy Direct Endpoints (for backward compatibility)
  * - Tier 0: PATCH /tier-zero (Basic enrollment)
  * - Tier 1: PATCH /tier-one (Bronze with personal details)
  * - Tier 2: PATCH /tier-two (Silver with identity documents)
+ * 
+ * 2. New Application Flow Endpoints (recommended)
+ * - GET /tier-upgrade/{tier} - Get existing application
+ * - POST /tier-upgrade/{tier}/save-draft - Save draft
+ * - POST /tier-upgrade/{tier}/submit - Submit application
+ * - GET /tier-upgrade/{tier}/status - Get application status
+ * 
+ * Updated: June 19, 2026
  */
 
 import { apiClient } from './api-client';
@@ -19,9 +26,96 @@ import {
   BvnVerificationRequest,
   BvnVerificationResponse,
   ApiResponse,
+  GetTierUpgradeApplicationResponse,
+  SaveTierUpgradeDraftResponse,
+  SubmitTierUpgradeResponse,
+  GetTierUpgradeStatusResponse,
+  TierUpgradeFormData,
+  TierName,
 } from '@/types/index';
 
 class TierUpgradeService {
+  // ============= NEW API METHODS =============
+
+  /**
+   * Get existing tier upgrade application (draft or submitted)
+   * GET /tier-upgrade/{tier}
+   * 
+   * @param tier - Target tier: 'zero', 'one', or 'two'
+   * @returns Existing application or 404 if none found
+   */
+  async getApplication(tier: TierName): Promise<GetTierUpgradeApplicationResponse> {
+    try {
+      const response = await apiClient.get<any>(`/payment/tier-upgrade/${tier}`);
+      return response as GetTierUpgradeApplicationResponse;
+    } catch (error: any) {
+      // Handle 404 as success (no existing application)
+      if (error?.response?.status === 404) {
+        return {
+          success: false,
+          message: 'No existing application found for this tier',
+          data: null,
+        };
+      }
+      console.error('[TierUpgradeService] Error fetching application:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save tier upgrade form as draft (partial data allowed)
+   * POST /tier-upgrade/{tier}/save-draft
+   * 
+   * @param tier - Target tier: 'zero', 'one', or 'two'
+   * @param formData - Partial form data (all fields optional)
+   * @returns Saved draft application
+   */
+  async saveDraft(tier: TierName, formData: Partial<TierUpgradeFormData>): Promise<SaveTierUpgradeDraftResponse> {
+    try {
+      const response = await apiClient.post<any>(`/payment/tier-upgrade/${tier}/save-draft`, formData);
+      return response as SaveTierUpgradeDraftResponse;
+    } catch (error: any) {
+      console.error('[TierUpgradeService] Error saving draft:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit complete tier upgrade application
+   * POST /tier-upgrade/{tier}/submit
+   * 
+   * @param tier - Target tier: 'zero', 'one', or 'two'
+   * @param formData - Complete form data (all required fields)
+   * @returns Submission response with customer data
+   */
+  async submitApplication(tier: TierName, formData: TierUpgradeFormData): Promise<SubmitTierUpgradeResponse> {
+    try {
+      const response = await apiClient.post<any>(`/payment/tier-upgrade/${tier}/submit`, formData);
+      return response as SubmitTierUpgradeResponse;
+    } catch (error: any) {
+      console.error('[TierUpgradeService] Error submitting application:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get tier upgrade application status
+   * GET /tier-upgrade/{tier}/status
+   * 
+   * @param tier - Target tier: 'zero', 'one', or 'two'
+   * @returns Current status and application details
+   */
+  async getStatus(tier: TierName): Promise<GetTierUpgradeStatusResponse> {
+    try {
+      const response = await apiClient.get<any>(`/payment/tier-upgrade/${tier}/status`);
+      return response as GetTierUpgradeStatusResponse;
+    } catch (error: any) {
+      console.error('[TierUpgradeService] Error fetching status:', error);
+      throw error;
+    }
+  }
+
+  // ============= LEGACY API METHODS =============
   /**
    * Upgrade to Tier 0 - Basic Enrollment
    * PATCH /v1/payment/customers/tier-zero

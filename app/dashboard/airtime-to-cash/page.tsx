@@ -51,10 +51,10 @@ export default function AirtimeToCashPage() {
   const { addToast } = useUIStore();
   const { user } = useAuth();
   const {
-    adminProviders,
-    adminProvidersLoading,
-    adminProvidersError,
-    fetchAdminProviders,
+    providers,
+    providersLoading,
+    providersError,
+    fetchProviders,
     transaction,
     isInitiating,
     conversionError,
@@ -63,8 +63,8 @@ export default function AirtimeToCashPage() {
     resetTransaction,
   } = useAirtimeToCash();
 
-  // Use adminProviders as the source of truth (has real updated logo_url values)
-  const providers = adminProviders;
+  // Use providers as the source of truth
+  const displayProviders = providers;
 
   const [formData, setFormData] = useState<ConversionFormData>({
     phone_number: '',
@@ -79,8 +79,8 @@ export default function AirtimeToCashPage() {
   const [userHistoryLoading, setUserHistoryLoading] = useState(false);
 
   const selectedProvider = useMemo(
-    () => providers.find((p) => p.code === formData.provider),
-    [providers, formData.provider]
+    () => displayProviders.find((p) => p.code === formData.provider),
+    [displayProviders, formData.provider]
   );
 
   const airtimeAmount = Number(formData.airtime_amount || 0);
@@ -108,10 +108,10 @@ export default function AirtimeToCashPage() {
 
   // Load providers on mount
   useEffect(() => {
-    if (adminProviders.length === 0) {
-      fetchAdminProviders();
+    if (displayProviders.length === 0) {
+      fetchProviders();
     }
-  }, [fetchAdminProviders, adminProviders.length]);
+  }, [fetchProviders, displayProviders.length]);
 
   // Fetch user conversion history
   useEffect(() => {
@@ -132,17 +132,17 @@ export default function AirtimeToCashPage() {
 
   // Debug: Log providers and their logos
   useEffect(() => {
-    if (providers && providers.length > 0) {
-      console.log('[AirtimeToCash Dashboard] Providers loaded from admin endpoint:', providers);
+    if (displayProviders && displayProviders.length > 0) {
+      console.log('[AirtimeToCash Dashboard] Providers loaded:', displayProviders);
     }
-  }, [providers]);
+  }, [displayProviders]);
 
   // Set first provider as default
   useEffect(() => {
-    if (Array.isArray(providers) && providers.length > 0 && !formData.provider) {
+    if (Array.isArray(displayProviders) && displayProviders.length > 0 && !formData.provider) {
       setFormData((prev) => ({
         ...prev,
-        provider: providers[0].code,
+        provider: displayProviders[0].code,
       }));
     }
   }, [providers, formData.provider]);
@@ -236,22 +236,22 @@ export default function AirtimeToCashPage() {
     });
   };
 
-  if (adminProvidersLoading) {
+  if (providersLoading) {
     return <CardSkeleton count={3} />;
   }
 
-  if (adminProvidersError) {
+  if (providersError) {
     return (
       <Card className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <div className="flex items-center gap-4">
           <AlertCircle className="text-red-600" size={24} />
           <div>
             <p className="font-bold text-red-900">Failed to load providers</p>
-            <p className="text-sm text-red-700">{adminProvidersError}</p>
+            <p className="text-sm text-red-700">{providersError}</p>
           </div>
         </div>
         <Button
-          onClick={() => fetchAdminProviders()}
+          onClick={() => fetchProviders()}
           className="mt-4 rounded-2xl bg-red-600 px-6 py-2 text-sm font-bold text-white hover:bg-red-700"
         >
           Retry
@@ -311,7 +311,7 @@ export default function AirtimeToCashPage() {
               </label>
 
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {providers.map((provider) => {
+                {displayProviders.map((provider) => {
                   const logoUrl = getProviderLogo(provider);
                   const active = formData.provider === provider.code;
 

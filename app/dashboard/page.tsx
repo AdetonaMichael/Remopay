@@ -27,8 +27,8 @@ import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
 import { useAuth } from '@/hooks/useAuth';
-import { formatCurrency, formatRelativeTime } from '@/utils/format.utils';
-import { TRANSACTION_STATUSES } from '@/utils/constants';
+import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/format.utils';
+import { TRANSACTION_STATUSES, TRANSACTION_TYPES } from '@/utils/constants';
 
 type WalletData = {
   balance: number;
@@ -89,18 +89,18 @@ const getTransactionIcon = (type: string, status: string) => {
   const normalizedStatus = status?.toLowerCase?.() || '';
 
   if (normalizedStatus === 'success') {
-    return <CheckCircle className="h-5 w-5 text-green-600" />;
+    return <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />;
   }
 
   if (normalizedStatus === 'pending') {
-    return <Clock className="h-5 w-5 text-amber-500" />;
+    return <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />;
   }
 
   if (normalizedStatus === 'failed') {
-    return <AlertCircle className="h-5 w-5 text-red-600" />;
+    return <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />;
   }
 
-  return <CreditCard className="h-5 w-5 text-[#d71927]" />;
+  return <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />;
 };
 
 export default function DashboardPage() {
@@ -221,17 +221,47 @@ export default function DashboardPage() {
     return transaction.transaction_type || transaction.type || 'Transaction';
   };
 
+  const getStatusBadgeVariant = (status: string) => {
+    const statusInfo = TRANSACTION_STATUSES[status as keyof typeof TRANSACTION_STATUSES];
+    return statusInfo?.color ?? 'secondary';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusInfo = TRANSACTION_STATUSES[status as keyof typeof TRANSACTION_STATUSES];
+    return statusInfo?.label ?? status;
+  };
+
+  const getServiceName = (transaction: TransactionData): string => {
+    const type = transaction.transaction_type || transaction.type;
+
+    return (
+      (transaction.metadata as any)?.product_name ||
+      (transaction.metadata as any)?.service_type ||
+      (() => {
+        if (type === 'Wallet Funding' || type === 'wallet_topup') {
+          return 'Wallet Funding';
+        }
+
+        if (type === 'Airtime Conversion' || type === 'airtime_conversion') {
+          return 'Airtime Conversion';
+        }
+
+        return transaction.provider || '—';
+      })()
+    );
+  };
+
   if (loading) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 sm:space-y-6 md:space-y-8">
       <section className="relative overflow-hidden bg-[#140404]  text-white ">
-        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#d71927]/20 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[#ff737b]/10 blur-3xl" />
+        <div className="absolute right-0 top-0 h-48 w-48 sm:h-60 sm:w-60 md:h-72 md:w-72 rounded-full bg-[#d71927]/20 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-48 w-48 sm:h-60 sm:w-60 md:h-72 md:w-72 rounded-full bg-[#ff737b]/10 blur-3xl" />
 
-        <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+        <div className="relative grid gap-6 sm:gap-7 md:gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
           <div className="hidden lg:block">
             <p className="caption font-semibold text-[#ff737b]">Welcome back</p>
 
@@ -262,12 +292,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/10 p-4 sm:p-5 backdrop-blur">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {/* Top Left - Balance */}
               <div className="col-span-2">
                 <p className="caption font-semibold text-white/55">Available Balance</p>
-                <h2 className="mt-1.5 text-3xl font-black">
+                <h2 className="mt-1.5 text-2xl sm:text-3xl font-black">
                   {wallet ? formatCurrency(wallet.balance, wallet.currency) : '₦0.00'}
                 </h2>
               </div>
@@ -326,51 +356,51 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="flex gap-5 overflow-x-auto md:grid md:grid-cols-3 pb-2 -mx-6 px-6 md:mx-0 md:px-0">
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+      <section className="flex gap-4 sm:gap-5 overflow-x-auto md:grid md:grid-cols-3 pb-2 -mx-6 px-6 md:mx-0 md:px-0">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="caption font-semibold text-gray-500">Monthly Transactions</p>
-              <p className="mt-3 h2 text-gray-950">
+              <p className="mt-2 sm:mt-3 h2 text-gray-950">
                 {monthlyTransactionsCount}
               </p>
               <p className="mt-2 body-sm text-gray-500">Transactions this month</p>
             </div>
 
-            <div className="rounded-2xl bg-[#fff1f2] p-3">
-              <TrendingUp className="h-5 w-5 text-[#d71927]" />
+            <div className="rounded-xl sm:rounded-2xl bg-[#fff1f2] p-2 sm:p-2.5 md:p-3">
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />
             </div>
           </div>
         </Card>
 
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="caption font-semibold text-gray-500">Successful Payments</p>
-              <p className="mt-3 h2 text-gray-950">
+              <p className="mt-2 sm:mt-3 h2 text-gray-950">
                 {successfulTransactionsCount}
               </p>
               <p className="mt-2 body-sm text-gray-500">Completed transactions</p>
             </div>
 
-            <div className="rounded-2xl bg-green-50 p-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <div className="rounded-xl sm:rounded-2xl bg-green-50 p-2 sm:p-2.5 md:p-3">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
             </div>
           </div>
         </Card>
 
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-[1.5rem] border border-[#d71927]/10 bg-white p-6 shadow-sm">
+        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
           <div className="flex items-start justify-between">
             <div>
               <p className="caption font-semibold text-gray-500">Total Records</p>
-              <p className="mt-3 h2 text-gray-950">
+              <p className="mt-2 sm:mt-3 h2 text-gray-950">
                 {pagination.total || transactions.length}
               </p>
               <p className="mt-2 body-sm text-gray-500">Transaction records</p>
             </div>
 
-            <div className="rounded-2xl bg-[#fff1f2] p-3">
-              <ReceiptText className="h-5 w-5 text-[#d71927]" />
+            <div className="rounded-xl sm:rounded-2xl bg-[#fff1f2] p-2 sm:p-2.5 md:p-3">
+              <ReceiptText className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />
             </div>
           </div>
         </Card>
@@ -382,7 +412,7 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-4 sm:mb-5 flex items-center justify-between">
           <div>
             <h2 className="h3 text-gray-950">Quick Actions</h2>
             <p className="mt-1 body-sm text-gray-500">
@@ -391,7 +421,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex gap-5 overflow-x-auto sm:grid sm:grid-cols-2 xl:grid-cols-4 pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
+        <div className="flex gap-4 sm:gap-5 overflow-x-auto sm:grid sm:grid-cols-2 xl:grid-cols-4 pb-2 -mx-6 px-6 sm:mx-0 sm:px-0">
           {quickActions.map((action) => {
             const Icon = action.icon;
 
@@ -399,9 +429,9 @@ export default function DashboardPage() {
               <Link
                 key={action.href}
                 href={action.href}
-                className="group min-w-[calc(100vw-2rem)] sm:min-w-fit overflow-hidden rounded-[1.5rem] border border-[#d71927]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#d71927]/10"
+                className="group min-w-[calc(100vw-2rem)] sm:min-w-fit overflow-hidden rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-[#d71927]/10"
               >
-                <div className="relative h-36 overflow-hidden">
+                <div className="relative h-28 sm:h-32 md:h-36 overflow-hidden">
                   <img
                     src={action.image}
                     alt={action.label}
@@ -409,18 +439,18 @@ export default function DashboardPage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
 
-                  <div className="absolute bottom-4 left-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#d71927] text-white shadow-lg">
-                    <Icon size={22} />
+                  <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 flex h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-[#d71927] text-white shadow-lg">
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 </div>
 
-                <div className="p-5">
+                <div className="p-4 sm:p-5">
                   <h3 className="h5 font-bold text-gray-950">{action.label}</h3>
                   <p className="mt-2 body-sm text-gray-500">
                     {action.description}
                   </p>
 
-                  <div className="mt-5 flex items-center justify-between">
+                  <div className="mt-4 sm:mt-5 flex items-center justify-between">
                     <span className="button-sm text-[#d71927]">Continue</span>
                     <ArrowRight className="h-4 w-4 text-[#d71927] transition group-hover:translate-x-1" />
                   </div>
@@ -432,11 +462,11 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <Card className="overflow-hidden rounded-[1.5rem] border border-[#d71927]/10 bg-white shadow-sm">
-          <div className="flex flex-col justify-between gap-4 border-b border-gray-100 p-6 sm:flex-row sm:items-center">
+        <Card className="overflow-hidden rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white shadow-sm">
+          <div className="flex flex-col justify-between gap-3 sm:gap-4 border-b border-gray-100 p-4 sm:p-5 md:p-6 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-2xl font-black text-gray-950">Recent Transactions</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-950">Recent Transactions</h2>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500">
                 Track your latest Remopay activities and payment records.
               </p>
             </div>
@@ -451,13 +481,13 @@ export default function DashboardPage() {
           </div>
 
           {error ? (
-            <div className="p-8 text-center">
-              <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
+            <div className="p-6 sm:p-8 text-center">
+              <AlertCircle className="mx-auto mb-3 h-7 w-7 sm:h-8 sm:w-8 text-red-500" />
               <p className="font-semibold text-gray-900">{error}</p>
             </div>
           ) : transactions.length === 0 ? (
-            <div className="p-10 text-center">
-              <ReceiptText className="mx-auto mb-4 h-10 w-10 text-gray-300" />
+            <div className="p-8 sm:p-10 text-center">
+              <ReceiptText className="mx-auto mb-4 h-9 w-9 sm:h-10 sm:w-10 text-gray-300" />
               <h3 className="font-black text-gray-950">No transactions yet</h3>
               <p className="mt-2 text-sm text-gray-500">
                 Your transaction history will appear here once you start using Remopay.
@@ -466,95 +496,74 @@ export default function DashboardPage() {
           ) : (
             <>
               <div className="hidden overflow-x-auto lg:block">
-                <table className="w-full">
-                  <thead className="bg-[#fff7f7]">
-                    <tr>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">
-                        Transaction
-                      </th>
-                      <th className="px-5 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">
-                        Reference
-                      </th>
-                      <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-wide text-gray-500">
-                        Amount
-                      </th>
-                      <th className="px-5 py-4 text-center text-xs font-black uppercase tracking-wide text-gray-500">
-                        Status
-                      </th>
-                      <th className="px-5 py-4 text-right text-xs font-black uppercase tracking-wide text-gray-500">
-                        Date
-                      </th>
+                <table className="w-full min-w-full">
+                  <thead>
+                    <tr className="border-b border-black/5 bg-[#f8f8f8]">
+                      {[
+                        'Date',
+                        'Transaction Type',
+                        'Service',
+                        'Reference',
+                        'Amount',
+                        'Status',
+                      ].map((head) => (
+                        <th
+                          key={head}
+                          className={`px-6 py-4 text-xs font-black uppercase tracking-wide text-black/40 ${
+                            head === 'Amount'
+                              ? 'text-right'
+                              : head === 'Status'
+                                ? 'text-center'
+                                : 'text-left'
+                          }`}
+                        >
+                          {head}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
 
                   <tbody>
                     {transactions.map((transaction) => {
-                      const status =
-                        TRANSACTION_STATUSES[
-                          transaction.status as keyof typeof TRANSACTION_STATUSES
-                        ];
-
                       const typeLabel = getTransactionTypeLabel(transaction);
+                      const serviceName = getServiceName(transaction);
                       const timestamp = getTransactionTimestamp(transaction);
+                      const statusVariant = getStatusBadgeVariant(transaction.status);
+                      const statusLabel = getStatusLabel(transaction.status);
 
                       return (
                         <tr
                           key={transaction.id}
-                          className="border-b border-gray-100 transition hover:bg-[#fffafa]"
+                          className="border-b border-black/5 transition-colors hover:bg-[#fff8f8]"
                         >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff1f2]">
-                                {getTransactionIcon(typeLabel, transaction.status)}
-                              </div>
-
-                              <div>
-                                <p className="text-sm font-black text-gray-950">
-                                  {typeLabel}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {transaction.provider || 'Remopay'}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            {transaction.reference ? (
-                              <code className="rounded-lg bg-[#fff1f2] px-2 py-1 text-xs font-bold text-[#d71927]">
-                                {transaction.reference}
-                              </code>
-                            ) : (
-                              <span className="text-xs text-gray-400">—</span>
+                          <td className="px-6 py-4 text-sm font-semibold text-[#111]">
+                            {formatDate(
+                              timestamp && timestamp !== 'Unknown' ? timestamp : new Date().toISOString()
                             )}
                           </td>
 
-                          <td className="px-5 py-4 text-right">
-                            <span className="text-sm font-black text-gray-950">
-                              {formatCurrency(Number(transaction.amount))}
-                            </span>
+                          <td className="px-6 py-4">
+                            <div className="inline-flex rounded-full bg-[#f0f0f0] px-3 py-1 text-sm font-black capitalize text-[#333]">
+                              {typeLabel}
+                            </div>
                           </td>
 
-                          <td className="px-5 py-4 text-center">
-                            <Badge
-                              variant={
-                                status?.color === 'success'
-                                  ? 'success'
-                                  : status?.color === 'warning'
-                                    ? 'warning'
-                                    : status?.color === 'error'
-                                      ? 'danger'
-                                      : 'default'
-                              }
-                            >
-                              {status?.label || transaction.status}
+                          <td className="px-6 py-4 text-sm font-semibold capitalize text-[#111]">
+                            {serviceName}
+                          </td>
+
+                          <td className="px-6 py-4 text-sm font-medium text-black/50">
+                            {transaction.reference || `TXN-${transaction.id}`}
+                          </td>
+
+                          <td className="px-6 py-4 text-right text-sm font-black text-[#111]">
+                            {formatCurrency(Number(transaction.amount))}
+                          </td>
+
+                          <td className="px-6 py-4 text-center">
+                            <Badge variant={statusVariant as any}>
+                              {statusLabel}
                             </Badge>
-                          </td>
-
-                          <td className="px-5 py-4 text-right text-sm text-gray-500">
-                            {timestamp !== 'Unknown'
-                              ? formatRelativeTime(timestamp)
-                              : 'Unknown'}
                           </td>
                         </tr>
                       );
@@ -563,59 +572,63 @@ export default function DashboardPage() {
                 </table>
               </div>
 
-              <div className="divide-y divide-gray-100 lg:hidden">
+              <div className="space-y-4 p-4 lg:hidden">
                 {transactions.map((transaction) => {
-                  const status =
-                    TRANSACTION_STATUSES[
-                      transaction.status as keyof typeof TRANSACTION_STATUSES
-                    ];
-
                   const typeLabel = getTransactionTypeLabel(transaction);
+                  const serviceName = getServiceName(transaction);
                   const timestamp = getTransactionTimestamp(transaction);
+                  const statusVariant = getStatusBadgeVariant(transaction.status);
+                  const statusLabel = getStatusLabel(transaction.status);
 
                   return (
-                    <div key={transaction.id} className="p-5">
+                    <div
+                      key={transaction.id}
+                      className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4"
+                    >
                       <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff1f2]">
-                            {getTransactionIcon(typeLabel, transaction.status)}
-                          </div>
-
-                          <div>
-                            <p className="font-black text-gray-950">{typeLabel}</p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              {timestamp !== 'Unknown'
-                                ? formatRelativeTime(timestamp)
-                                : 'Unknown'}
-                            </p>
-                          </div>
+                        <div>
+                          <p className="text-base font-black capitalize text-[#111]">
+                            {typeLabel}
+                          </p>
+                          <p className="mt-1 text-sm font-medium text-black/50">
+                            {serviceName || 'Service transaction'}
+                          </p>
                         </div>
 
-                        <p className="font-black text-gray-950">
-                          {formatCurrency(Number(transaction.amount))}
-                        </p>
+                        <Badge variant={statusVariant as any}>
+                          {statusLabel}
+                        </Badge>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between">
-                        <Badge
-                          variant={
-                            status?.color === 'success'
-                              ? 'success'
-                              : status?.color === 'warning'
-                                ? 'warning'
-                                : status?.color === 'error'
-                                  ? 'danger'
-                                  : 'default'
-                          }
-                        >
-                          {status?.label || transaction.status}
-                        </Badge>
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-black/35">
+                            Date
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[#111]">
+                            {formatDate(
+                              timestamp && timestamp !== 'Unknown' ? timestamp : new Date().toISOString()
+                            )}
+                          </p>
+                        </div>
 
-                        {transaction.reference && (
-                          <code className="rounded-lg bg-[#fff1f2] px-2 py-1 text-xs font-bold text-[#d71927]">
-                            {transaction.reference}
-                          </code>
-                        )}
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-black/35">
+                            Amount
+                          </p>
+                          <p className="mt-1 text-sm font-black text-[#111]">
+                            {formatCurrency(Number(transaction.amount))}
+                          </p>
+                        </div>
+
+                        <div className="col-span-2">
+                          <p className="text-xs font-black uppercase tracking-wide text-black/35">
+                            Reference
+                          </p>
+                          <p className="mt-1 break-all text-sm font-medium text-black/50">
+                            {transaction.reference || `TXN-${transaction.id}`}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );
@@ -623,34 +636,108 @@ export default function DashboardPage() {
               </div>
 
               {pagination.lastPage > 1 && (
-                <div className="flex items-center justify-between border-t border-gray-100 p-5">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
-                    disabled={currentPage <= 1}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <ChevronLeft size={16} />
-                    Previous
-                  </button>
+                <div className="flex flex-col gap-4 rounded-[24px] border border-black/5 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(16,3,3,0.05)]">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm font-medium text-black/50">
+                      Showing{' '}
+                      <span className="font-black text-[#111]">
+                        {pagination.total === 0
+                          ? 0
+                          : (pagination.currentPage - 1) * pagination.perPage + 1}
+                      </span>{' '}
+                      to{' '}
+                      <span className="font-black text-[#111]">
+                        {Math.min(
+                          pagination.currentPage * pagination.perPage,
+                          pagination.total
+                        )}
+                      </span>{' '}
+                      of{' '}
+                      <span className="font-black text-[#111]">{pagination.total}</span>{' '}
+                      transactions
+                    </div>
 
-                  <p className="text-sm font-semibold text-gray-500">
-                    Page {pagination.currentPage} of {pagination.lastPage}
-                  </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={pagination.currentPage <= 1}
+                        onClick={() => setCurrentPage(1)}
+                        className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                      >
+                        First
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.min(page + 1, pagination.lastPage))
-                    }
-                    disabled={currentPage >= pagination.lastPage}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next
-                    <ChevronRight size={16} />
-                  </button>
+                      <button
+                        type="button"
+                        disabled={pagination.currentPage <= 1}
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                      >
+                        <ChevronLeft size={16} className="text-[#111]" />
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {Array.from(
+                          { length: Math.min(pagination.lastPage, 5) },
+                          (_, i) => {
+                            let pageNum;
+
+                            if (pagination.lastPage <= 5) {
+                              pageNum = i + 1;
+                            } else if (pagination.currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (
+                              pagination.currentPage >=
+                              pagination.lastPage - 2
+                            ) {
+                              pageNum = pagination.lastPage - 4 + i;
+                            } else {
+                              pageNum = pagination.currentPage - 2 + i;
+                            }
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black transition-colors ${
+                                  pageNum === pagination.currentPage
+                                    ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20'
+                                    : 'border border-black/10 bg-white text-[#111] hover:bg-[#fff1f2]'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          }
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={pagination.currentPage >= pagination.lastPage}
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, pagination.lastPage)
+                          )
+                        }
+                        className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                      >
+                        <ChevronRight size={16} className="text-[#111]" />
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={pagination.currentPage >= pagination.lastPage}
+                        onClick={() => setCurrentPage(pagination.lastPage)}
+                        className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                      >
+                        Last
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
+
             </>
           )}
         </Card>

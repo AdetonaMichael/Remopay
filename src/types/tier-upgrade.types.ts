@@ -207,3 +207,103 @@ export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
 }
+
+// ============= NEW API - TIER UPGRADE APPLICATION =============
+export type TierName = 'zero' | 'one' | 'two';
+export type ApplicationStatus = 'draft' | 'submitted' | 'processing' | 'pending_review' | 'approved' | 'rejected' | 'failed';
+
+/**
+ * Combined form data for all tiers
+ */
+export interface TierUpgradeFormData {
+  // Tier 0
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  country?: string;
+
+  // Tier 1
+  dob?: string;
+  phone?: PhoneData;
+  address?: AddressData;
+  identification_number?: string;
+  photo?: string;
+
+  // Tier 2
+  identity?: IdentityDocumentData;
+}
+
+/**
+ * Tier upgrade application object
+ * Retrieved from GET /tier-upgrade/{tier}
+ */
+export interface TierUpgradeApplication {
+  id: number;
+  user_id: number;
+  current_tier: TierName;
+  requested_tier: TierName;
+  status: ApplicationStatus;
+  status_label: string;
+  form_data: TierUpgradeFormData;
+  failure_reason: string | null;
+  retry_count: number;
+  can_retry: boolean;
+  submitted_at: string | null;
+  approved_at: string | null;
+  rejected_at: string | null;
+  failed_at: string | null;
+  maplerad_reference_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Response from GET /tier-upgrade/{tier}
+ */
+export interface GetTierUpgradeApplicationResponse {
+  success: boolean;
+  message: string;
+  data: TierUpgradeApplication | null;
+}
+
+/**
+ * Response from POST /tier-upgrade/{tier}/save-draft
+ */
+export interface SaveTierUpgradeDraftResponse {
+  success: boolean;
+  message: string;
+  data: TierUpgradeApplication;
+}
+
+/**
+ * Response from POST /tier-upgrade/{tier}/submit
+ */
+export interface SubmitTierUpgradeResponse {
+  success: boolean;
+  message: string;
+  data: {
+    customer: {
+      id: string;
+      maplerad_id: string;
+      first_name: string;
+      last_name: string;
+      email: string;
+      tier: string;
+      status: string;
+    };
+    application_id: number;
+  };
+}
+
+/**
+ * Response from GET /tier-upgrade/{tier}/status
+ */
+export interface GetTierUpgradeStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    status: ApplicationStatus | 'not_started';
+    tier: TierName;
+    application: TierUpgradeApplication | null;
+  };
+}
