@@ -17,6 +17,10 @@ export interface ApiResponse<T = any> {
   // VTU API specific fields
   content?: T;
   response_description?: string;
+  // HTTP client wrapper (e.g., axios response)
+  original?: ApiResponse<T>;
+  headers?: Record<string, any>;
+  exception?: any;
 }
 
 export interface PaginationMeta {

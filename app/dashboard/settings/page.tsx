@@ -322,7 +322,20 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  <UpdateProfileForm />
+                  <UpdateProfileForm 
+                    currentData={{
+                      first_name: user?.first_name,
+                      last_name: user?.last_name,
+                      email: user?.email,
+                      phone: {
+                        phone_country_code: '+234',
+                        phone_number: user?.phone_number,
+                      },
+                    }}
+                    onSuccess={() => {
+                      success('Profile updated successfully!');
+                    }}
+                  />
                 </Card>
               </Tab.Panel>
 

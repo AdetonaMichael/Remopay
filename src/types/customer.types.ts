@@ -52,7 +52,7 @@ export interface UpdateCustomerResponse {
   success: boolean;
   message: string;
   data: {
-    customer: CustomerProfile;
+    customer: CustomerProfile | null;
   };
 }
 

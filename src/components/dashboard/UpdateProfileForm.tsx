@@ -11,6 +11,7 @@ import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Select } from '@/components/shared/Select';
 import { useUpdateCustomer } from '@/hooks/useUpdateCustomer';
+import { useAuthStore } from '@/store/auth.store';
 import { UpdateCustomerPayload, CustomerProfile } from '@/types/customer.types';
 
 interface UpdateProfileFormProps {
@@ -66,43 +67,39 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
   onSuccess,
   className = '',
 }) => {
+  const { user } = useAuthStore();
   const { loading, error, fieldErrors, success, updateCustomer, clearError } = useUpdateCustomer({
     onSuccess,
   });
 
-  // If mapleradCustomerId is not provided, show a message
-  if (!mapleradCustomerId) {
-    return (
-      <div className={`rounded-lg border border-yellow-200 bg-yellow-50 p-4 ${className}`}>
-        <p className="text-sm text-yellow-800">
-          Profile update is not available. Please complete your tier upgrade first.
-        </p>
-      </div>
-    );
-  }
+  // Use provided ID or try to get from user/currentData
+  const customerId = mapleradCustomerId || currentData?.id;
+
+  // Allow form to load even without customer ID - just show limited functionality
+  const isFullFeatureAvailable = !!customerId;
 
   const [formData, setFormData] = useState<FormData>({
-    first_name: currentData?.first_name || '',
+    first_name: currentData?.first_name || user?.first_name || '',
     middle_name: currentData?.middle_name || '',
-    last_name: currentData?.last_name || '',
+    last_name: currentData?.last_name || user?.last_name || '',
     nationality: currentData?.nationality || '',
     identification_number: currentData?.identification_number || '',
     phone: {
       phone_country_code: currentData?.phone?.phone_country_code || '+234',
-      phone_number: currentData?.phone?.phone_number || '',
+      phone_number: currentData?.phone?.phone_number || user?.phone_number || '',
     },
     address: {
       street: currentData?.address?.street || '',
       street2: currentData?.address?.street2 || '',
       city: currentData?.address?.city || '',
       state: currentData?.address?.state || '',
-      country: currentData?.address?.country || 'NG',
+      country: currentData?.address?.country || '',
       postal_code: currentData?.address?.postal_code || '',
     },
     identity: {
       type: (currentData?.identity?.type as any) || 'NIN',
       number: currentData?.identity?.number || '',
-      country: currentData?.identity?.country || 'NG',
+      country: currentData?.identity?.country || '',
     },
   });
 
@@ -145,15 +142,13 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
       e.preventDefault();
       setShowSuccessMessage(false);
 
-      if (!mapleradCustomerId) {
-        clearError();
-        console.error('UpdateProfileForm: mapleradCustomerId is not available');
+      // Build payload - at minimum we need first_name and last_name
+      if (!formData.first_name.trim() || !formData.last_name.trim()) {
+        alert('Please fill in at least first name and last name');
         return;
       }
 
-      // Build payload without customer_id
-      const payloadWithId: any = {
-        customer_id: String(mapleradCustomerId),
+      const payload: any = {
         ...(formData.first_name && { first_name: formData.first_name }),
         ...(formData.middle_name && { middle_name: formData.middle_name }),
         ...(formData.last_name && { last_name: formData.last_name }),
@@ -161,8 +156,10 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
         ...(formData.identification_number && { identification_number: formData.identification_number }),
       };
 
-      // Destructure to remove customer_id
-      const { customer_id, ...payload } = payloadWithId;
+      // Add customer_id if available
+      if (customerId) {
+        payload.customer_id = String(customerId);
+      }
 
       // Add phone if populated
       if (formData.phone.phone_number) {
@@ -200,11 +197,22 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
         setTimeout(() => setShowSuccessMessage(false), 5000);
       }
     },
-    [mapleradCustomerId, formData, identityImage, updateCustomer]
+    [customerId, formData, identityImage, updateCustomer]
   );
 
   return (
     <div className={`space-y-6 ${className}`}>
+      {/* Info Alert */}
+      {!isFullFeatureAvailable && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-blue-900">Basic Profile Update</p>
+            <p className="text-sm text-blue-800 mt-1">You can update your basic profile information here. Complete tier upgrade to unlock additional profile fields like detailed address, identity documents, and more.</p>
+          </div>
+        </div>
+      )}
+
       {/* Error Alert */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
@@ -336,6 +344,13 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
         {/* Address Section */}
         {activeSection === 'address' && (
           <div className="space-y-4">
+            {!isFullFeatureAvailable && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-900">
+                  <strong>Coming Soon:</strong> Address fields will be available after tier upgrade. You can update basic profile info now.
+                </p>
+              </div>
+            )}
             <h3 className="text-lg font-bold text-gray-900">Address</h3>
 
             <Input
@@ -394,6 +409,13 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
         {/* Identity Verification Section */}
         {activeSection === 'identity' && (
           <div className="space-y-4">
+            {!isFullFeatureAvailable && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-900">
+                  <strong>Coming Soon:</strong> Identity verification is available during tier upgrade. Complete tier upgrade to verify your identity.
+                </p>
+              </div>
+            )}
             <h3 className="text-lg font-bold text-gray-900">Identity Verification</h3>
 
             <Select

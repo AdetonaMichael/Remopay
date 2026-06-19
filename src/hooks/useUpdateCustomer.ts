@@ -52,11 +52,18 @@ export const useUpdateCustomer = (options?: UseUpdateCustomerOptions): UseUpdate
       try {
         const response = await customerService.updateCustomer(payload);
 
-        if (response?.data?.data?.customer) {
+        // Check for success indicator (handles both wrapped and direct response structures)
+        const isSuccess = response?.original?.success || response?.success;
+        const customerData = response?.data?.data?.customer || response?.original?.data?.data?.customer;
+
+        if (isSuccess) {
           setSuccess(true);
           showSuccess('Profile updated successfully!');
-          options?.onSuccess?.(response.data.data.customer);
-          return response.data;
+          // Only call onSuccess with data if customer object exists
+          if (customerData) {
+            options?.onSuccess?.(customerData);
+          }
+          return (response?.data as UpdateCustomerResponse) || null;
         } else {
           throw new Error('Invalid response structure');
         }
