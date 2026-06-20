@@ -15,6 +15,7 @@ import {
   Tier1UpgradeData,
   Tier2UpgradeData,
   TierLevel,
+  IdentityDocumentType,
 } from '@/types/tier-upgrade.types';
 import {
   validateTier0,
@@ -158,7 +159,14 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
         postal_code: '',
       },
     },
-    tier2: {},
+    tier2: {
+      identity: {
+        type: '' as IdentityDocumentType,
+        number: '',
+        country: '',
+        image: '',
+      },
+    },
   });
 
   const [errors, setErrors] = useState<TierFormErrors>({
@@ -243,14 +251,19 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       const reader = new FileReader();
       reader.onload = async (event) => {
         const base64String = event.target?.result as string;
-        setPreviewImage((prev) => ({
-          ...prev,
-          [tier === 1 && fieldPath === 'tier1.photo' ? 'photo' : fieldPath]: base64String,
-        }));
 
+        // Extract tier number from fieldPath first
         const tierMatch = fieldPath.match(/^tier(\d+)\./);
         if (!tierMatch) return;
         const tier = parseInt(tierMatch[1]) as 0 | 1 | 2;
+
+        // Extract relative field path (without the tier prefix)
+        const relativePath = fieldPath.replace(/^tier\d+\./, '');
+
+        setPreviewImage((prev) => ({
+          ...prev,
+          [fieldPath === 'tier1.photo' ? 'photo' : fieldPath]: base64String,
+        }));
 
         if (fieldPath === 'tier1.photo') {
           setPhotoUploadStatus('uploading');
@@ -274,7 +287,8 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
             alertError(message);
           }
         } else {
-          updateTierField(tier, fieldPath, base64String);
+          // Use relative path for updateTierField (without the tier prefix)
+          updateTierField(tier, relativePath, base64String);
         }
       };
 
@@ -384,8 +398,11 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
   };
 
   const handleSubmitTier2 = async () => {
+    console.log('Tier 2 form data:', formState.tier2);
+    
     const validation = validateTier2(formState.tier2);
     if (!validation.isValid) {
+      console.log('Tier 2 validation errors:', validation.errors);
       const errorMap: Record<string, string> = {};
       validation.errors.forEach((err) => {
         errorMap[err.field] = err.message;
@@ -396,7 +413,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
     try {
       setIsSubmitting(true);
+      console.log('Sending tier 2 data to API:', formState.tier2);
       const response = await execute(tierUpgradeService.upgradeTierTwo(formState.tier2 as Tier2UpgradeData));
+      console.log('Tier 2 API response:', response);
       
       if (response?.data) {
         setSubmitState({ tier: 'TIER_TWO', success: true });
@@ -406,6 +425,7 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
         alertError('Tier 2 upgrade failed. Please try again.');
       }
     } catch (err: any) {
+      console.error('Tier 2 submission error:', err);
       alertError(err.message || 'Tier 2 upgrade failed');
     } finally {
       setIsSubmitting(false);
@@ -414,63 +434,124 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
   // ============= RENDER TIER 0 =============
 
-  const renderTier0 = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  const renderTier0 = () => {
+    const tier0Errors = Object.values(errors.tier0).filter(err => err);
+    
+    return (
+      <div className="space-y-6">
+        {/* Error Summary */}
+        {tier0Errors.length > 0 && (
+          <div className="p-4 bg-[#fff5f5] border-2 border-[#d71927] rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[#d71927] flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-[#d71927] text-sm">Please fix the following errors:</h4>
+                <ul className="mt-2 space-y-1">
+                  {Object.entries(errors.tier0).map(([field, error]) => 
+                    error ? (
+                      <li key={field} className="text-sm text-[#d71927]">
+                        • {error}
+                      </li>
+                    ) : null
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Input
+            label="First Name"
+            type="text"
+            placeholder="John"
+            value={formState.tier0.first_name || ''}
+            onChange={(e) => updateTierField(0, 'first_name', e.target.value)}
+            error={errors.tier0.first_name}
+            required
+          />
+          <Input
+            label="Last Name"
+            type="text"
+            placeholder="Doe"
+            value={formState.tier0.last_name || ''}
+            onChange={(e) => updateTierField(0, 'last_name', e.target.value)}
+            error={errors.tier0.last_name}
+            required
+          />
+        </div>
+
         <Input
-          label="First Name"
-          type="text"
-          placeholder="John"
-          value={formState.tier0.first_name || ''}
-          onChange={(e) => updateTierField(0, 'first_name', e.target.value)}
-          error={errors.tier0.first_name}
+          label="Email Address"
+          type="email"
+          placeholder="john@example.com"
+          value={formState.tier0.email || ''}
+          onChange={(e) => updateTierField(0, 'email', e.target.value)}
+          error={errors.tier0.email}
           required
         />
-        <Input
-          label="Last Name"
-          type="text"
-          placeholder="Doe"
-          value={formState.tier0.last_name || ''}
-          onChange={(e) => updateTierField(0, 'last_name', e.target.value)}
-          error={errors.tier0.last_name}
+
+        <Select
+          label="Country"
+          options={getCountryOptions()}
+          value={formState.tier0.country || ''}
+          onChange={(e) => updateTierField(0, 'country', e.target.value)}
+          error={errors.tier0.country}
           required
         />
+
+        <Button
+          onClick={handleSubmitTier0}
+          disabled={isSubmitting || tier0Errors.length > 0}
+          isLoading={isSubmitting}
+          className={`w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg transition-all ${
+            isSubmitting 
+              ? 'opacity-75 cursor-wait'
+              : 'shadow-[#d71927]/20 hover:bg-[#b91521]'
+          } ${tier0Errors.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <Spinner size="sm" className="text-white" />
+              Completing Enrollment…
+            </span>
+          ) : tier0Errors.length > 0 ? (
+            'Complete all fields'
+          ) : (
+            'Complete Enrollment'
+          )}
+        </Button>
       </div>
-
-      <Input
-        label="Email Address"
-        type="email"
-        placeholder="john@example.com"
-        value={formState.tier0.email || ''}
-        onChange={(e) => updateTierField(0, 'email', e.target.value)}
-        error={errors.tier0.email}
-        required
-      />
-
-      <Select
-        label="Country"
-        options={getCountryOptions()}
-        value={formState.tier0.country || ''}
-        onChange={(e) => updateTierField(0, 'country', e.target.value)}
-        error={errors.tier0.country}
-        required
-      />
-
-      <Button
-        onClick={handleSubmitTier0}
-        disabled={isSubmitting}
-        isLoading={isSubmitting}
-        className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
-      >
-        Complete Enrollment
-      </Button>
-    </div>
-  );
+    );
+  };
 
   // ============= RENDER TIER 1 =============
 
-  const renderTier1 = () => (
-    <div className="space-y-6">
+  const renderTier1 = () => {
+    const tier1Errors = Object.values(errors.tier1).filter(err => err);
+    
+    return (
+      <div className="space-y-6">
+        {/* Error Summary */}
+        {tier1Errors.length > 0 && (
+          <div className="p-4 bg-[#fff5f5] border-2 border-[#d71927] rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[#d71927] flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-[#d71927] text-sm">Please fix the following errors:</h4>
+                <ul className="mt-2 space-y-1">
+                  {Object.entries(errors.tier1).map(([field, error]) => 
+                    error ? (
+                      <li key={field} className="text-sm text-[#d71927]">
+                        • {error}
+                      </li>
+                    ) : null
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       {/* Date of Birth */}
       <DatePicker
         label="Date of Birth"
@@ -727,89 +808,150 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
       <Button
         onClick={handleSubmitTier1}
-        disabled={isSubmitting || !bvnVerified}
+        disabled={isSubmitting || !bvnVerified || tier1Errors.length > 0}
         isLoading={isSubmitting}
-        className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521] disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`w-full h-11 rounded-xl px-6 font-black text-white shadow-lg transition-all ${
+          isSubmitting 
+            ? 'bg-[#d71927] opacity-75 cursor-wait'
+            : 'bg-[#d71927] hover:bg-[#b91521] shadow-[#d71927]/20'
+        } ${(tier1Errors.length > 0 || !bvnVerified) ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
-        {!bvnVerified ? 'Verify BVN First' : 'Upgrade to Bronze'}
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <Spinner size="sm" className="text-white" />
+            Upgrading to Bronze…
+          </span>
+        ) : !bvnVerified ? (
+          'Verify BVN First'
+        ) : tier1Errors.length > 0 ? (
+          'Complete all fields to upgrade'
+        ) : (
+          'Upgrade to Bronze'
+        )}
       </Button>
     </div>
   );
+  };
 
   // ============= RENDER TIER 2 =============
 
-  const renderTier2 = () => (
-    <div className="space-y-6">
-      {/* Identity Document Type */}
-      <Select
-        label="Identity Document Type"
-        options={getIdentityDocumentTypeOptions()}
-        value={formState.tier2.identity?.type || ''}
-        onChange={(e) => updateTierField(2, 'identity.type', e.target.value)}
-        error={errors.tier2['identity.type']}
-        required
-      />
-
-      {/* Document Number */}
-      <Input
-        label="Document Number"
-        type="text"
-        placeholder="Document number"
-        value={formState.tier2.identity?.number || ''}
-        onChange={(e) => updateTierField(2, 'identity.number', e.target.value)}
-        error={errors.tier2['identity.number']}
-        required
-      />
-
-      {/* Country of Issue */}
-      <Select
-        label="Country of Issue"
-        options={getCountryOptions()}
-        value={formState.tier2.identity?.country || ''}
-        onChange={(e) => updateTierField(2, 'identity.country', e.target.value)}
-        error={errors.tier2['identity.country']}
-        required
-      />
-
-      {/* Document Image */}
-      <div>
-        <label className="block font-semibold text-[#111] mb-3">
-          Document Image <span className="text-[#d71927]">*</span>
-        </label>
-        <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center cursor-pointer hover:border-[#d71927] transition-colors">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleImageUpload(e, 'tier2.identity.image')}
-            className="hidden"
-            id="document-input"
-          />
-          <label htmlFor="document-input" className="cursor-pointer">
-            {previewImage['tier2.identity.image'] ? (
-              <div className="space-y-2">
-                <img src={previewImage['tier2.identity.image']} alt="Document" className="w-24 h-24 rounded-lg mx-auto object-cover" />
-                <p className="text-sm text-gray-600">Click to change</p>
+  const renderTier2 = () => {
+    const tier2Errors = Object.values(errors.tier2).filter(err => err);
+    
+    return (
+      <div className="space-y-6">
+        {/* Error Summary */}
+        {tier2Errors.length > 0 && (
+          <div className="p-4 bg-[#fff5f5] border-2 border-[#d71927] rounded-2xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[#d71927] flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-[#d71927] text-sm">Please fix the following errors:</h4>
+                <ul className="mt-2 space-y-1">
+                  {Object.entries(errors.tier2).map(([field, error]) => 
+                    error ? (
+                      <li key={field} className="text-sm text-[#d71927]">
+                        • {error}
+                      </li>
+                    ) : null
+                  )}
+                </ul>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <Upload className="w-8 h-8 mx-auto text-gray-400" />
-                <p className="text-gray-700">Click to upload document</p>
-              </div>
-            )}
+            </div>
+          </div>
+        )}
+
+        {/* Identity Document Type */}
+        <Select
+          label="Identity Document Type"
+          options={getIdentityDocumentTypeOptions()}
+          value={formState.tier2.identity?.type || ''}
+          onChange={(e) => updateTierField(2, 'identity.type', e.target.value)}
+          error={errors.tier2['identity.type']}
+          required
+        />
+
+        {/* Document Number */}
+        <Input
+          label="Document Number"
+          type="text"
+          placeholder="Document number"
+          value={formState.tier2.identity?.number || ''}
+          onChange={(e) => updateTierField(2, 'identity.number', e.target.value)}
+          error={errors.tier2['identity.number']}
+          required
+        />
+
+        {/* Country of Issue */}
+        <Select
+          label="Country of Issue"
+          options={getCountryOptions()}
+          value={formState.tier2.identity?.country || ''}
+          onChange={(e) => updateTierField(2, 'identity.country', e.target.value)}
+          error={errors.tier2['identity.country']}
+          required
+        />
+
+        {/* Document Image */}
+        <div>
+          <label className="block font-semibold text-[#111] mb-3">
+            Document Image <span className="text-[#d71927]">*</span>
           </label>
+          <div className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
+            errors.tier2['identity.image']
+              ? 'border-[#d71927] bg-[#fff5f5]'
+              : 'border-gray-300 hover:border-[#d71927]'
+          }`}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImageUpload(e, 'tier2.identity.image')}
+              className="hidden"
+              id="document-input"
+            />
+            <label htmlFor="document-input" className="cursor-pointer">
+              {previewImage['tier2.identity.image'] ? (
+                <div className="space-y-2">
+                  <img src={previewImage['tier2.identity.image']} alt="Document" className="w-24 h-24 rounded-lg mx-auto object-cover" />
+                  <p className="text-sm text-gray-600">Click to change</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                  <p className="text-gray-700">Click to upload document</p>
+                </div>
+              )}
+            </label>
+          </div>
+          {errors.tier2['identity.image'] && (
+            <p className="mt-2 text-sm font-semibold text-[#d71927]">{errors.tier2['identity.image']}</p>
+          )}
         </div>
-      </div>
 
-      <Button
-        onClick={handleSubmitTier2}
-        disabled={isSubmitting}
-        isLoading={isSubmitting}
-        className="w-full h-11 rounded-xl bg-[#d71927] px-6 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
-      >
-        Upgrade to Silver
-      </Button>
-    </div>
-  );
+        <Button
+          onClick={handleSubmitTier2}
+          disabled={isSubmitting || tier2Errors.length > 0}
+          isLoading={isSubmitting}
+          className={`w-full h-11 rounded-xl px-6 font-black text-white shadow-lg transition-all ${
+            isSubmitting 
+              ? 'bg-[#d71927] opacity-75 cursor-wait'
+              : 'bg-[#d71927] hover:bg-[#b91521] shadow-[#d71927]/20'
+          } ${tier2Errors.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <Spinner size="sm" className="text-white" />
+              Upgrading to Silver…
+            </span>
+          ) : tier2Errors.length > 0 ? (
+            'Complete all fields to upgrade'
+          ) : (
+            'Upgrade to Silver'
+          )}
+        </Button>
+      </div>
+    );
+  };
 
   // ============= SUCCESS STATE =============
 

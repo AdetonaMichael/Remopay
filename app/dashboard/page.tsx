@@ -57,7 +57,7 @@ const quickActions = [
     description: 'Top up any network instantly',
     icon: Phone,
     image:
-      'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=1200&q=80',
+      'https://api.remopay.remonode.com/transfer_out_ads_banner.png',
   },
   {
     href: '/dashboard/data',

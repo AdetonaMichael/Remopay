@@ -60,7 +60,7 @@ const services = [
     desc: 'Recharge all major networks instantly.',
     icon: Smartphone,
     image:
-      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=85',
+      'https://api.remopay.remonode.com/remopay_airtime_recharge.jpg',
     href: '/',
   },
   {
@@ -68,7 +68,7 @@ const services = [
     desc: 'Buy affordable data bundles in seconds.',
     icon: Wifi,
     image:
-      'https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=900&q=85',
+      'https://api.remopay.remonode.com/remopay_data_bundles.jpg',
     href: '/',
   },
   {
@@ -88,11 +88,11 @@ const services = [
     href: '/',
   },
   {
-    title: 'Wallet Funding',
-    desc: 'Fund your wallet securely anytime.',
+    title: 'FX Conversion',
+    desc: 'Convert From One Currency To Another Instantly.',
     icon: Wallet,
     image:
-      'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=900&q=85',
+      'https://api.remopay.remonode.com/remopay_fx.jpg',
     href: '/',
   },
   {
@@ -100,7 +100,7 @@ const services = [
     desc: 'Create and manage virtual card instantly.',
     icon: CreditCard,
     image:
-      'https://images.unsplash.com/photo-1569163139394-de4798aa62b1?auto=format&fit=crop&w=900&q=85',
+      'https://api.remopay.remonode.com/remopay_4_50.png',
     href: '/dashboard/virtual-card',
   },
   {
@@ -108,7 +108,7 @@ const services = [
     desc: 'Hold and manage accounts in multiple currencies.',
     icon: Globe,
     image:
-      'https://images.unsplash.com/photo-1526304640581-d334cdbbf35f?auto=format&fit=crop&w=900&q=85',
+      'https://api.remopay.remonode.com/remo_pay_for_things.jpg',
     href: '/dashboard/multi-currency',
   },
 ];
