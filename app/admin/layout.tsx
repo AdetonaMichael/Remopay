@@ -34,6 +34,7 @@ const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
+  { label: 'Card Management', href: '/admin/cards', icon: CreditCard },
   { label: 'Services', href: '/admin/services', icon: Smartphone },
   { label: 'Airtime to Cash', href: '/admin/airtime-to-cash', icon: Phone },
   { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },

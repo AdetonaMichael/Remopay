@@ -66,8 +66,8 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     if (!isClient) return;
     if (!pathname) return;
 
-    // Skip enforcement if disabled via environment variable
-    if (process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION === 'true') {
+    // Skip enforcement if not explicitly enabled via environment variable (disabled by default)
+    if (process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION !== 'false') {
       if (process.env.NODE_ENV === 'development') {
         console.log('[PhoneVerificationEnforcer] Enforcement disabled via NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION');
       }

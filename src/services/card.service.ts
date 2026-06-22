@@ -14,6 +14,7 @@ import {
   CardCurrency,
   CardType,
   CardBrand,
+  CardStatus,
 } from '@/types/card.types';
 import { ApiResponse } from '@/types/api.types';
 
@@ -49,9 +50,9 @@ class CardService {
       );
 
       // Handle response wrapper - extract from 'original' if present
-      const actualResponse = response as CreateCardResponse;
+      let actualResponse = (response as any).original || response;
       
-      return actualResponse;
+      return actualResponse as CreateCardResponse;
     } catch (error: any) {
       console.error('[CardService] Error creating card:', error);
       throw error;
@@ -92,7 +93,7 @@ class CardService {
       );
 
       // Handle response wrapper - extract from 'original' if present
-      let actualResponse = response as GetAllCardsResponse;
+      let actualResponse = (response as any).original || response;
       
       // Normalize response to ensure proper structure
       actualResponse = this.normalizeResponse(actualResponse);
@@ -262,8 +263,27 @@ class CardService {
   }
 
   /**
+   * Transform card data from API format to VirtualCard format
+   * Maps API field names to expected frontend field names
+   */
+  private transformCard(card: any): VirtualCard {
+    return {
+      id: card.id,
+      card_number: card.masked_pan || card.card_number || '',
+      cvv: card.cvv || '***',
+      expiry: card.expiry || 'N/A',
+      cardholder_name: card.name || card.cardholder_name || '',
+      status: card.status || CardStatus.ACTIVE,
+      brand: card.issuer || card.brand || CardBrand.VISA,
+      currency: card.currency || CardCurrency.USD,
+      created_at: card.created_at,
+    };
+  }
+
+  /**
    * Ensure response has proper structure with default values
    * Handles cases where API might return partial or malformed responses
+   * Also transforms card field names from API format to expected format
    */
   private normalizeResponse(response: any): GetAllCardsResponse {
     if (!response) {
@@ -300,6 +320,11 @@ class CardService {
       response.data.cards = [];
     }
 
+    // Transform card fields from API format to VirtualCard format
+    if (Array.isArray(response.data.cards)) {
+      response.data.cards = response.data.cards.map((card: any) => this.transformCard(card));
+    }
+
     // Ensure meta exists
     if (!response.data.meta) {
       response.data.meta = {
@@ -307,6 +332,17 @@ class CardService {
         total_pages: 0,
         total_records: 0,
         page_size: 10,
+      };
+    }
+
+    // Map meta field names if needed (API returns 'page', 'page_size', 'total')
+    const meta = response.data.meta;
+    if (meta.page !== undefined || meta.page_size !== undefined || meta.total !== undefined) {
+      response.data.meta = {
+        current_page: meta.page || meta.current_page || 1,
+        total_pages: Math.ceil((meta.total || 0) / (meta.page_size || 10)),
+        total_records: meta.total || 0,
+        page_size: meta.page_size || 10,
       };
     }
 
