@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { Loader2 } from 'lucide-react';
+import { FEATURES } from '@/config/features';
 
 interface ProtectedPageWrapperProps {
   children: React.ReactNode;
@@ -67,8 +68,9 @@ export function ProtectedPageWrapper({
       return;
     }
 
-    // Check phone verification if required
-    if (requirePhone && !isPhoneVerified) {
+    // Check phone verification if required (unless disabled by default or via env var)
+    // if (requirePhone && !isPhoneVerified && process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION === 'false') {
+    if (requirePhone && !isPhoneVerified ) {
       console.warn(
         '[ProtectedPageWrapper] Unverified phone detected on',
         pathname,

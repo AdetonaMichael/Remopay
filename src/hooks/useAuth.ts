@@ -5,6 +5,7 @@ import { authService } from '@/services/auth.service';
 import { LoginSchema, RegisterSchema, VerifyEmailSchema } from '@/utils/validation.utils';
 import { RegisterRequest } from '@/types/api.types';
 import { useRouter } from 'next/navigation';
+import { FEATURES } from '@/config/features';
 
 export const useAuth = () => {
   const router = useRouter();
@@ -51,10 +52,10 @@ export const useAuth = () => {
             return;
           }
 
-          // Email is verified - now check if phone is verified
+          // Email is verified - now check if phone is verified (if feature is enabled)
           const isPhoneVerified = response.data.user?.isPhoneVerified === true;
           
-          if (!isPhoneVerified) {
+          if (!isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
             // Redirect to phone verification page
             const phoneNumber = response.data.user?.phone_number || '';
             router.push(`/auth/verify-phone?phone=${encodeURIComponent(phoneNumber)}`);

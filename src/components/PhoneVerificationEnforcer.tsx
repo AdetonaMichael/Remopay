@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useErrorPageContext } from '@/contexts/ErrorPageContext';
 import { useInitialization } from '@/contexts/InitializationContext';
+import { FEATURES } from '@/config/features';
 
 /**
  * PhoneVerificationEnforcer Component
@@ -66,10 +67,10 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     if (!isClient) return;
     if (!pathname) return;
 
-    // Skip enforcement if not explicitly enabled via environment variable (disabled by default)
-    if (process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION !== 'false') {
+    // Skip enforcement if disabled via feature flag
+    if (!FEATURES.PHONE_VERIFICATION_ENABLED) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[PhoneVerificationEnforcer] Enforcement disabled via NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION');
+        console.log('[PhoneVerificationEnforcer] Phone verification disabled via FEATURES.PHONE_VERIFICATION_ENABLED');
       }
       return;
     }

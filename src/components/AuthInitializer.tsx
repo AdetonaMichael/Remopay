@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { safeGetItem } from '@/utils/safe-storage.utils';
 import { authService } from '@/services/auth.service';
 import { useInitialization } from '@/contexts/InitializationContext';
+import { FEATURES } from '@/config/features';
 
 /**
  * AuthInitializer Component
@@ -187,8 +188,8 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     else if (!isEmailVerified) {
       correctDestination = `/auth/verify-email?email=${encodeURIComponent(user.email)}`;
     }
-    // Priority 3: Phone not verified
-    else if (!isPhoneVerified) {
+    // Priority 3: Phone not verified (if feature is enabled)
+    else if (!isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
       correctDestination = `/auth/verify-phone?phone=${encodeURIComponent(user.phone_number || '')}`;
     }
     // Priority 4-6: Role-based routing
