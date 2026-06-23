@@ -68,9 +68,9 @@ export function ProtectedPageWrapper({
       return;
     }
 
-    // Check phone verification if required (unless disabled by default or via env var)
+    // Check phone verification if required and feature is enabled
     // if (requirePhone && !isPhoneVerified && process.env.NEXT_PUBLIC_DISABLE_PHONE_VERIFICATION === 'false') {
-    if (requirePhone && !isPhoneVerified ) {
+    if (requirePhone && !isPhoneVerified && FEATURES.PHONE_VERIFICATION_ENABLED) {
       console.warn(
         '[ProtectedPageWrapper] Unverified phone detected on',
         pathname,
