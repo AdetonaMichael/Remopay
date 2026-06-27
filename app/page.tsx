@@ -593,15 +593,19 @@ export default function RemopayLandingPage() {
                 href="https://www.linkedin.com/products/remonode-remopay/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10"
+                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10 transition-colors"
+                aria-label="Visit Remopay on LinkedIn"
+                title="Visit Remopay on LinkedIn"
               >
-                <Linkedin size={18} />
+                <Linkedin size={18} aria-hidden="true" />
               </a>
               <a
                 href="mailto:support@remopay.com"
-                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10"
+                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10 transition-colors"
+                aria-label="Email support@remopay.com"
+                title="Email support@remopay.com"
               >
-                <Mail size={18} />
+                <Mail size={18} aria-hidden="true" />
               </a>
             </div>
 

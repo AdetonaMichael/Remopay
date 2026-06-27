@@ -287,7 +287,7 @@ function RegisterPageContent() {
                     </FieldWrapper>
                   </div>
 
-                  <FieldWrapper
+                   <FieldWrapper
                     label="Email Address"
                     icon={<Mail size={16} />}
                     error={errors.email?.message}

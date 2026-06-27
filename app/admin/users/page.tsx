@@ -912,16 +912,18 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => handleOpenDetails(u)}
                             title="View Details"
+                            aria-label={`View details for user ${u.id}`}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#4a5ff7] transition hover:bg-[#eef2ff]"
                           >
-                            <Eye size={15} />
+                            <Eye size={15} aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => handleOpenNotificationModal(u)}
                             title="Send Notification"
+                            aria-label={`Send notification to user ${u.id}`}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#6b7280] transition hover:bg-[#f1f5f9]"
                           >
-                            <Bell size={15} />
+                            <Bell size={15} aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => handleOpenEmailModal(u)}
@@ -1004,12 +1006,16 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => handleOpenDetails(u)}
                         className="rounded-lg p-2 text-[#4a5ff7] transition hover:bg-[#eef2ff]"
+                        aria-label={`View details for user ${u.id}`}
+                        title="View Details"
                       >
-                        <Eye size={16} />
+                        <Eye size={16} aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => handleOpenNotificationModal(u)}
                         className="rounded-lg p-2 text-[#6b7280] transition hover:bg-[#f1f5f9]"
+                        aria-label={`Send notification to user ${u.id}`}
+                        title="Send Notification"
                       >
                         <Bell size={16} />
                       </button>

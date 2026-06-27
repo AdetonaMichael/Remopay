@@ -428,16 +428,18 @@ export default function AdminReportsPage() {
                           }}
                           className="rounded-xl p-2 text-amber-600 transition hover:bg-amber-50"
                           title="Edit report"
+                          aria-label={`Edit report ${report.id}`}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4" aria-hidden="true" />
                         </button>
 
                         <button
                           onClick={() => handleDeleteReport(report.id)}
                           className="rounded-xl p-2 text-red-600 transition hover:bg-red-50"
                           title="Delete report"
+                          aria-label={`Delete report ${report.id}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </td>

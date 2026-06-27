@@ -10,6 +10,7 @@ import {
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminTable } from '@/components/admin/AdminTable';
 import { AdminStats } from '@/components/admin/AdminStats';
+import { TransactionCharts } from '@/components/admin/TransactionCharts';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
 import { Button } from '@/components/shared/Button';
@@ -17,6 +18,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { adminService } from '@/services/admin.service';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { Modal } from '@/components/shared/Modal';
+import { Card } from '@/components/shared/Card';
 
 interface Transaction {
   id: string | number;
@@ -47,6 +49,8 @@ export default function AdminTransactionsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number; fill: string }[]>([]);
+  const [typeDistribution, setTypeDistribution] = useState<{ name: string; amount: number; count: number }[]>([]);
 
   const isAdmin = useMemo(() => {
     return Boolean(user?.roles?.some((role) => role === 'admin'));
@@ -173,6 +177,31 @@ export default function AdminTransactionsPage() {
           failed_count: failed,
           pending_count: pending,
         });
+
+        // Calculate status distribution for pie chart
+        const statusData = [
+          { name: 'Completed', value: completed, fill: '#10b981' },
+          { name: 'Pending', value: pending, fill: '#f59e0b' },
+          { name: 'Failed', value: failed, fill: '#ef4444' },
+        ].filter(s => s.value > 0);
+        setStatusDistribution(statusData);
+
+        // Calculate transaction type distribution for bar chart
+        const typeMap: Record<string, { amount: number; count: number }> = {};
+        transactionsData.forEach((t: Transaction) => {
+          const type = t.transaction_type || 'Unknown';
+          if (!typeMap[type]) {
+            typeMap[type] = { amount: 0, count: 0 };
+          }
+          typeMap[type].amount += Number(t.amount);
+          typeMap[type].count += 1;
+        });
+        const typeData = Object.entries(typeMap).map(([name, data]) => ({
+          name: name.replace(/_/g, ' '),
+          amount: data.amount,
+          count: data.count,
+        }));
+        setTypeDistribution(typeData);
       } else {
         setStats({
           total_transactions: 0,
@@ -181,6 +210,8 @@ export default function AdminTransactionsPage() {
           failed_count: 0,
           pending_count: 0,
         });
+        setStatusDistribution([]);
+        setTypeDistribution([]);
       }
     } catch (error) {
       console.error('[AdminTransactions] Error fetching transactions:', error);
@@ -285,6 +316,8 @@ export default function AdminTransactionsPage() {
             setSelectedTransaction(row);
             setShowDetails(true);
           }}
+          aria-label={`View transaction details for ${row.reference}`}
+          title={`View transaction ${row.reference}`}
         >
           <Eye className="h-4 w-4" />
         </Button>
@@ -306,8 +339,10 @@ export default function AdminTransactionsPage() {
           onClick: () => console.log('Export report'),
         }}
       />
-
       <AdminStats stats={statsItems} />
+
+      {/* Charts Section */}
+      <TransactionCharts statusDistribution={statusDistribution} typeDistribution={typeDistribution} />
 
       {/* Filter Button */}
       <div className="flex justify-end">

@@ -35,15 +35,17 @@ const buttonVariants = cva(
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   isLoading?: boolean;
   children: React.ReactNode;
+  ariaLabel?: string;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, fullWidth, isLoading, disabled, children, ...props }, ref) => {
+  ({ className, variant, size, fullWidth, isLoading, disabled, children, ariaLabel, ...props }, ref) => {
     return (
       <button
         className={clsx(buttonVariants({ variant, size, fullWidth }), className)}
         disabled={disabled || isLoading}
         ref={ref}
+        aria-label={ariaLabel}
         {...props}
       >
         {isLoading && (
