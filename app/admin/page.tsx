@@ -14,6 +14,7 @@ import {
   Zap,
   BarChart3,
   TrendingUp,
+  CalendarDays,
 } from 'lucide-react';
 
 import { Card } from '@/components/shared/Card';
@@ -44,13 +45,25 @@ function formatUSDCurrency(value: number | null | undefined): string {
   return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+type AdminDashboardPeriod = 'day' | 'week' | 'month' | 'year';
+
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [data, setData] = useState<AdminStatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<AdminDashboardPeriod>('month');
+  const [customRangeEnabled, setCustomRangeEnabled] = useState(false);
+  const [startDate, setStartDate] = useState(formatDateInput(new Date()));
+  const [endDate, setEndDate] = useState(formatDateInput(new Date()));
   const [providerBalances, setProviderBalances] = useState({ paystack: 0, vtpass: 0, maplerad: 0, telnyx: 0 });
 
   const isAdmin = useMemo(() => Boolean(user?.roles?.some((r) => r === 'admin')), [user]);
@@ -63,14 +76,59 @@ export default function AdminDashboardPage() {
     const fetch = async () => {
       try {
         setLoading(true);
-        const res = await adminService.getAdminDashboardComprehensive(selectedPeriod);
+
+        // Determine if custom range is properly configured
+        const hasCustomRange = customRangeEnabled && Boolean(startDate) && Boolean(endDate);
+        
+        // Set period to 'custom' if custom range is enabled, otherwise use selectedPeriod
+        const effectivePeriod = hasCustomRange ? 'custom' : selectedPeriod;
+        
+        // Only pass filters for custom range
+        const effectiveFilters = hasCustomRange
+          ? { start_date: startDate, end_date: endDate }
+          : undefined;
+
+        console.log('🚀 [AdminDashboard] Fetching comprehensive dashboard data');
+        console.log('   Endpoint: /admin/dashboard/comprehensive');
+        console.log('   Period:', effectivePeriod);
+        console.log('   Has Custom Range:', hasCustomRange);
+        console.log('   Start Date:', startDate);
+        console.log('   End Date:', endDate);
+        console.log('   Filters:', effectiveFilters);
+
+        // Validate custom range
+        if (hasCustomRange) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          if (end < start) {
+            throw new Error('End date must be greater than or equal to start date');
+          }
+        }
+
+        const res = await adminService.getAdminDashboardComprehensive(effectivePeriod, effectiveFilters);
+        
+        console.log('📊 [AdminDashboard] Response received:');
+        console.log('   Success:', res.success);
+        console.log('   Data:', res.data);
+        
         if (res.success && res.data) {
+          console.log('✅ [AdminDashboard] Dashboard data loaded successfully');
+          console.log('   Period:', res.data.period);
+          console.log('   Date Range:', res.data.start_date, '—', res.data.end_date);
+          console.log('   Users:', res.data.users);
+          console.log('   Performance:', res.data.performance);
+          console.log('   Wallet:', res.data.wallet);
+          console.log('   VTU Summary:', res.data.vtu.summary);
           setData(res.data);
           setError(null);
         } else {
+          console.error('❌ [AdminDashboard] Invalid response - missing success or data');
           setError('Invalid response');
         }
       } catch (err: any) {
+        console.error('❌ [AdminDashboard] Error fetching dashboard:', err);
+        console.error('   Message:', err?.message);
+        console.error('   Full Error:', err);
         setError(err?.message || 'Failed to load data');
       } finally {
         setLoading(false);
@@ -78,37 +136,67 @@ export default function AdminDashboardPage() {
     };
 
     if (isAdmin) fetch();
-  }, [isAdmin, selectedPeriod]);
+  }, [isAdmin, selectedPeriod, customRangeEnabled, startDate, endDate]);
 
   useEffect(() => {
     const fetchBalances = async () => {
       try {
         const balances = { paystack: 0, vtpass: 0, maplerad: 0, telnyx: 0 };
 
+        console.log('💳 [AdminDashboard] Starting provider balance fetches...');
+
+        // Paystack
         try {
+          console.log('🔄 [Paystack] Fetching balance from /payment/merchant-balance');
           const res = await paymentService.getPaystackBalance();
+          console.log('✅ [Paystack] Response:', res);
           const data = Array.isArray(res?.data) ? res.data[0] : null;
+          console.log('   Parsed data:', data);
           const b = data?.balance || 0;
           balances.paystack = (typeof b === 'string' ? parseFloat(b) : b) / 100;
-        } catch {}
+          console.log('   Final balance:', balances.paystack);
+        } catch (err) {
+          console.error('❌ [Paystack] Failed to fetch balance:', err);
+        }
 
+        // VTPass
         try {
+          console.log('🔄 [VTPass] Fetching balance from /vtu/balance');
           const res = await paymentService.getVTPassBalance();
+          console.log('✅ [VTPass] Response:', res);
           balances.vtpass = res.code === 1 ? parseFloat(res.contents?.balance || '0') : 0;
-        } catch {}
+          console.log('   Final balance:', balances.vtpass);
+        } catch (err) {
+          console.error('❌ [VTPass] Failed to fetch balance:', err);
+        }
 
+        // Maplerad
         try {
+          console.log('🔄 [Maplerad] Fetching balance from /payment/maplerad-balance');
           const res = await paymentService.getMapleradBalance();
+          console.log('✅ [Maplerad] Response:', res);
           balances.maplerad = res.success ? parseFloat(res.data?.balance || '0') : 0;
-        } catch {}
+          console.log('   Final balance:', balances.maplerad);
+        } catch (err) {
+          console.error('❌ [Maplerad] Failed to fetch balance:', err);
+        }
 
+        // Telnyx
         try {
+          console.log('🔄 [Telnyx] Fetching balance from /telnyx/merchant-balance');
           const res = await paymentService.getTelnyxBalance();
+          console.log('✅ [Telnyx] Response:', res);
           balances.telnyx = res.success ? parseFloat(res.data?.available_credit || '0') : 0;
-        } catch {}
+          console.log('   Final balance:', balances.telnyx);
+        } catch (err) {
+          console.error('❌ [Telnyx] Failed to fetch balance:', err);
+        }
 
+        console.log('✅ [AdminDashboard] All provider balances fetched:', balances);
         setProviderBalances(balances);
-      } catch {}
+      } catch (err) {
+        console.error('❌ [AdminDashboard] Error in fetchBalances:', err);
+      }
     };
 
     fetchBalances();
@@ -157,12 +245,87 @@ export default function AdminDashboardPage() {
             <h1 className="text-3xl font-bold text-[#111827]">Admin Dashboard</h1>
             <p className="text-sm text-[#6b7280] mt-1">{data.period.toUpperCase()} • {data.start_date} — {data.end_date}</p>
           </div>
-          <div className="flex gap-2">
-            {(['week', 'month', 'year'] as const).map((p) => (
-              <Button key={p} variant={selectedPeriod === p ? 'primary' : 'secondary'} size="sm" onClick={() => setSelectedPeriod(p)}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+          <div 
+            className="flex flex-col gap-3 lg:items-end"
+            data-webmcp-form="dashboard-filter"
+            role="group"
+            aria-label="Dashboard period and date range filter"
+          >
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Period filter options">
+              {(['day', 'week', 'month', 'year'] as const).map((p) => (
+                <Button
+                  key={p}
+                  variant={selectedPeriod === p ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => {
+                    setSelectedPeriod(p);
+                    setCustomRangeEnabled(false);
+                  }}
+                  data-webmcp-action={`filter-period-${p}`}
+                  aria-pressed={selectedPeriod === p}
+                  aria-label={`Filter dashboard data for the ${p}`}
+                >
+                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                </Button>
+              ))}
+              <Button
+                variant={customRangeEnabled ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setCustomRangeEnabled((value) => !value)}
+                data-webmcp-action="toggle-custom-date-range"
+                aria-pressed={customRangeEnabled}
+                aria-label="Toggle custom date range picker"
+              >
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                  Custom range
+                </span>
               </Button>
-            ))}
+            </div>
+
+            {customRangeEnabled && (
+              <div 
+                className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white p-3"
+                data-webmcp-form="custom-date-range"
+                role="group"
+                aria-label="Custom date range selector"
+              >
+                <label htmlFor="start-date-input" className="text-sm text-[#6b7280]">From</label>
+                <input
+                  id="start-date-input"
+                  type="date"
+                  value={startDate}
+                  data-webmcp-input="date"
+                  aria-label="Start date for dashboard data"
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setStartDate(nextValue);
+                    if (!nextValue) return;
+                    if (new Date(nextValue) > new Date(endDate)) {
+                      setEndDate(nextValue);
+                    }
+                  }}
+                  className="rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
+                />
+                <label htmlFor="end-date-input" className="text-sm text-[#6b7280]">To</label>
+                <input
+                  id="end-date-input"
+                  type="date"
+                  value={endDate}
+                  data-webmcp-input="date"
+                  aria-label="End date for dashboard data"
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setEndDate(nextValue);
+                    if (!nextValue) return;
+                    if (new Date(startDate) > new Date(nextValue)) {
+                      setStartDate(nextValue);
+                    }
+                  }}
+                  className="rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
+                />
+              </div>
+            )}
           </div>
         </div>
 

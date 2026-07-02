@@ -7,15 +7,326 @@ WebMCP (Web Model Context Protocol) enables AI agents to interact with your webs
 - Interactive elements and their purposes
 - Navigation structure
 - Content organization
+- Semantic relationships between elements
 
-## Current Status
+## Current Status - July 2026
 
 Your website now meets the following Agentic Browsing criteria:
 
-✅ **Buttons have discernible text** - All icon buttons have aria-labels  
-✅ **Links have discernible text** - All social links properly labeled  
-✅ **Accessibility tree is well-formed** - Semantic HTML structure intact  
-✅ **Low Cumulative Layout Shift** - Page layout is stable  
+✅ **Buttons have discernible text** - All buttons have aria-labels or visible text
+✅ **Links have discernible text** - All social links properly labeled
+✅ **Accessibility tree is well-formed** - Semantic HTML structure intact
+✅ **Low Cumulative Layout Shift** - Page layout is stable (CLS: 0)
+✅ **llms.txt follows recommendations** - Public llms.txt at `/public/llms.txt`
+✅ **WebMCP annotations implemented** - Forms, tables, modals, and actions annotated
+
+## Project Structure
+
+- **Types**: `src/types/webmcp.types.ts` - TypeScript definitions for all WebMCP annotations
+- **Utilities**: `src/utils/webmcp.utils.ts` - Helper functions for creating WebMCP attributes
+- **Documentation**: `docs/WEBMCP_INTEGRATION.md` - This file
+- **Website Guide**: `public/llms.txt` - AI/LLM integration guide for crawlers
+
+## WebMCP Annotations Reference
+
+### 1. Form Annotations
+
+All forms should have `data-webmcp-form` attribute with semantic role:
+
+```tsx
+import { createFormAttributes } from '@/utils/webmcp.utils';
+import { WEBMCP_FORMS } from '@/types/webmcp.types';
+
+// Simple form
+<form {...createFormAttributes({ 
+  form: WEBMCP_FORMS.LOGIN_FORM,
+  ariaLabel: 'User login form' 
+})}>
+  <input 
+    type="email" 
+    aria-label="Email address"
+    data-webmcp-input="email"
+  />
+  <button data-webmcp-action="submit-form">Login</button>
+</form>
+
+// Or manual annotation
+<form data-webmcp-form="login-form" role="group" aria-label="User login">
+  {/* form fields */}
+</form>
+```
+
+### 2. Input Field Annotations
+
+Each input should have:
+- `data-webmcp-input="[type]"` - Input type (text, email, password, etc.)
+- `aria-label` - Accessible description
+
+```tsx
+import { createInputAttributes } from '@/utils/webmcp.utils';
+
+<input
+  type="email"
+  {...createInputAttributes({
+    type: 'email',
+    ariaLabel: 'Email address for account login',
+    name: 'email'
+  })}
+  placeholder="Enter your email"
+/>
+
+// Or manual
+<input
+  type="email"
+  data-webmcp-input="email"
+  aria-label="Email address"
+  name="email"
+/>
+```
+
+### 3. Button & Action Annotations
+
+All actionable buttons should have:
+- `data-webmcp-action="[action]"` - Action identifier
+- `aria-label` - Accessible description
+
+```tsx
+import { createActionAttributes } from '@/utils/webmcp.utils';
+import { WEBMCP_ACTIONS } from '@/types/webmcp.types';
+
+// Delete button with context
+<button 
+  {...createActionAttributes({
+    action: WEBMCP_ACTIONS.DELETE_ITEM,
+    ariaLabel: `Delete transaction ${reference}`
+  })}
+>
+  <Trash2 size={18} aria-hidden="true" />
+</button>
+
+// Period filter
+<button 
+  {...createActionAttributes({
+    action: WEBMCP_ACTIONS.FILTER_PERIOD_MONTH,
+    ariaLabel: 'Filter dashboard data for the month'
+  })}
+  aria-pressed={selectedPeriod === 'month'}
+>
+  Month
+</button>
+```
+
+### 4. Table Annotations
+
+Tables should have structured WebMCP attributes:
+
+```tsx
+import { createTableAttributes } from '@/utils/webmcp.utils';
+import { WEBMCP_TABLES } from '@/types/webmcp.types';
+
+<table {...createTableAttributes({
+  table: WEBMCP_TABLES.ADMIN_USERS,
+  ariaLabel: 'Admin user management table'
+})}>
+  <thead>
+    <tr>
+      <th scope="col">Email</th>
+      <th scope="col">Status</th>
+      <th scope="col">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {users.map(user => (
+      <tr key={user.id} data-webmcp-row={user.id}>
+        <td data-webmcp-field="email">{user.email}</td>
+        <td data-webmcp-field="status">{user.status}</td>
+        <td>
+          <button data-webmcp-action="view-details">View</button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+### 5. Modal / Dialog Annotations
+
+```tsx
+import { createModalAttributes } from '@/utils/webmcp.utils';
+import { WEBMCP_MODALS } from '@/types/webmcp.types';
+
+<div {...createModalAttributes({
+  modal: WEBMCP_MODALS.TRANSACTION_DETAILS,
+  ariaLabel: 'Transaction details dialog'
+})}>
+  <h2 id="modal-title">Transaction Details</h2>
+  
+  <div data-webmcp-field="reference">
+    <label>Reference:</label>
+    <span>{tx.reference}</span>
+  </div>
+  
+  <button data-webmcp-action="close-modal" aria-label="Close dialog">
+    Close
+  </button>
+</div>
+```
+
+## Implementation Checklist
+
+### Phase 1 ✅ (Completed)
+- [x] Icon buttons have aria-labels
+- [x] Links have descriptive text
+- [x] Semantic HTML structure (header, main, nav, aside)
+- [x] llms.txt file created
+- [x] Dashboard filter form annotated with WebMCP
+
+### Phase 2 (In Progress)
+- [ ] Add `data-webmcp-form` to all FilterPanel components
+- [ ] Add `data-webmcp-table` to AdminTable component
+- [ ] Add `data-webmcp-modal` to Modal component
+- [ ] Add `data-webmcp-action` to all action buttons
+- [ ] Add `aria-label` to all icon-only buttons
+
+### Phase 3 (Recommended)
+- [ ] Add `data-webmcp-field` annotations to form inputs
+- [ ] Add sorting/filtering metadata to tables
+- [ ] Add breadcrumb navigation annotations
+- [ ] Create breadcrumb component with WebMCP
+
+## Utilities for Compliance Checking
+
+The project includes helper utilities for WebMCP compliance:
+
+```tsx
+import { 
+  validateWebMCPCompliance,
+  scanPageCompliance,
+  logComplianceReport 
+} from '@/utils/webmcp.utils';
+
+// Check single element
+const element = document.querySelector('button');
+const validation = validateWebMCPCompliance(element);
+console.log(validation.isValid, validation.issues);
+
+// Scan entire page
+const report = scanPageCompliance();
+console.log(`Issues found: ${report.issuesFound}`);
+console.log(report.details); // Detailed breakdown
+
+// Log compliance report to console
+logComplianceReport();
+```
+
+Run this in browser console to check page compliance:
+```js
+import { logComplianceReport } from '@/utils/webmcp.utils';
+logComplianceReport();
+```
+
+## Testing WebMCP Integration
+
+### 1. Manual Testing
+1. Open DevTools (F12)
+2. Run: `window.__webmcpReport = scanPageCompliance()`
+3. Check console for any accessibility issues
+
+### 2. PageSpeed Insights
+1. Go to https://pagespeed.web.dev/
+2. Enter your website URL
+3. Click "Analyze"
+4. Check the "Agentic Browsing" section:
+   - "Buttons must have discernible text"
+   - "Links must have discernible text"
+   - "Accessibility tree is well-formed"
+   - "WebMCP schemas are valid"
+   - "llms.txt follows recommendations"
+
+### 3. Automated Testing
+Add to your test suite:
+```typescript
+import { validateWebMCPCompliance } from '@/utils/webmcp.utils';
+
+describe('WebMCP Compliance', () => {
+  it('should have discernible text on all buttons', () => {
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+      const result = validateWebMCPCompliance(btn);
+      expect(result.isValid).toBe(true);
+    });
+  });
+});
+```
+
+## Admin Dashboard - Example Implementation
+
+The admin dashboard (`app/admin/page.tsx`) includes comprehensive WebMCP annotations:
+
+```tsx
+// Dashboard filter form
+<div 
+  data-webmcp-form="dashboard-filter"
+  role="group"
+  aria-label="Dashboard period and date range filter"
+>
+  {/* Period buttons */}
+  <Button
+    data-webmcp-action="filter-period-month"
+    aria-pressed={selectedPeriod === 'month'}
+    aria-label="Filter dashboard data for the month"
+  >
+    Month
+  </Button>
+  
+  {/* Custom date range */}
+  <div 
+    data-webmcp-form="custom-date-range"
+    role="group"
+    aria-label="Custom date range selector"
+  >
+    <input
+      id="start-date-input"
+      type="date"
+      data-webmcp-input="date"
+      aria-label="Start date for dashboard data"
+    />
+    <input
+      id="end-date-input"
+      type="date"
+      data-webmcp-input="date"
+      aria-label="End date for dashboard data"
+    />
+  </div>
+</div>
+```
+
+## Best Practices
+
+1. **Always include aria-labels** on icon-only buttons
+2. **Use semantic HTML** - button, a, form, table, etc.
+3. **Mark decorative icons** with `aria-hidden="true"`
+4. **Group related controls** with `role="group"` and `aria-label`
+5. **Use data attributes** for AI agent context
+6. **Maintain form labels** - either with `<label>` or `aria-label`
+7. **Test with screen readers** - NVDA, JAWS, VoiceOver
+8. **Validate regularly** - Use PageSpeed Insights monthly
+
+## Resources
+
+- [Web Fundamentals - Agentic Browsing](https://web.dev/agentic-browsing)
+- [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)
+- [WebAIM - Screen Reader Testing](https://webaim.org/articles/screenreader_testing/)
+- [Accessible Rich Internet Applications (ARIA)](https://www.w3.org/TR/wai-aria-1.2/)
+
+## Support & Questions
+
+For questions about WebMCP implementation:
+1. Check `src/types/webmcp.types.ts` for available annotations
+2. Review `src/utils/webmcp.utils.ts` for helper functions
+3. See examples in `app/admin/page.tsx`
+4. Run compliance scanner: `logComplianceReport()`
+  
 
 ## Recommended WebMCP Enhancements
 

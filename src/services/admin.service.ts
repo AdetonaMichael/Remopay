@@ -447,8 +447,48 @@ class AdminService {
     return apiClient.get(`/statistics/all?period=${period}`);
   }
 
-  async getAdminDashboardComprehensive(period: 'week' | 'month' | 'year' = 'month'): Promise<ApiResponse<AdminStatisticsData>> {
-    return apiClient.get(`/admin/dashboard/comprehensive?period=${period}`);
+  async getAdminDashboardComprehensive(
+    period: 'day' | 'week' | 'month' | 'year' | 'custom' = 'month',
+    filters?: { start_date?: string; end_date?: string }
+  ): Promise<ApiResponse<AdminStatisticsData>> {
+    const params = new URLSearchParams();
+
+    // Always append period
+    params.append('period', period);
+
+    // For custom period, start_date and end_date are required
+    if (period === 'custom') {
+      if (!filters?.start_date || !filters?.end_date) {
+        console.error('❌ [AdminService] Custom period requires both start_date and end_date');
+        throw new Error('Custom period requires both start_date and end_date');
+      }
+      params.append('start_date', filters.start_date);
+      params.append('end_date', filters.end_date);
+      console.log('   Custom date range:', filters.start_date, '—', filters.end_date);
+    } else {
+      // For non-custom periods, filters are ignored
+      if (filters) {
+        console.warn('⚠️  [AdminService] Filters provided for non-custom period - ignoring', filters);
+      }
+    }
+
+    const query = params.toString();
+    const endpoint = `/admin/dashboard/comprehensive${query ? `?${query}` : ''}`;
+    
+    console.log('🔵 [AdminService.getAdminDashboardComprehensive] Called');
+    console.log('   Period:', period);
+    console.log('   Query String:', query);
+    console.log('   Full Endpoint:', endpoint);
+    console.log('   Making API call now...');
+    
+    try {
+      const response = await apiClient.get(endpoint);
+      console.log('✅ [AdminService.getAdminDashboardComprehensive] Response received:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ [AdminService.getAdminDashboardComprehensive] Error:', error);
+      throw error;
+    }
   }
 }
 

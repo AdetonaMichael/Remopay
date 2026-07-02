@@ -927,3 +927,29 @@ export interface BulkToggleStatusRequest {
   ad_ids: number[];
   is_active: boolean;
 }
+
+// ============= Virtual Account (DVA) Types =============
+export interface VirtualAccount {
+  id: string;
+  account_number: string;
+  account_name: string;
+  bank_name: string;
+  currency: 'NGN' | 'USD' | 'GBP' | string;
+  bank_code?: string;
+  status?: 'active' | 'inactive' | string;
+  created_at: string;
+  require_consent?: boolean;
+  consented?: boolean;
+  consent_url?: string | null;
+  reference?: string | null;
+}
+
+export interface VirtualAccountsResponse {
+  virtual_accounts: VirtualAccount[];
+}
+
+export interface GetVirtualAccountsResponse {
+  success: boolean;
+  message: string;
+  data: VirtualAccountsResponse;
+}

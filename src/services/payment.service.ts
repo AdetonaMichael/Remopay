@@ -505,6 +505,38 @@ class PaymentService {
       throw error;
     }
   }
+
+  /**
+   * Get Virtual Accounts (DVA)
+   * Fetches all digital virtual accounts for the authenticated user
+   * Returns multiple accounts in different currencies (NGN, USD, GBP, etc.)
+   */
+  async getVirtualAccount(): Promise<ApiResponse<any>> {
+    try {
+      console.log('🔵 [PaymentService.getVirtualAccount] Fetching virtual accounts');
+
+      const response = await apiClient.get('/payment/customers/virtual-account');
+
+      // API returns: response.original.data.virtual_accounts = Array
+      const accounts = response.original?.data?.virtual_accounts || [];
+      
+      console.log('✅ [PaymentService.getVirtualAccount] Success');
+      console.log('   Accounts:', accounts);
+      console.log('   Count:', accounts.length);
+
+      // Return normalized response with accounts at .data.virtual_accounts
+      return {
+        success: true,
+        message: response.original?.message || 'Virtual accounts retrieved',
+        data: {
+          virtual_accounts: accounts,
+        },
+      } as any;
+    } catch (error: any) {
+      console.error('❌ [PaymentService.getVirtualAccount] Error:', error);
+      throw error;
+    }
+  }
 }
 
 export const paymentService = new PaymentService();

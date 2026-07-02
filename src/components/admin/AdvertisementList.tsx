@@ -253,16 +253,18 @@ export const AdvertisementList: React.FC<AdvertisementListProps> = ({
                       <button
                         onClick={() => onEdit && onEdit(ad)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        aria-label={`Edit advertisement "${ad.title || 'Untitled'}"`}
                         title="Edit"
                       >
-                        <Edit2 size={18} />
+                        <Edit2 size={18} aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => handleDeleteClick(ad.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        aria-label={`Delete advertisement "${ad.title || 'Untitled'}"`}
                         title="Delete"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} aria-hidden="true" />
                       </button>
                     </div>
                   </td>

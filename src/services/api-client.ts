@@ -342,23 +342,58 @@ class ApiClient {
 
   // Public API methods
   public get<T = any>(url: string, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    return this.axiosInstance.get<ApiResponse<T>>(url, config).then((res) => res.data);
+    console.log(`📡 [API] GET ${API_BASE_URL}${url}`);
+    return this.axiosInstance.get<ApiResponse<T>>(url, config).then((res) => {
+      console.log(`✅ [API] GET ${url} - Status: ${res.status}`, res.data);
+      return res.data;
+    }).catch((error) => {
+      console.error(`❌ [API] GET ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      throw error;
+    });
   }
 
   public post<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    return this.axiosInstance.post<ApiResponse<T>>(url, data, config).then((res) => res.data);
+    console.log(`📡 [API] POST ${API_BASE_URL}${url}`, data);
+    return this.axiosInstance.post<ApiResponse<T>>(url, data, config).then((res) => {
+      console.log(`✅ [API] POST ${url} - Status: ${res.status}`, res.data);
+      return res.data;
+    }).catch((error) => {
+      console.error(`❌ [API] POST ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      throw error;
+    });
   }
 
   public put<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    return this.axiosInstance.put<ApiResponse<T>>(url, data, config).then((res) => res.data);
+    console.log(`📡 [API] PUT ${API_BASE_URL}${url}`, data);
+    return this.axiosInstance.put<ApiResponse<T>>(url, data, config).then((res) => {
+      console.log(`✅ [API] PUT ${url} - Status: ${res.status}`, res.data);
+      return res.data;
+    }).catch((error) => {
+      console.error(`❌ [API] PUT ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      throw error;
+    });
   }
 
   public patch<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    return this.axiosInstance.patch<ApiResponse<T>>(url, data, config).then((res) => res.data);
+    console.log(`📡 [API] PATCH ${API_BASE_URL}${url}`, data);
+    return this.axiosInstance.patch<ApiResponse<T>>(url, data, config).then((res) => {
+      console.log(`✅ [API] PATCH ${url} - Status: ${res.status}`, res.data);
+      return res.data;
+    }).catch((error) => {
+      console.error(`❌ [API] PATCH ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      throw error;
+    });
   }
 
   public delete<T = any>(url: string, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    return this.axiosInstance.delete<ApiResponse<T>>(url, config).then((res) => res.data);
+    console.log(`📡 [API] DELETE ${API_BASE_URL}${url}`);
+    return this.axiosInstance.delete<ApiResponse<T>>(url, config).then((res) => {
+      console.log(`✅ [API] DELETE ${url} - Status: ${res.status}`, res.data);
+      return res.data;
+    }).catch((error) => {
+      console.error(`❌ [API] DELETE ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      throw error;
+    });
   }
 
   public setAuthTokens(accessToken: string, refreshToken: string): void {

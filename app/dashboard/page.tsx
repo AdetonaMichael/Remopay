@@ -23,12 +23,15 @@ import { Card } from '@/components/shared/Card';
 import { Badge } from '@/components/shared/Badge';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { AdCarousel } from '@/components/dashboard/AdCarousel';
+import { AccountsCarousel, UnifiedAccount } from '@/components/dashboard/AccountsCarousel';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
+import { paymentService } from '@/services/payment.service';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency, formatRelativeTime, formatDate } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES, TRANSACTION_TYPES } from '@/utils/constants';
+import { VirtualAccount } from '@/types/api.types';
 
 type WalletData = {
   balance: number;
@@ -48,6 +51,18 @@ type TransactionData = {
   reference?: string;
   metadata?: Record<string, any>;
   service_logo?: string | null;
+};
+
+// Loose shape covering the fields actually used off a virtual account,
+// without assuming everything the real VirtualAccount type declares.
+type VirtualAccountFields = {
+  id?: string | number;
+  account_number?: string;
+  account_name?: string;
+  bank_name?: string;
+  provider?: string;
+  currency?: string;
+  country_code?: string;
 };
 
 const quickActions = [
@@ -109,8 +124,11 @@ export default function DashboardPage() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
+  const [virtualAccounts, setVirtualAccounts] = useState<VirtualAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [accountLoading, setAccountLoading] = useState(true);
+  const [virtualAccountsLoading, setVirtualAccountsLoading] = useState(true);
+  const [virtualAccountsError, setVirtualAccountsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -142,6 +160,35 @@ export default function DashboardPage() {
 
     fetchAccountInfo();
   }, [user?.email]);
+
+  // Fetch virtual accounts (DVA)
+  useEffect(() => {
+    const fetchVirtualAccounts = async () => {
+      try {
+        setVirtualAccountsLoading(true);
+        setVirtualAccountsError(null);
+
+        const response = await paymentService.getVirtualAccount();
+        const accounts = response?.data?.virtual_accounts || [];
+
+        if (Array.isArray(accounts) && accounts.length > 0) {
+          setVirtualAccounts(accounts);
+        } else {
+          setVirtualAccounts([]);
+        }
+      } catch (err: any) {
+        console.error('Error fetching virtual accounts:', err);
+        setVirtualAccountsError(err?.message || 'Failed to load virtual accounts');
+        setVirtualAccounts([]);
+      } finally {
+        setVirtualAccountsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      fetchVirtualAccounts();
+    }
+  }, [user?.id]);
 
   // Fetch wallet and transactions
   useEffect(() => {
@@ -189,6 +236,46 @@ export default function DashboardPage() {
 
     fetchData();
   }, [user?.id, currentPage]);
+
+  // Merge accounts from both the dedicated-account endpoint and the virtual
+  // account (DVA) endpoint into one normalized collection, so the carousel
+  // below can render them as a single, seamless set of cards regardless of
+  // where each one actually came from. Adding a third source later is just
+  // another block pushed into `list` here.
+  const unifiedAccounts: UnifiedAccount[] = useMemo(() => {
+    const list: UnifiedAccount[] = [];
+
+    if (dedicatedAccount?.account_number) {
+      list.push({
+        key: `dedicated-${dedicatedAccount.account_number}`,
+        source: 'dedicated',
+        bankName: dedicatedAccount.bank_name || 'Bank',
+        accountNumber: dedicatedAccount.account_number || '',
+        accountName: dedicatedAccount.account_name || '',
+        currency: 'NGN',
+        countryCode: 'NG',
+        isPrimary: true,
+      });
+    }
+
+    virtualAccounts.forEach((account, index) => {
+      const acc = account as unknown as VirtualAccountFields;
+      list.push({
+        key: `virtual-${acc.id ?? acc.account_number ?? index}`,
+        source: 'virtual',
+        bankName: acc.bank_name || acc.provider || 'Bank',
+        accountNumber: acc.account_number || '',
+        accountName: acc.account_name || '',
+        currency: acc.currency || 'NGN',
+        countryCode: (acc.country_code || 'NG').toUpperCase(),
+        // Only badge the very first card as "Primary" when there's no
+        // dedicated account ahead of it and there's more than one card total.
+        isPrimary: !dedicatedAccount && index === 0,
+      });
+    });
+
+    return list;
+  }, [dedicatedAccount, virtualAccounts]);
 
   const monthlyTransactionsCount = useMemo(() => {
     const currentMonth = new Date().getMonth();
@@ -251,6 +338,27 @@ export default function DashboardPage() {
     );
   };
 
+  const handleRetryVirtualAccounts = () => {
+    setVirtualAccountsLoading(true);
+    setVirtualAccountsError(null);
+
+    paymentService
+      .getVirtualAccount()
+      .then((res) => {
+        const accounts = res?.data?.virtual_accounts || [];
+        if (Array.isArray(accounts) && accounts.length > 0) {
+          setVirtualAccounts(accounts);
+        } else {
+          setVirtualAccounts([]);
+        }
+      })
+      .catch((err) => {
+        console.error('Error retrying virtual accounts:', err);
+        setVirtualAccountsError(err?.message || 'Failed to load accounts');
+      })
+      .finally(() => setVirtualAccountsLoading(false));
+  };
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -302,55 +410,19 @@ export default function DashboardPage() {
                 </h2>
               </div>
 
-              {/* Account Details - if exists */}
-              {dedicatedAccount && (
-                <div className="col-span-2 border-t border-white/10 pt-3 space-y-2.5">
-                  <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">Account</p>
-                  
-                  {/* Account Number */}
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-mono text-sm font-bold text-white">
-                      {dedicatedAccount.account_number}
-                    </p>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(dedicatedAccount.account_number);
-                      }}
-                      className="inline-flex items-center justify-center rounded-md bg-white/15 p-1 text-white/70 hover:bg-white/25 transition-colors flex-shrink-0"
-                      title="Copy account number"
-                    >
-                      <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z" />
-                        <path d="M2 6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5a.5.5 0 0 0-1 0V16a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.5a.5.5 0 0 0 0-1H2z" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Account Name */}
-                  {dedicatedAccount.account_name && (
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-semibold text-white/80">
-                        {dedicatedAccount.account_name}
-                      </p>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(dedicatedAccount.account_name);
-                        }}
-                        className="inline-flex items-center justify-center rounded-md bg-white/15 p-1 text-white/70 hover:bg-white/25 transition-colors flex-shrink-0"
-                        title="Copy account name"
-                      >
-                        <svg className="h-2.5 w-2.5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2z" />
-                          <path d="M2 6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5a.5.5 0 0 0-1 0V16a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h2.5a.5.5 0 0 0 0-1H2z" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Bank Name */}
-                  <p className="text-xs text-white/50 font-semibold">{dedicatedAccount.bank_name}</p>
-                </div>
-              )}
+              {/* Accounts — dedicated account + virtual accounts, rendered as
+                  one unified, swipeable/scrollable card collection */}
+              <div className="col-span-2 border-t border-white/10 pt-3 space-y-2.5">
+                <p className="text-[11px] font-semibold text-white/35 uppercase tracking-wider">Your Accounts</p>
+                <AccountsCarousel
+                  accounts={unifiedAccounts}
+                  isLoadingPrimary={accountLoading && unifiedAccounts.length === 0}
+                  isLoadingMore={virtualAccountsLoading}
+                  error={virtualAccountsError}
+                  isDarkTheme={true}
+                  onRetry={handleRetryVirtualAccounts}
+                />
+              </div>
             </div>
           </div>
         </div>

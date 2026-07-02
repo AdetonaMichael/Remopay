@@ -1,0 +1,124 @@
+# RemoPay - AI & LLM Integration Guide
+
+## Overview
+RemoPay is a fintech platform enabling users to purchase airtime, data, pay bills, manage wallets, and access virtual cards. This document helps AI agents understand our website structure and interact effectively.
+
+## Website Purpose
+- VTU (Virtual Top-Up) services: Airtime, Data, Bills payment
+- User wallet management and fund transfers
+- Virtual card issuance and management
+- Referral program and rewards
+- Admin dashboard for platform management
+
+## Main Navigation
+- **Public Pages**: Landing, FAQ, Privacy, Terms, Support
+- **Auth**: Login, Register, Email Verification, Phone Verification
+- **Dashboard**: User dashboard with wallet, airtime, data, bills, transfers
+- **Admin**: Admin dashboard, user management, transactions, analytics
+- **Agent**: Agent dashboard with customer management and performance metrics
+
+## Key Forms for AI Interaction
+
+### User Registration
+- Path: `/auth/register`
+- Fields: Email, Password, Phone Number, Full Name
+- WebMCP Form: `registration-form`
+
+### Login
+- Path: `/auth/login`
+- Fields: Email/Phone, Password
+- WebMCP Form: `login-form`
+
+### VTU Transactions
+- Airtime Purchase: `/dashboard/airtime`
+- Data Purchase: `/dashboard/data`
+- Bills Payment: `/dashboard/bills`
+- TV Subscription: `/dashboard/tv`
+- WebMCP Form: `vtu-transaction-form`
+
+### Admin Operations
+- User Management: `/admin/users`
+- Transactions: `/admin/transactions`
+- Analytics: `/admin/analytics`
+- WebMCP Table: `admin-users-table`, `admin-transactions-table`
+
+## Accessibility Standards
+- ✅ WCAG 2.1 Level AA compliance
+- ✅ Semantic HTML structure
+- ✅ ARIA labels on interactive elements
+- ✅ Keyboard navigation support
+- ✅ Screen reader support
+- ✅ High contrast ratio (4.5:1 minimum)
+
+## API Endpoints
+- Base URL: `https://gateway.remonode.com/remopay/api/v1`
+- Authentication: Bearer token (stored in HttpOnly cookies)
+- Response Format: JSON with `success`, `message`, `data` fields
+
+## Data Attributes for AI Agents
+
+### Forms
+- `data-webmcp-form="[form-name]"` - Identifies form
+- `data-webmcp-input="[input-type]"` - Marks form inputs
+- `data-webmcp-action="[action-name]"` - Marks action buttons
+
+### Tables
+- `data-webmcp-table="[table-name]"` - Identifies data tables
+- `data-webmcp-row="[row-id]"` - Marks table rows
+- `data-webmcp-field="[field-name]"` - Marks table fields
+
+### Modals & Dialogs
+- `data-webmcp-modal="[modal-name]"` - Identifies modals
+- `role="dialog"` - Semantic role
+- `aria-modal="true"` - Accessibility attribute
+
+### Interactive Elements
+- `aria-label="[description]"` - Accessible text for buttons
+- `aria-describedby="[id]"` - Additional description
+- `data-webmcp-action="[action]"` - Identifies actions
+
+## Common User Journeys
+
+### Purchase Airtime
+1. Navigate to Dashboard → Airtime
+2. Enter phone number and amount
+3. Select provider (MTN, Airtel, 9mobile, Glo)
+4. Choose payment method (Wallet, Card)
+5. Confirm transaction
+6. Receive success notification
+
+### Wallet Transfer
+1. Navigate to Dashboard → Transfer
+2. Enter recipient phone or username
+3. Enter amount
+4. Confirm transfer
+5. Receive confirmation with reference
+
+### Admin User Management
+1. Navigate to Admin → Users
+2. Search or filter users
+3. View user details, transactions, wallet
+4. Take actions: verify, suspend, assign roles
+5. Send notifications or emails
+
+## Error Handling
+- API errors return 4xx/5xx status codes with `message` field
+- Frontend displays user-friendly error messages
+- Validation errors include field-specific messages
+- Network errors trigger retry mechanisms
+
+## Rate Limiting
+- API Rate Limit: 100 requests per minute per user
+- WebSocket: 1 connection per user session
+- Cache TTL: 5 minutes for dashboard stats
+
+## Security Notes
+- All forms use CSRF protection (X-CSRF-Token header)
+- Sensitive operations require OTP verification
+- Session expires after 30 minutes of inactivity
+- Account requires email and phone verification
+
+## Contact & Support
+- Support Page: `/support`
+- Email: support@remonode.com
+- Documentation: https://docs.remonode.com
