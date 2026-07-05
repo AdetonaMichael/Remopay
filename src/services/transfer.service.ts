@@ -133,7 +133,7 @@ class TransferService {
   async initiateBankTransfer(payload: BankTransferRequest): Promise<BankTransferResponse | null> {
     try {
       const response = (await apiClient.post('/payment/initiate-transfer', payload)) as any;
-      return response?.data || null;
+      return response || null;
     } catch (error) {
       console.error('Error initiating bank transfer:', error);
       throw error; // Re-throw for component error handling

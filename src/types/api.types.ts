@@ -592,6 +592,43 @@ export interface SendEmailRequest {
   };
 }
 
+export interface SendBulkEmailInlineBanner {
+  image_url: string;
+  link_url?: string;
+  alt_text?: string;
+  width?: string;
+}
+
+export interface SendBulkEmailRequest {
+  user_ids?: number[];
+  title: string;
+  body: string;
+  type?: 'transaction' | 'system' | 'promotion' | 'update' | 'alert';
+  priority?: 'low' | 'normal' | 'high';
+  email_template?: string;
+  custom_greeting?: string;
+  highlight_info?: string;
+  details_section_title?: string;
+  action_button_url?: string;
+  action_button_text?: string;
+  support_text?: string;
+  custom_closing_message?: string;
+  ads_banner_enabled?: boolean;
+  ads_banner_title?: string;
+  ads_banner_description?: string;
+  ads_banner_cta_text?: string;
+  ads_banner_cta_url?: string;
+  inline_banners?: SendBulkEmailInlineBanner[];
+}
+
+export interface SendBulkEmailResponse {
+  total_recipients: number;
+  total_batches: number;
+  batch_size: number;
+  email_title: string;
+  email_type: string;
+}
+
 export interface SendNotificationRequest {
   title: string;
   body: string;

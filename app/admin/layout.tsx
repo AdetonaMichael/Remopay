@@ -26,6 +26,7 @@ import {
   Phone,
   BookOpen,
   Layers,
+  Percent,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -63,6 +64,7 @@ const adminNavItems = [
   { label: 'Settlements', href: '/admin/settlements', icon: CreditCard },
   { label: 'Settlement Config', href: '/admin/settlements/config', icon: FileText },
   { label: 'Settlement Batches', href: '/admin/settlements/batches', icon: Layers },
+  { label: 'VTU Subsidies', href: '/admin/vtu-subsidies', icon: Percent },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

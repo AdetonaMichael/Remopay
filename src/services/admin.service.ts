@@ -9,6 +9,8 @@ import {
   ApiResponse,
   PaginatedResponse,
   SendEmailRequest,
+  SendBulkEmailRequest,
+  SendBulkEmailResponse,
 } from '@/types/api.types';
 import {
   AdminStatisticsData,
@@ -106,6 +108,12 @@ class AdminService {
     payload: SendEmailRequest
   ): Promise<any> {
     return apiClient.post(`/admin/users/${userId}/email`, payload);
+  }
+
+  async sendBulkEmail(
+    payload: SendBulkEmailRequest
+  ): Promise<ApiResponse<{ data: SendBulkEmailResponse }>> {
+    return apiClient.post('/admin/users/bulk-email', payload);
   }
 
   async sendNotificationWithData(

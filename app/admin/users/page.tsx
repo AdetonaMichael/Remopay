@@ -18,6 +18,8 @@ import {
   Trash2,
   X,
   CheckCircle,
+  MailPlus,
+  Send,
 } from 'lucide-react';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
@@ -33,7 +35,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useAlert } from '@/hooks/useAlert';
 import { adminService } from '@/services/admin.service';
 import { formatDate } from '@/utils/format.utils';
-import type { AdminUser } from '@/types/api.types';
+import type { AdminUser, SendBulkEmailRequest, SendBulkEmailResponse, SendBulkEmailInlineBanner } from '@/types/api.types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,6 +185,44 @@ export default function AdminUsersPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTransactionsModal, setShowTransactionsModal] = useState(false);
   const [showBulkActionModal, setShowBulkActionModal] = useState(false);
+  const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
+  const [showBulkEmailConfirm, setShowBulkEmailConfirm] = useState(false);
+  const [showBulkEmailResult, setShowBulkEmailResult] = useState(false);
+
+  // ── State - Bulk Email ──────────────────────────────────────────────────────
+
+  const [bulkEmailRecipientMode, setBulkEmailRecipientMode] = useState<'all' | 'specific'>('all');
+  const [bulkEmailRecipientSearch, setBulkEmailRecipientSearch] = useState('');
+  const [bulkEmailRecipientResults, setBulkEmailRecipientResults] = useState<AdminUser[]>([]);
+  const [bulkEmailSelectedUsers, setBulkEmailSelectedUsers] = useState<AdminUser[]>([]);
+  const [bulkEmailSearchLoading, setBulkEmailSearchLoading] = useState(false);
+  const [bulkEmailResult, setBulkEmailResult] = useState<SendBulkEmailResponse | null>(null);
+
+  const [bulkEmailData, setBulkEmailData] = useState({
+    title: '',
+    body: '',
+    type: 'system' as 'transaction' | 'system' | 'promotion' | 'update' | 'alert',
+    priority: 'normal' as 'low' | 'normal' | 'high',
+    email_template: 'admin-custom',
+    custom_greeting: '',
+    highlight_info: '',
+    details_section_title: '',
+    action_button_url: '',
+    action_button_text: '',
+    support_text: '',
+    custom_closing_message: '',
+    ads_banner_enabled: true,
+    ads_banner_title: '',
+    ads_banner_description: '',
+    ads_banner_cta_text: '',
+    ads_banner_cta_url: '',
+    inline_banners: [] as Array<{
+      image_url: string;
+      link_url: string;
+      alt_text: string;
+      width: string;
+    }>,
+  });
 
   // ── State - Form Data ───────────────────────────────────────────────────────
 
@@ -630,6 +670,148 @@ export default function AdminUsersPage() {
     }
   };
 
+  // ── Bulk Email Handlers ─────────────────────────────────────────────────────
+
+  const handleOpenBulkEmailModal = () => {
+    setBulkEmailRecipientMode('all');
+    setBulkEmailRecipientSearch('');
+    setBulkEmailRecipientResults([]);
+    setBulkEmailSelectedUsers([]);
+    setBulkEmailResult(null);
+    setBulkEmailData({
+      title: '',
+      body: '',
+      type: 'system',
+      priority: 'normal',
+      email_template: 'admin-custom',
+      custom_greeting: '',
+      highlight_info: '',
+      details_section_title: '',
+      action_button_url: '',
+      action_button_text: '',
+      support_text: '',
+      custom_closing_message: '',
+      ads_banner_enabled: true,
+      ads_banner_title: '',
+      ads_banner_description: '',
+      ads_banner_cta_text: '',
+      ads_banner_cta_url: '',
+      inline_banners: [],
+    });
+    setShowBulkEmailModal(true);
+    setShowBulkEmailConfirm(false);
+    setShowBulkEmailResult(false);
+  };
+
+  const handleBulkEmailSearchUsers = async (query: string) => {
+    setBulkEmailRecipientSearch(query);
+    if (!query.trim()) {
+      setBulkEmailRecipientResults([]);
+      return;
+    }
+
+    try {
+      setBulkEmailSearchLoading(true);
+      const response = await adminService.getUsers(1, 20, { search: query });
+      const userData = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data ?? [];
+      setBulkEmailRecipientResults(userData);
+    } catch (error) {
+      console.error('Error searching users:', error);
+    } finally {
+      setBulkEmailSearchLoading(false);
+    }
+  };
+
+  const handleAddBulkEmailRecipient = (user: AdminUser) => {
+    if (!bulkEmailSelectedUsers.find((u) => u.id === user.id)) {
+      setBulkEmailSelectedUsers([...bulkEmailSelectedUsers, user]);
+    }
+    setBulkEmailRecipientSearch('');
+    setBulkEmailRecipientResults([]);
+  };
+
+  const handleRemoveBulkEmailRecipient = (userId: string | number) => {
+    setBulkEmailSelectedUsers(bulkEmailSelectedUsers.filter((u) => u.id !== userId));
+  };
+
+  const handleSendBulkEmail = async () => {
+    if (!bulkEmailData.title || !bulkEmailData.body) {
+      showAlert('Please fill all required fields (Subject and Message)', 'warning');
+      return;
+    }
+
+    // Build payload
+    const payload: SendBulkEmailRequest = {
+      title: bulkEmailData.title,
+      body: bulkEmailData.body,
+      type: bulkEmailData.type,
+      priority: bulkEmailData.priority,
+      email_template: bulkEmailData.email_template,
+    };
+
+    // Only include user_ids if sending to specific users
+    if (bulkEmailRecipientMode === 'specific' && bulkEmailSelectedUsers.length > 0) {
+      payload.user_ids = bulkEmailSelectedUsers.map((u) => Number(u.id));
+    }
+
+    // Optional fields — only include if populated
+    if (bulkEmailData.custom_greeting) payload.custom_greeting = bulkEmailData.custom_greeting;
+    if (bulkEmailData.highlight_info) payload.highlight_info = bulkEmailData.highlight_info;
+    if (bulkEmailData.details_section_title) payload.details_section_title = bulkEmailData.details_section_title;
+    if (bulkEmailData.action_button_url) payload.action_button_url = bulkEmailData.action_button_url;
+    if (bulkEmailData.action_button_text) payload.action_button_text = bulkEmailData.action_button_text;
+    if (bulkEmailData.support_text) payload.support_text = bulkEmailData.support_text;
+    if (bulkEmailData.custom_closing_message) payload.custom_closing_message = bulkEmailData.custom_closing_message;
+    if (!bulkEmailData.ads_banner_enabled) payload.ads_banner_enabled = false;
+    if (bulkEmailData.ads_banner_title) payload.ads_banner_title = bulkEmailData.ads_banner_title;
+    if (bulkEmailData.ads_banner_description) payload.ads_banner_description = bulkEmailData.ads_banner_description;
+    if (bulkEmailData.ads_banner_cta_text) payload.ads_banner_cta_text = bulkEmailData.ads_banner_cta_text;
+    if (bulkEmailData.ads_banner_cta_url) payload.ads_banner_cta_url = bulkEmailData.ads_banner_cta_url;
+
+    // Inline banners — only include if at least one has an image_url
+    const validBanners = bulkEmailData.inline_banners.filter((b) => b.image_url.trim());
+    if (validBanners.length > 0) {
+      payload.inline_banners = validBanners.map((b) => ({
+        image_url: b.image_url,
+        ...(b.link_url && { link_url: b.link_url }),
+        ...(b.alt_text && { alt_text: b.alt_text }),
+        ...(b.width && { width: b.width }),
+      }));
+    }
+
+    try {
+      setLoadingAction(true);
+      const response = await adminService.sendBulkEmail(payload);
+      const resultData = response?.data?.data as SendBulkEmailResponse;
+      if (resultData) {
+        setBulkEmailResult(resultData);
+      }
+      showAlert('Bulk email queued successfully', 'success');
+      setShowBulkEmailConfirm(false);
+      setShowBulkEmailModal(false);
+      setShowBulkEmailResult(true);
+    } catch (error) {
+      console.error('Error sending bulk email:', error);
+      showAlert('Failed to send bulk email', 'error');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleProceedToConfirm = () => {
+    if (!bulkEmailData.title || !bulkEmailData.body) {
+      showAlert('Please fill all required fields (Subject and Message)', 'warning');
+      return;
+    }
+    if (bulkEmailRecipientMode === 'specific' && bulkEmailSelectedUsers.length === 0) {
+      showAlert('Please select at least one user or switch to "All Users"', 'warning');
+      return;
+    }
+    setShowBulkEmailConfirm(true);
+  };
+
   // ── Derived state ───────────────────────────────────────────────────────────
 
   const summary = useMemo(() => {
@@ -749,7 +931,14 @@ export default function AdminUsersPage() {
       </section>
 
       {/* ── Filters with FilterPanel ────────────────────────────────── */}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        <Button
+          onClick={handleOpenBulkEmailModal}
+          className="h-11 rounded-xl bg-[#d71927] px-4 font-semibold text-white shadow-lg shadow-[#d71927]/20 transition hover:bg-[#b91521]"
+        >
+          <MailPlus className="h-4 w-4 mr-2 inline" />
+          Bulk Email
+        </Button>
         <Button
           onClick={openFilters}
           className={`h-11 rounded-xl px-4 font-semibold transition ${
@@ -2349,6 +2538,689 @@ export default function AdminUsersPage() {
                 Cancel
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Bulk Email Modal ─────────────────────────────────────────────── */}
+      {showBulkEmailModal && (
+        <Modal
+          isOpen={showBulkEmailModal}
+          onClose={() => setShowBulkEmailModal(false)}
+          title="Send Bulk Email"
+          size="xl"
+        >
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2">
+            {/* ── Recipient Selection ──────────────────────────────────── */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Recipients
+              </h4>
+
+              {/* Toggle */}
+              <div className="flex gap-4 mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="recipient-mode"
+                    checked={bulkEmailRecipientMode === 'all'}
+                    onChange={() => setBulkEmailRecipientMode('all')}
+                    className="h-4 w-4 text-[#d71927]"
+                  />
+                  <span className="text-sm font-medium text-[#111827]">
+                    All Users (with verified email)
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="recipient-mode"
+                    checked={bulkEmailRecipientMode === 'specific'}
+                    onChange={() => setBulkEmailRecipientMode('specific')}
+                    className="h-4 w-4 text-[#d71927]"
+                  />
+                  <span className="text-sm font-medium text-[#111827]">
+                    Specific Users
+                  </span>
+                </label>
+              </div>
+
+              {/* Specific Users Search */}
+              {bulkEmailRecipientMode === 'specific' && (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7280]" />
+                    <input
+                      type="text"
+                      placeholder="Search users by name, email, or phone..."
+                      value={bulkEmailRecipientSearch}
+                      onChange={(e) => handleBulkEmailSearchUsers(e.target.value)}
+                      className="w-full rounded-xl border border-[#d1d5db] py-2.5 pl-10 pr-4 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                    />
+                    {bulkEmailSearchLoading && (
+                      <Spinner className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                    )}
+                  </div>
+
+                  {/* Search Results */}
+                  {bulkEmailRecipientResults.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-[#e5e7eb] bg-white shadow-sm">
+                      {bulkEmailRecipientResults.map((user) => (
+                        <button
+                          key={user.id}
+                          onClick={() => handleAddBulkEmailRecipient(user)}
+                          className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition hover:bg-[#f8fafc]"
+                        >
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2ff] text-xs font-bold text-[#4a5ff7]">
+                            {user.first_name.charAt(0)}
+                            {user.last_name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#111827]">
+                              {user.first_name} {user.last_name}
+                            </p>
+                            <p className="text-xs text-[#6b7280]">{user.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selected Users Chips */}
+                  {bulkEmailSelectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {bulkEmailSelectedUsers.map((user) => (
+                        <span
+                          key={user.id}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[#eef2ff] px-3 py-1.5 text-xs font-medium text-[#4a5ff7]"
+                        >
+                          {user.first_name} {user.last_name}
+                          <button
+                            onClick={() => handleRemoveBulkEmailRecipient(user.id)}
+                            className="ml-0.5 rounded-full p-0.5 transition hover:bg-[#d1d5db]"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Recipient Count Info */}
+              <div className="mt-3 rounded-lg bg-[#f8fafc] px-4 py-2.5">
+                <p className="text-xs text-[#6b7280]">
+                  {bulkEmailRecipientMode === 'all'
+                    ? 'Email will be sent to all users with verified email addresses. The API determines eligibility automatically.'
+                    : `${bulkEmailSelectedUsers.length} user${bulkEmailSelectedUsers.length !== 1 ? 's' : ''} selected`}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Email Composer ──────────────────────────────────────────── */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Email Content
+              </h4>
+              <div className="space-y-4">
+                {/* Type and Priority Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Email Type
+                    </label>
+                    <select
+                      value={bulkEmailData.type}
+                      onChange={(e) =>
+                        setBulkEmailData({
+                          ...bulkEmailData,
+                          type: e.target.value as any,
+                        })
+                      }
+                      className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                    >
+                      <option value="system">System</option>
+                      <option value="transaction">Transaction</option>
+                      <option value="promotion">Promotion</option>
+                      <option value="update">Update</option>
+                      <option value="alert">Alert</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Priority
+                    </label>
+                    <select
+                      value={bulkEmailData.priority}
+                      onChange={(e) =>
+                        setBulkEmailData({
+                          ...bulkEmailData,
+                          priority: e.target.value as any,
+                        })
+                      }
+                      className="w-full rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                    >
+                      <option value="low">Low</option>
+                      <option value="normal">Normal</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Subject <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    placeholder="Email subject (max 255 characters)..."
+                    value={bulkEmailData.title}
+                    maxLength={255}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, title: e.target.value })
+                    }
+                  />
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    {bulkEmailData.title.length}/255
+                  </p>
+                </div>
+
+                {/* Custom Greeting */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Custom Greeting
+                  </label>
+                  <Input
+                    placeholder='e.g., "Dear Valued Customer," (default: Hi {first_name},)'
+                    value={bulkEmailData.custom_greeting}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, custom_greeting: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Body */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Message <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    placeholder="Email body content. Supports plain text or raw HTML (max 10,000 chars)..."
+                    value={bulkEmailData.body}
+                    maxLength={10000}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, body: e.target.value })
+                    }
+                    rows={6}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                  <p className="mt-1 text-xs text-[#6b7280]">
+                    {bulkEmailData.body.length}/10,000
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Optional Sections ───────────────────────────────────────── */}
+            <div className="rounded-lg border border-[#e5e7eb] p-4">
+              <h4 className="mb-4 font-semibold text-[#111827]">
+                Optional Customizations
+              </h4>
+              <div className="space-y-4">
+                {/* Highlight Info */}
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#111827]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#fef3c7] text-xs text-[#92400e]">!</span>
+                    Highlight / Important Info
+                  </label>
+                  <textarea
+                    placeholder="Important information displayed in a colored highlight box (max 500 chars)..."
+                    value={bulkEmailData.highlight_info}
+                    maxLength={500}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, highlight_info: e.target.value })
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                </div>
+
+                {/* Details Section Title */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Details Section Title
+                  </label>
+                  <Input
+                    placeholder="e.g., 'What's New in This Update'"
+                    value={bulkEmailData.details_section_title}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, details_section_title: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Action Button Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Action Button URL
+                    </label>
+                    <Input
+                      placeholder="https://..."
+                      value={bulkEmailData.action_button_url}
+                      onChange={(e) =>
+                        setBulkEmailData({ ...bulkEmailData, action_button_url: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                      Button Text
+                    </label>
+                    <Input
+                      placeholder='e.g., "View Details" (default: Visit Remopay)'
+                      value={bulkEmailData.action_button_text}
+                      onChange={(e) =>
+                        setBulkEmailData({ ...bulkEmailData, action_button_text: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Support Text */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#dbeafe] text-xs text-[#1e40af] mr-1.5 inline-flex">i</span>
+                    Support / Help Text
+                  </label>
+                  <textarea
+                    placeholder="Support or help information in a blue info box (max 500 chars, HTML supported)..."
+                    value={bulkEmailData.support_text}
+                    maxLength={500}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, support_text: e.target.value })
+                    }
+                    rows={2}
+                    className="w-full rounded-xl border border-[#d1d5db] px-4 py-3 text-sm text-[#111827] outline-none transition focus:border-[#4a5ff7] focus:ring-4 focus:ring-[#4a5ff7]/10"
+                  />
+                </div>
+
+                {/* Custom Closing Message */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#111827]">
+                    Custom Closing Message
+                  </label>
+                  <Input
+                    placeholder='e.g., "Happy transacting," (default: "Thank you,")'
+                    value={bulkEmailData.custom_closing_message}
+                    onChange={(e) =>
+                      setBulkEmailData({ ...bulkEmailData, custom_closing_message: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Ads Banner Toggle */}
+                <div className="border-t border-[#e5e7eb] pt-4">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={bulkEmailData.ads_banner_enabled}
+                      onChange={(e) =>
+                        setBulkEmailData({
+                          ...bulkEmailData,
+                          ads_banner_enabled: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4 rounded border-[#d1d5db] text-[#d71927]"
+                    />
+                    <span className="text-sm font-medium text-[#111827]">
+                      Show Remopay banner at the bottom of the email
+                    </span>
+                  </label>
+
+                  {bulkEmailData.ads_banner_enabled && (
+                    <div className="mt-4 space-y-3 pl-7">
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold text-[#6b7280]">
+                          Banner Title
+                        </label>
+                        <Input
+                          placeholder="Custom banner title"
+                          value={bulkEmailData.ads_banner_title}
+                          onChange={(e) =>
+                            setBulkEmailData({ ...bulkEmailData, ads_banner_title: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold text-[#6b7280]">
+                          Banner Description
+                        </label>
+                        <Input
+                          placeholder="Custom banner description"
+                          value={bulkEmailData.ads_banner_description}
+                          onChange={(e) =>
+                            setBulkEmailData({ ...bulkEmailData, ads_banner_description: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="mb-2 block text-xs font-semibold text-[#6b7280]">
+                            CTA Text
+                          </label>
+                          <Input
+                            placeholder="Button text"
+                            value={bulkEmailData.ads_banner_cta_text}
+                            onChange={(e) =>
+                              setBulkEmailData({ ...bulkEmailData, ads_banner_cta_text: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block text-xs font-semibold text-[#6b7280]">
+                            CTA URL
+                          </label>
+                          <Input
+                            placeholder="https://..."
+                            value={bulkEmailData.ads_banner_cta_url}
+                            onChange={(e) =>
+                              setBulkEmailData({ ...bulkEmailData, ads_banner_cta_url: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Inline Banners (CDN Images) ──────────────────────────────── */}
+                <div className="border-t border-[#e5e7eb] pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-sm font-semibold text-[#111827]">
+                      Inline Banners (CDN Images)
+                    </h5>
+                    <span className="text-xs text-[#6b7280]">
+                      {bulkEmailData.inline_banners.length} banner{bulkEmailData.inline_banners.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className="mb-4 text-xs text-[#6b7280]">
+                    Add banner images that will be rendered inline within the email body. Each banner is displayed sequentially.
+                  </p>
+
+                  {/* Banner List */}
+                  <div className="space-y-4">
+                    {bulkEmailData.inline_banners.map((banner, index) => (
+                      <div
+                        key={index}
+                        className="rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">
+                            Banner {index + 1}
+                          </span>
+                          <button
+                            onClick={() => {
+                              const updated = [...bulkEmailData.inline_banners];
+                              updated.splice(index, 1);
+                              setBulkEmailData({ ...bulkEmailData, inline_banners: updated });
+                            }}
+                            className="text-xs font-medium text-[#d71927] transition hover:text-[#b91521]"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-[#6b7280]">
+                              Image URL <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              placeholder="https://cdn.remopay.app/promotions/banner.png"
+                              value={banner.image_url}
+                              onChange={(e) => {
+                                const updated = [...bulkEmailData.inline_banners];
+                                updated[index] = { ...updated[index], image_url: e.target.value };
+                                setBulkEmailData({ ...bulkEmailData, inline_banners: updated });
+                              }}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold text-[#6b7280]">
+                                Link URL
+                              </label>
+                              <Input
+                                placeholder="https://..."
+                                value={banner.link_url}
+                                onChange={(e) => {
+                                  const updated = [...bulkEmailData.inline_banners];
+                                  updated[index] = { ...updated[index], link_url: e.target.value };
+                                  setBulkEmailData({ ...bulkEmailData, inline_banners: updated });
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1.5 block text-xs font-semibold text-[#6b7280]">
+                                Alt Text
+                              </label>
+                              <Input
+                                placeholder="Advertisement"
+                                value={banner.alt_text}
+                                onChange={(e) => {
+                                  const updated = [...bulkEmailData.inline_banners];
+                                  updated[index] = { ...updated[index], alt_text: e.target.value };
+                                  setBulkEmailData({ ...bulkEmailData, inline_banners: updated });
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-xs font-semibold text-[#6b7280]">
+                              Width (CSS value)
+                            </label>
+                            <Input
+                              placeholder='100% (default)'
+                              value={banner.width}
+                              onChange={(e) => {
+                                const updated = [...bulkEmailData.inline_banners];
+                                updated[index] = { ...updated[index], width: e.target.value };
+                                setBulkEmailData({ ...bulkEmailData, inline_banners: updated });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Banner Button */}
+                  <button
+                    onClick={() => {
+                      setBulkEmailData({
+                        ...bulkEmailData,
+                        inline_banners: [
+                          ...bulkEmailData.inline_banners,
+                          { image_url: '', link_url: '', alt_text: '', width: '' },
+                        ],
+                      });
+                    }}
+                    className="mt-3 flex items-center gap-2 rounded-lg border-2 border-dashed border-[#d1d5db] px-4 py-3 text-sm font-medium text-[#4a5ff7] transition hover:border-[#4a5ff7] hover:bg-[#eef2ff] w-full justify-center"
+                  >
+                    + Add Banner
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleProceedToConfirm}
+                disabled={loadingAction}
+                className="flex-1"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2 inline" />
+                    Continue to Review
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowBulkEmailModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Bulk Email Confirmation Dialog ────────────────────────────────── */}
+      {showBulkEmailConfirm && (
+        <Modal
+          isOpen={showBulkEmailConfirm}
+          onClose={() => setShowBulkEmailConfirm(false)}
+          title="⚠️ Confirm Bulk Email"
+          size="md"
+        >
+          <div className="space-y-5">
+            <div className="rounded-lg border border-[#fef3c7] bg-[#fffbeb] p-4">
+              <p className="text-sm font-medium text-[#92400e]">
+                You are about to send an email to{' '}
+                <strong>
+                  {bulkEmailRecipientMode === 'all'
+                    ? 'ALL users with verified emails'
+                    : `${bulkEmailSelectedUsers.length} selected user${bulkEmailSelectedUsers.length !== 1 ? 's' : ''}`}
+                </strong>
+                . This action will dispatch emails asynchronously and cannot be undone.
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Subject</span>
+                <span className="text-sm font-medium text-[#111827] text-right max-w-xs truncate">
+                  {bulkEmailData.title}
+                </span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Type</span>
+                <span className="text-sm font-medium capitalize text-[#111827]">{bulkEmailData.type}</span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Priority</span>
+                <span className="text-sm font-medium capitalize text-[#111827]">{bulkEmailData.priority}</span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Recipients</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  {bulkEmailRecipientMode === 'all' ? 'All Users' : `${bulkEmailSelectedUsers.length} selected`}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSendBulkEmail}
+                disabled={loadingAction}
+                className="flex-1 bg-[#d71927] hover:bg-[#b91521]"
+              >
+                {loadingAction ? (
+                  <>
+                    <Spinner />
+                    Dispatching...
+                  </>
+                ) : (
+                  'Yes, Send Email'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setShowBulkEmailConfirm(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Bulk Email Result Display ─────────────────────────────────────── */}
+      {showBulkEmailResult && bulkEmailResult && (
+        <Modal
+          isOpen={showBulkEmailResult}
+          onClose={() => setShowBulkEmailResult(false)}
+          title="✅ Bulk Email Dispatched"
+          size="md"
+        >
+          <div className="space-y-5">
+            <div className="rounded-lg border border-[#bbf7d0] bg-[#f0fdf4] p-4">
+              <p className="text-sm font-medium text-[#166534]">
+                Bulk email has been queued successfully. Emails are being dispatched asynchronously and will be delivered over the next few minutes.
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-lg border border-[#e5e7eb] bg-[#f8fafc] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Total Recipients</span>
+                <span className="text-lg font-bold text-[#111827]">
+                  {bulkEmailResult.total_recipients.toLocaleString()}
+                </span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Batches Dispatched</span>
+                <span className="text-sm font-medium text-[#111827]">{bulkEmailResult.total_batches}</span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Batch Size</span>
+                <span className="text-sm font-medium text-[#111827]">
+                  {bulkEmailResult.batch_size} emails per batch
+                </span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Email Subject</span>
+                <span className="text-sm font-medium text-[#111827] text-right max-w-[60%] truncate">
+                  {bulkEmailResult.email_title}
+                </span>
+              </div>
+              <div className="border-t border-[#e5e7eb]" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-[#6b7280]">Type</span>
+                <span className="text-sm font-medium capitalize text-[#111827]">{bulkEmailResult.email_type}</span>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setShowBulkEmailResult(false)}
+              className="w-full"
+            >
+              Done
+            </Button>
           </div>
         </Modal>
       )}

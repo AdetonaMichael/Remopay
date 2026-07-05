@@ -283,9 +283,12 @@ export default function DataPage() {
                 </div>
               ) : variations.length > 0 ? (
                 <div className="grid max-h-[460px] gap-3 overflow-y-auto pr-1">
-                  {variations.map((variation) => {
+                  {variations.map((variation: any) => {
                     const active =
                       selectedVariation === variation.variation_code;
+                    const hasSubsidy = variation.subsidized?.enabled === true;
+                    const isZeroAmount =
+                      Number(variation.variation_amount || 0) === 0;
 
                     return (
                       <button
@@ -297,26 +300,63 @@ export default function DataPage() {
                         }}
                         className={`w-full rounded-2xl border p-4 text-left transition-all ${
                           active
-                            ? 'border-[#d71927]  shadow-sm shadow-red-200'
+                            ? 'border-[#d71927] shadow-sm shadow-red-200'
                             : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                        } ${
+                          hasSubsidy && !isZeroAmount
+                            ? 'border-green-200 bg-green-50/30'
+                            : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-4">
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <p className="text-sm font-extrabold text-gray-900">
                               {variation.name}
                             </p>
                             <p className="mt-1 text-xs font-medium text-gray-500">
                               Code: {variation.variation_code}
                             </p>
+
+                            {/* Savings badge - only when subsidy active */}
+                            {hasSubsidy &&
+                              !isZeroAmount &&
+                              (variation.subsidized?.savings ?? 0) > 0 && (
+                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+                                  💰 Save ₦
+                                  {Number(
+                                    variation.subsidized?.savings ?? 0,
+                                  ).toLocaleString()}
+                                </span>
+                              )}
                           </div>
 
-                          <p className="shrink-0 text-lg font-extrabold text-[#d71927]">
-                            ₦
-                            {Number(
-                              variation.variation_amount || 0
-                            ).toLocaleString()}
-                          </p>
+                          <div className="shrink-0 text-right">
+                            {/* Subsidized (payable) price */}
+                            <p
+                              className={`text-lg font-extrabold ${
+                                hasSubsidy && !isZeroAmount
+                                  ? 'text-green-600'
+                                  : 'text-[#d71927]'
+                              }`}
+                            >
+                              ₦
+                              {Number(
+                                variation.variation_amount || 0,
+                              ).toLocaleString()}
+                            </p>
+
+                            {/* Strikethrough original price - only when subsidy active */}
+                            {hasSubsidy &&
+                              !isZeroAmount &&
+                              variation.subsidized?.original_amount != null && (
+                                <p className="mt-0.5 text-xs font-medium text-gray-400 line-through">
+                                  ₦
+                                  {Number(
+                                    variation.subsidized!.original_amount,
+                                  ).toLocaleString()}
+                                </p>
+                              )}
+                          </div>
                         </div>
                       </button>
                     );

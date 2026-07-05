@@ -17,3 +17,7 @@ export { TransactionTable } from './settlement/TransactionTable';
 export { SettlementStatusBadge } from './settlement/SettlementStatusBadge';
 export { StatCard } from './settlement/StatCard';
 export { ActionButton } from './settlement/ActionButton';
+
+// VTU Subsidy Management
+export { VtuSubsidyTable } from './vtu/VtuSubsidyTable';
+export { SubsidyConfigModal } from './vtu/SubsidyConfigModal';
