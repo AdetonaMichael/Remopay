@@ -234,6 +234,15 @@ export interface TransactionMetadata {
   due_date?: string;
 }
 
+export interface TransactionUser {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  profile_photo_url: string | null;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
@@ -257,6 +266,11 @@ export interface Transaction {
   receipt_url?: string | null;
   created_at: string;
   updated_at: string;
+  user?: TransactionUser;
+  transactionable?: Record<string, any>;
+  transaction_type?: string;
+  transaction_date?: string;
+  service_logo?: string | null;
 }
 
 export interface TransactionFilters {
@@ -272,6 +286,13 @@ export interface TransactionFilters {
   search?: string;
   sort_by?: string;
   sort_order?: 'asc' | 'desc';
+  // New backend-supported filters
+  user_id?: number;
+  transaction_type?: string;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
 }
 
 export interface PurchaseAirtimeRequest {

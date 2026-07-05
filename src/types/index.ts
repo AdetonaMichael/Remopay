@@ -38,3 +38,6 @@ export * from './usd-account.types';
 
 // Airtime-to-Cash types
 export * from './airtime-to-cash.types';
+
+// Settlement Management types
+export * from './settlement.types';
