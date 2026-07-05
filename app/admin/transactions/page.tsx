@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   Filter,
   Eye,
-  ImageIcon,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  ReceiptText,
 } from 'lucide-react';
+import { clsx } from 'clsx';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminTable } from '@/components/admin/AdminTable';
 import { AdminStats } from '@/components/admin/AdminStats';
 import { TransactionCharts } from '@/components/admin/TransactionCharts';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
@@ -42,6 +45,13 @@ interface TransactionStats {
   completed_count?: number;
   failed_count?: number;
   pending_count?: number;
+}
+
+interface PaginationState {
+  currentPage: number;
+  lastPage: number;
+  total: number;
+  perPage: number;
 }
 
 /** Render a user avatar with initials fallback */
@@ -95,7 +105,12 @@ export default function AdminTransactionsPage() {
   const [stats, setStats] = useState<TransactionStats>({});
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+    perPage: 10,
+  });
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number; fill: string }[]>([]);
@@ -201,7 +216,7 @@ export default function AdminTransactionsPage() {
       setIsLoading(true);
       const filtersToUse = filterValues || filters;
 
-      const response = await adminService.getAllTransactions(page, 50, filtersToUse);
+      const response = await adminService.getAllTransactions(page, 10, filtersToUse);
 
       const transactionsData = response?.data?.transactions;
       const paginationData = response?.data?.pagination;
@@ -221,7 +236,12 @@ export default function AdminTransactionsPage() {
 
       // Set pagination
       if (paginationData) {
-        setTotalPages(paginationData.last_page || 1);
+        setPagination({
+          currentPage: paginationData.current_page || page,
+          lastPage: paginationData.last_page || 1,
+          total: paginationData.total || 0,
+          perPage: paginationData.per_page || 10,
+        });
       }
 
       // Calculate stats
@@ -340,93 +360,12 @@ export default function AdminTransactionsPage() {
     },
   ];
 
-  const tableColumns = [
-    {
-      key: 'user',
-      label: 'User',
-      width: '280px',
-      render: (_: any, row: Transaction) => {
-        const txUser = row.user;
-        if (!txUser) {
-          return (
-            <span className="text-sm text-gray-500">User #{row.user_id}</span>
-          );
-        }
-        return (
-          <div className="flex items-center gap-3">
-            <UserAvatar user={txUser} size="sm" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {txUser.first_name} {txUser.last_name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{txUser.email}</p>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'reference',
-      label: 'Reference',
-      width: '130px',
-    },
-    {
-      key: 'transaction_type',
-      label: 'Type',
-      width: '150px',
-      render: (value: string) => (
-        <span className="text-sm text-gray-700">{value?.replace(/_/g, ' ') || '—'}</span>
-      ),
-    },
-    {
-      key: 'amount',
-      label: 'Amount',
-      width: '120px',
-      render: (value: string | number) => (
-        <span className="text-sm font-semibold text-gray-900">
-          {formatCurrency(typeof value === 'string' ? parseFloat(value) : value)}
-        </span>
-      ),
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      width: '120px',
-      render: (value: string) => <StatusBadge status={value} />,
-    },
-    {
-      key: 'transaction_date',
-      label: 'Date',
-      width: '150px',
-      render: (value: string) => (
-        <span className="text-sm text-gray-600">{formatDate(value)}</span>
-      ),
-    },
-    {
-      key: 'id',
-      label: 'Action',
-      width: '80px',
-      align: 'center' as const,
-      render: (value: string | number, row: Transaction) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setSelectedTransaction(row);
-            setShowDetails(true);
-          }}
-          aria-label={`View transaction details for ${row.reference}`}
-          title={`View transaction ${row.reference}`}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
-      ),
-    },
-  ];
-
   if (!isAdmin) {
     return null;
   }
+
+  const isInitialLoading = isLoading && transactions.length === 0;
+  const isPaginationLoading = isLoading && transactions.length > 0;
 
   return (
     <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
@@ -447,11 +386,12 @@ export default function AdminTransactionsPage() {
       <div className="flex justify-end">
         <Button
           onClick={openFilters}
-          className={`h-11 rounded-xl px-4 font-semibold transition ${
+          className={clsx(
+            'h-11 rounded-xl px-4 font-semibold transition',
             hasActiveFilters
               ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]'
               : 'border border-black/10 text-white hover:bg-[#f8f8f8]'
-          }`}
+          )}
         >
           <Filter className="h-4 w-4 mr-2 inline" />
           Filters {hasActiveFilters && `(${getActiveFilterCount()})`}
@@ -472,17 +412,300 @@ export default function AdminTransactionsPage() {
         mobilePosition="auto"
       />
 
-      <AdminTable
-        columns={tableColumns}
-        data={transactions}
-        loading={isLoading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        total={stats.total_transactions}
-        onPageChange={setCurrentPage}
-        title="All Transactions"
-        perPage={50}
-      />
+      {/* Transactions Section */}
+      <Card className="overflow-hidden rounded-2xl border border-[#e5e7eb]">
+        <div className="border-b border-[#e5e7eb] bg-white px-6 py-4">
+          <h3 className="text-lg font-bold text-[#111827]">All Transactions</h3>
+          <p className="text-sm text-[#6b7280] mt-1">
+            Showing {pagination.total === 0 ? 0 : (pagination.currentPage - 1) * pagination.perPage + 1}
+            {' '}to{' '}
+            {Math.min(pagination.currentPage * pagination.perPage, pagination.total)}
+            {' '}of{' '}
+            <span className="font-semibold text-[#111827]">{pagination.total}</span> transactions
+          </p>
+        </div>
+
+        {/* Loading State */}
+        {isInitialLoading ? (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[#d71927] border-t-transparent" />
+              <p className="text-sm font-medium text-[#6b7280]">Loading transactions...</p>
+            </div>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="flex min-h-[400px] flex-col items-center justify-center px-6 py-12 text-center">
+            <ReceiptText className="mb-4 h-10 w-10 text-[#9ca3af]" />
+            <h3 className="text-lg font-bold text-[#111827]">No transactions found</h3>
+            <p className="mt-2 max-w-md text-sm text-[#6b7280]">
+              We could not find any transaction matching your current filters.
+              Try adjusting the search terms or resetting the filters.
+            </p>
+            {hasActiveFilters && (
+              <Button variant="outline" className="mt-4" onClick={resetFilters}>
+                Reset Filters
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* ───── Desktop Table ───── */}
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#e5e7eb] bg-[#f8fafc]">
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-[#6b7280]">User</th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-[#6b7280]">Reference</th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-[#6b7280]">Type</th>
+                    <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-wide text-[#6b7280]">Amount</th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-[#6b7280]">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-[#6b7280]">Date</th>
+                    <th className="px-6 py-4 text-center text-xs font-black uppercase tracking-wide text-[#6b7280]">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e5e7eb]">
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-[#fff8f8] transition-colors">
+                      <td className="px-6 py-4">
+                        {tx.user ? (
+                          <div className="flex items-center gap-3 min-w-0 max-w-[260px]">
+                            <UserAvatar user={tx.user} size="sm" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[#111827] truncate">
+                                {tx.user.first_name} {tx.user.last_name}
+                              </p>
+                              <p className="text-xs text-[#6b7280] truncate">{tx.user.email}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-[#6b7280]">User #{tx.user_id}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-mono font-medium text-[#111827] whitespace-nowrap">
+                        {tx.reference}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-[#6b7280] whitespace-nowrap">
+                        {tx.transaction_type?.replace(/_/g, ' ') || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-[#111827] text-right whitespace-nowrap">
+                        {formatCurrency(typeof tx.amount === 'string' ? parseFloat(tx.amount) : tx.amount)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={tx.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-[#6b7280] whitespace-nowrap">
+                        {formatDate(tx.transaction_date)}
+                      </td>
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTransaction(tx);
+                            setShowDetails(true);
+                          }}
+                          aria-label={`View details for ${tx.reference}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ───── Mobile Cards ───── */}
+            <div className="space-y-4 p-4 lg:hidden">
+              {transactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4"
+                >
+                  {/* Header: User + Status */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {tx.user ? (
+                        <>
+                          <UserAvatar user={tx.user} size="sm" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-[#111] truncate">
+                              {tx.user.first_name} {tx.user.last_name}
+                            </p>
+                            <p className="mt-0.5 text-xs text-black/50 truncate">{tx.user.email}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-sm font-black text-[#111]">User #{tx.user_id}</span>
+                      )}
+                    </div>
+                    <StatusBadge status={tx.status} />
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-black/35">Type</p>
+                      <p className="mt-1 text-sm font-semibold text-[#111]">
+                        {tx.transaction_type?.replace(/_/g, ' ') || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-black/35">Amount</p>
+                      <p className="mt-1 text-sm font-black text-[#111]">
+                        {formatCurrency(typeof tx.amount === 'string' ? parseFloat(tx.amount) : tx.amount)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-black/35">Date</p>
+                      <p className="mt-1 text-sm font-semibold text-[#111]">
+                        {formatDate(tx.transaction_date)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedTransaction(tx);
+                          setShowDetails(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Reference */}
+                  <div className="mt-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-black/35">Reference</p>
+                    <p className="mt-1 break-all text-sm font-medium text-black/50 font-mono">
+                      {tx.reference || `TXN-${tx.id}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ───── Pagination ───── */}
+            {pagination.lastPage > 1 && (
+              <div className="flex flex-col gap-4 rounded-b-2xl border-t border-[#e5e7eb] bg-white px-6 py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-sm font-medium text-[#6b7280]">
+                    Showing{' '}
+                    <span className="font-black text-[#111827]">
+                      {pagination.total === 0
+                        ? 0
+                        : (pagination.currentPage - 1) * pagination.perPage + 1}
+                    </span>{' '}
+                    to{' '}
+                    <span className="font-black text-[#111827]">
+                      {Math.min(
+                        pagination.currentPage * pagination.perPage,
+                        pagination.total
+                      )}
+                    </span>{' '}
+                    of{' '}
+                    <span className="font-black text-[#111827]">{pagination.total}</span>{' '}
+                    transactions
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* First */}
+                    <button
+                      type="button"
+                      disabled={pagination.currentPage <= 1 || isPaginationLoading}
+                      onClick={() => setCurrentPage(1)}
+                      className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                    >
+                      First
+                    </button>
+
+                    {/* Prev */}
+                    <button
+                      type="button"
+                      disabled={pagination.currentPage <= 1 || isPaginationLoading}
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                    >
+                      <ChevronLeft size={16} className="text-[#111]" />
+                    </button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-1">
+                      {Array.from(
+                        { length: Math.min(pagination.lastPage, 5) },
+                        (_, i) => {
+                          let pageNum: number;
+
+                          if (pagination.lastPage <= 5) {
+                            pageNum = i + 1;
+                          } else if (pagination.currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (
+                            pagination.currentPage >=
+                            pagination.lastPage - 2
+                          ) {
+                            pageNum = pagination.lastPage - 4 + i;
+                          } else {
+                            pageNum = pagination.currentPage - 2 + i;
+                          }
+
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              disabled={isPaginationLoading}
+                              className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black transition-colors ${
+                                pageNum === pagination.currentPage
+                                  ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20'
+                                  : 'border border-black/10 bg-white text-[#111] hover:bg-[#fff1f2]'
+                              } disabled:cursor-not-allowed disabled:opacity-40`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+
+                    {/* Next */}
+                    <button
+                      type="button"
+                      disabled={pagination.currentPage >= pagination.lastPage || isPaginationLoading}
+                      onClick={() =>
+                        setCurrentPage((prev) =>
+                          Math.min(prev + 1, pagination.lastPage)
+                        )
+                      }
+                      className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                    >
+                      <ChevronRight size={16} className="text-[#111]" />
+                    </button>
+
+                    {/* Last */}
+                    <button
+                      type="button"
+                      disabled={pagination.currentPage >= pagination.lastPage || isPaginationLoading}
+                      onClick={() => setCurrentPage(pagination.lastPage)}
+                      className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+                    >
+                      Last
+                    </button>
+                  </div>
+                </div>
+
+                {isPaginationLoading && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-[#6b7280]">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d71927] border-t-transparent" />
+                    Loading...
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </Card>
 
       {/* Transaction Detail Modal */}
       {showDetails && selectedTransaction && (
