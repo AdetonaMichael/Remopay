@@ -37,37 +37,7 @@ export default function VtuSubsidiesPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* ── Header ── */}
-        <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-gray-600">
-                <Percent className="h-3.5 w-3.5 text-gray-700" />
-                VTU Subsidy Management
-              </div>
-
-              <h1 className="text-3xl font-black tracking-tight text-black sm:text-4xl">
-                VTU Services Subsidy
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-                Manage subsidized pricing for VTU services. Toggle subsidies
-                on/off, configure percentage or fixed discounts, and set
-                minimum and maximum discount caps per service.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-gray-500">
-                Service Count
-              </p>
-              <p className="mt-1 text-lg font-extrabold text-black">
-                Real-time Configuration
-              </p>
-            </div>
-          </div>
-        </section>
+      <div className="mx-auto  space-y-6">
 
         {/* ── Info Card ── */}
         <section className="rounded-3xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
@@ -82,7 +52,7 @@ export default function VtuSubsidiesPage() {
               <p className="mt-1 text-xs leading-5 text-amber-700">
                 When a subsidy is enabled, the discount is applied to the
                 original price of VTU plans. Users will see the subsidized
-                price on their end (e.g., "₦980.00 — was ₦1,000.00").
+                price on their end (e.g., "₦980.00 === was ₦1,000.00").
                 Configure caps to limit the minimum and maximum discount
                 amount per transaction.
               </p>

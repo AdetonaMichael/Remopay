@@ -322,7 +322,7 @@ export default function DataPage() {
                               !isZeroAmount &&
                               (variation.subsidized?.savings ?? 0) > 0 && (
                                 <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
-                                  💰 Save ₦
+                                  Save ₦
                                   {Number(
                                     variation.subsidized?.savings ?? 0,
                                   ).toLocaleString()}

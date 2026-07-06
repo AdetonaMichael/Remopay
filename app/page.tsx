@@ -26,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { LandingTopbar } from '@/components/LandingTopbar';
+import { DataPricingShowcase } from '@/components/vtu-public/DataPricingShowcase';
 
 const heroSlides = [
   {
@@ -371,14 +372,14 @@ export default function RemopayLandingPage() {
             </p>
           </div>
 
-          <div className="mt-8 sm:mt-9 md:mt-10 grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 sm:mt-9 md:mt-10 flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-4 scrollbar-hide">
             {whyChoose.map((item) => {
               const Icon = item.icon;
 
               return (
                 <div
                   key={item.title}
-                  className="rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-5 sm:p-6 md:p-7"
+                  className="shrink-0 w-[280px] snap-start rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-5 sm:p-6 md:w-auto md:shrink md:snap-none"
                 >
                   <Icon className="mb-4 sm:mb-5 md:mb-6 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-[#ff737b]" />
                   <h3 className="h5 font-semibold">{item.title}</h3>
@@ -389,6 +390,8 @@ export default function RemopayLandingPage() {
           </div>
         </div>
       </section>
+
+      <DataPricingShowcase />
 
       <section id="rewards" className="bg-[#100303] px-5 pb-10 sm:pb-12 md:pb-14 lg:px-8">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-[#ff4b55]/25 bg-gradient-to-r from-[#b91420] via-[#7f0f17] to-[#220606] p-5 sm:p-6 md:p-8 shadow-2xl shadow-[#d71927]/20 lg:p-12">
@@ -451,15 +454,16 @@ export default function RemopayLandingPage() {
 
       <section
   id="download-app"
-  className="relative overflow-hidden bg-[#100303] px-5 pb-16 sm:pb-20 md:pb-24 pt-6 sm:pt-8 md:pt-10 lg:px-8"
+  className="relative bg-[#100303] px-5 pb-16 sm:pb-20 md:pb-24 pt-6 sm:pt-8 md:pt-10 lg:px-8"
 >
-  <div className="absolute left-0 top-20 h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 rounded-full bg-[#d71927]/20 blur-3xl" />
-  <div className="absolute right-0 bottom-0 h-64 w-64 sm:h-80 sm:w-80 md:h-96 md:w-96 rounded-full bg-[#ff737b]/10 blur-3xl" />
+  {/* Blur circles only on desktop to avoid mobile compositing artifacts */}
+  <div className="absolute left-0 top-20 h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 rounded-full bg-[#d71927]/20 blur-3xl hidden md:block" />
+  <div className="absolute right-0 bottom-0 h-64 w-64 sm:h-80 sm:w-80 md:h-96 md:w-96 rounded-full bg-[#ff737b]/10 blur-3xl hidden md:block" />
 
-  <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-8 sm:gap-10 md:gap-12 rounded-[1.5rem] sm:rounded-[1.75rem] md:rounded-[2rem] border border-[#ff4b55]/25 bg-gradient-to-br from-[#220606] via-[#140404] to-[#090101] p-4 sm:p-6 md:p-8 shadow-2xl shadow-[#d71927]/10 lg:grid-cols-[1fr_0.9fr] lg:p-12">
+  <div className="relative mx-auto max-w-7xl rounded-[1.5rem] sm:rounded-[1.75rem] md:rounded-[2rem] border border-[#ff4b55]/25 bg-[#140404] p-4 sm:p-6 md:p-8 shadow-2xl shadow-[#d71927]/10 lg:p-12">
+    <div className="grid grid-cols-1 items-center gap-8 sm:gap-10 md:gap-12 lg:grid-cols-[1fr_0.9fr]">
+
     <div>
-     
-
       <h2 className="max-w-xl display-lg text-white">
         Everything you need,
         <br />
@@ -471,11 +475,11 @@ export default function RemopayLandingPage() {
         your wallet, track transactions, and earn rewards anytime.
       </p>
 
-      <div className="mt-6 sm:mt-8 w-fit">
-        <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+      <div className="mt-6 sm:mt-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-3 sm:mb-4">
           <a
             href="#"
-            className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
+            className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
           >
             <img
               src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
@@ -486,7 +490,7 @@ export default function RemopayLandingPage() {
 
           <a
             href="#"
-            className="inline-flex items-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
+            className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
           >
             <img
               src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
@@ -498,18 +502,16 @@ export default function RemopayLandingPage() {
         <a
           href="https://api.remopay.remonode.com/Remopay.apk"
           download
-          className="flex items-center justify-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 button-md text-white shadow-xl shadow-[#d71927]/25 transition hover:bg-[#b91420] w-full"
+          className="flex items-center justify-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 button-md text-white shadow-lg transition hover:bg-[#b91420] w-full"
         >
           Direct Download
           <ArrowRight size={18} />
         </a>
       </div>
-       
-
     </div>
 
     <div className="relative flex justify-center lg:justify-end">
-      <div className="absolute top-10 h-48 w-48 sm:h-60 sm:w-60 md:h-72 md:w-72 rounded-full bg-[#d71927]/30 blur-3xl" />
+      <div className="absolute top-10 h-48 w-48 sm:h-60 sm:w-60 md:h-72 md:w-72 rounded-full bg-[#d71927]/30 blur-3xl hidden md:block" />
 
       {/* Phone mockup frame */}
       <div className="relative">
@@ -555,10 +557,11 @@ export default function RemopayLandingPage() {
       </div>
     </div>
   </div>
+  </div>
 </section>
 
       <footer id="about" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-8 sm:py-10 md:py-12 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 sm:gap-8 md:gap-10 md:grid-cols-5">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 sm:gap-8 md:gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Image src="/icon.png" alt="Remopay Logo" width={44} height={44} className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11" />
