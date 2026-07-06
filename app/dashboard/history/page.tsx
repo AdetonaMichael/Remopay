@@ -129,6 +129,22 @@ function getServiceName(transaction: TransactionItem) {
         return 'Airtime Conversion';
       }
 
+      // Check if type indicates a transfer
+      if (type) {
+        const typeLower = type.toLowerCase();
+        if (
+          typeLower === 'transfer' ||
+          typeLower === 'withdrawal' ||
+          typeLower === 'withdraw' ||
+          typeLower === 'bank_transfer' ||
+          typeLower === 'wallet_withdrawal' ||
+          typeLower.includes('transfer') ||
+          typeLower.includes('withdrawal')
+        ) {
+          return 'Transfer';
+        }
+      }
+
       return '—';
     })()
   );
