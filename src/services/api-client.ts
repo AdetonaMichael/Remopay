@@ -1,6 +1,19 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ApiResponse } from '@/types/api.types';
 import { debug } from '@/utils/debug.utils';
+
+/** Dev-only logger: suppresses console output in production */
+const devLog = {
+  log: (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') console.log(...args);
+  },
+  error: (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') console.error(...args);
+  },
+  warn: (...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') console.warn(...args);
+  },
+};
 import {
   generateIdempotencyKey,
   getStoredIdempotencyKey,
@@ -342,56 +355,56 @@ class ApiClient {
 
   // Public API methods
   public get<T = any>(url: string, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    console.log(`📡 [API] GET ${API_BASE_URL}${url}`);
+    devLog.log(`📡 [API] GET ${API_BASE_URL}${url}`);
     return this.axiosInstance.get<ApiResponse<T>>(url, config).then((res) => {
-      console.log(`✅ [API] GET ${url} - Status: ${res.status}`, res.data);
+      devLog.log(`✅ [API] GET ${url} - Status: ${res.status}`);
       return res.data;
     }).catch((error) => {
-      console.error(`❌ [API] GET ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      devLog.error(`❌ [API] GET ${url} - Error:`, error.response?.status);
       throw error;
     });
   }
 
   public post<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    console.log(`📡 [API] POST ${API_BASE_URL}${url}`, data);
+    devLog.log(`📡 [API] POST ${API_BASE_URL}${url}`);
     return this.axiosInstance.post<ApiResponse<T>>(url, data, config).then((res) => {
-      console.log(`✅ [API] POST ${url} - Status: ${res.status}`, res.data);
+      devLog.log(`✅ [API] POST ${url} - Status: ${res.status}`);
       return res.data;
     }).catch((error) => {
-      console.error(`❌ [API] POST ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      devLog.error(`❌ [API] POST ${url} - Error:`, error.response?.status);
       throw error;
     });
   }
 
   public put<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    console.log(`📡 [API] PUT ${API_BASE_URL}${url}`, data);
+    devLog.log(`📡 [API] PUT ${API_BASE_URL}${url}`);
     return this.axiosInstance.put<ApiResponse<T>>(url, data, config).then((res) => {
-      console.log(`✅ [API] PUT ${url} - Status: ${res.status}`, res.data);
+      devLog.log(`✅ [API] PUT ${url} - Status: ${res.status}`);
       return res.data;
     }).catch((error) => {
-      console.error(`❌ [API] PUT ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      devLog.error(`❌ [API] PUT ${url} - Error:`, error.response?.status);
       throw error;
     });
   }
 
   public patch<T = any>(url: string, data?: any, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    console.log(`📡 [API] PATCH ${API_BASE_URL}${url}`, data);
+    devLog.log(`📡 [API] PATCH ${API_BASE_URL}${url}`);
     return this.axiosInstance.patch<ApiResponse<T>>(url, data, config).then((res) => {
-      console.log(`✅ [API] PATCH ${url} - Status: ${res.status}`, res.data);
+      devLog.log(`✅ [API] PATCH ${url} - Status: ${res.status}`);
       return res.data;
     }).catch((error) => {
-      console.error(`❌ [API] PATCH ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      devLog.error(`❌ [API] PATCH ${url} - Error:`, error.response?.status);
       throw error;
     });
   }
 
   public delete<T = any>(url: string, config?: ApiClientConfig): Promise<ApiResponse<T>> {
-    console.log(`📡 [API] DELETE ${API_BASE_URL}${url}`);
+    devLog.log(`📡 [API] DELETE ${API_BASE_URL}${url}`);
     return this.axiosInstance.delete<ApiResponse<T>>(url, config).then((res) => {
-      console.log(`✅ [API] DELETE ${url} - Status: ${res.status}`, res.data);
+      devLog.log(`✅ [API] DELETE ${url} - Status: ${res.status}`);
       return res.data;
     }).catch((error) => {
-      console.error(`❌ [API] DELETE ${url} - Error:`, error.response?.status, error.response?.data || error.message);
+      devLog.error(`❌ [API] DELETE ${url} - Error:`, error.response?.status);
       throw error;
     });
   }

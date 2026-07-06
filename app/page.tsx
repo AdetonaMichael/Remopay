@@ -186,6 +186,7 @@ export default function RemopayLandingPage() {
             <img
               src={slide.image}
               alt={slide.title}
+              fetchPriority={index === activeSlide ? 'high' : 'low'}
               className="h-full w-full object-cover object-[center_right] brightness-95 contrast-110 saturate-110"
             />
 
@@ -315,6 +316,8 @@ export default function RemopayLandingPage() {
                       <img
                         src={service.image}
                         alt={service.title}
+                        width={448}
+                        height={256}
                         className="h-full w-full object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -332,7 +335,10 @@ export default function RemopayLandingPage() {
                         {service.desc}
                       </p>
 
-                      <button className="mt-4 sm:mt-5 flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1">
+                      <button
+                        aria-label={`View ${service.title}`}
+                        className="mt-4 sm:mt-5 flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1"
+                      >
                         <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
                     </div>
@@ -443,7 +449,7 @@ export default function RemopayLandingPage() {
                 </div>
                 <div>
                   <h3 className="stat-value">{stat.value}</h3>
-                  <p className="stat-label">{stat.label}</p>
+                  <p className="text-xs font-semibold text-white/70">{stat.label}</p>
                 </div>
               </div>
             );

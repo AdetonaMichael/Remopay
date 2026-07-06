@@ -1,7 +1,23 @@
 # RemoPay - AI & LLM Integration Guide
 
-## Overview
-RemoPay is a fintech platform enabling users to purchase airtime, data, pay bills, manage wallets, and access virtual cards. This document helps AI agents understand our website structure and interact effectively.
+> **Website**: https://remopay.remonode.com
+> **Description**: RemoPay is a fintech platform enabling users to purchase airtime, data, pay bills, manage wallets, and access virtual cards.
+
+## Quick Links
+
+- [Landing Page](https://remopay.remonode.com/)
+- [FAQ](https://remopay.remonode.com/faq)
+- [Privacy Policy](https://remopay.remonode.com/privacy)
+- [Terms of Service](https://remopay.remonode.com/terms)
+- [Support](https://remopay.remonode.com/support)
+- [About Us](https://remopay.remonode.com/about)
+- [Multi-Currency](https://remopay.remonode.com/multi-currency)
+- [Airtime](https://remopay.remonode.com/vtu/airtime)
+- [Data Bundles](https://remopay.remonode.com/vtu/data)
+- [Electricity Bills](https://remopay.remonode.com/vtu/bills)
+- [TV Subscription](https://remopay.remonode.com/vtu/tv)
+- [Login](https://remopay.remonode.com/auth/login)
+- [Register](https://remopay.remonode.com/auth/register)
 
 ## Website Purpose
 - VTU (Virtual Top-Up) services: Airtime, Data, Bills payment
@@ -52,7 +68,7 @@ RemoPay is a fintech platform enabling users to purchase airtime, data, pay bill
 
 ## API Endpoints
 - Base URL: `https://gateway.remonode.com/remopay/api/v1`
-- Authentication: Bearer token (stored in HttpOnly cookies)
+- Authentication: Bearer token
 - Response Format: JSON with `success`, `message`, `data` fields
 
 ## Data Attributes for AI Agents
@@ -67,7 +83,7 @@ RemoPay is a fintech platform enabling users to purchase airtime, data, pay bill
 - `data-webmcp-row="[row-id]"` - Marks table rows
 - `data-webmcp-field="[field-name]"` - Marks table fields
 
-### Modals & Dialogs
+### Modals & Dialogues
 - `data-webmcp-modal="[modal-name]"` - Identifies modals
 - `role="dialog"` - Semantic role
 - `aria-modal="true"` - Accessibility attribute

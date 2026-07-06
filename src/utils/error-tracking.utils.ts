@@ -198,6 +198,40 @@ export const exportErrorLogs = (): string => {
 };
 
 /**
+ * Sensitive field patterns to redact from error tracking
+ */
+const SENSITIVE_FIELDS = [
+  'pin', 'token', 'password', 'secret', 'authorization',
+  'access_token', 'refresh_token', 'api_key', 'apiKey',
+  'bearer', 'jwt', 'session', 'credit_card', 'cvv',
+  'new_pin', 'current_pin', 'new_pin_confirmation',
+];
+
+/**
+ * Recursively redact sensitive fields from an object
+ */
+function redactSensitiveData(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+  
+  if (Array.isArray(data)) {
+    return data.map(redactSensitiveData);
+  }
+  
+  const redacted: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    const keyLower = key.toLowerCase();
+    if (SENSITIVE_FIELDS.some((f) => keyLower.includes(f))) {
+      redacted[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      redacted[key] = redactSensitiveData(value);
+    } else {
+      redacted[key] = value;
+    }
+  }
+  return redacted;
+}
+
+/**
  * Track specific error types
  */
 
@@ -218,7 +252,7 @@ export const trackApiError = (
       method: error.config?.method,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      responseData: error.response?.data,
+      responseData: redactSensitiveData(error.response?.data),
       ...context,
     },
   });
