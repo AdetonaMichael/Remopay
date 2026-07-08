@@ -1,23 +1,30 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCards } from '@/hooks/useCards';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
-import { CardList, CreateCardForm, CardFilterSection } from '@/components/dashboard/card';
-import { AlertCircle, CreditCard, Loader } from 'lucide-react';
+import {
+  CardList,
+  CreateCardForm,
+  CardFilterSection,
+  CardActionModal,
+} from '@/components/dashboard/card';
+import { Card } from '@/components/shared/Card';
+import {
+  CreditCard,
+  Shield,
+  Globe,
+  Zap,
+  AlertCircle,
+} from 'lucide-react';
 
-/**
- * Virtual Card Management Dashboard
- * Main page for creating and managing virtual USD cards
- */
 export default function VirtualCardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
 
-  // Use the cards hook for all card operations
   const {
     cardListState,
     createFormData,
@@ -31,17 +38,18 @@ export default function VirtualCardPage() {
     clearFilters,
     hasCards,
     isEmpty,
+    actionModal,
+    openActionModal,
+    closeActionModal,
+    fundCard,
+    withdrawFromCard,
   } = useCards({
-    onSuccess: (message) => {
-      // Cards list will auto-refresh
-    },
+    onSuccess: () => {},
     onError: (error) => {
-      // Error is already shown via toast in the hook
       console.error('[VirtualCardPage] Card operation error:', error);
     },
   });
 
-  // Verify user authentication
   useEffect(() => {
     if (!user) {
       addToast({ type: 'error', message: 'Please log in to access cards' });
@@ -49,43 +57,141 @@ export default function VirtualCardPage() {
     }
   }, [user, router, addToast]);
 
-  if (!user) {
-    return null;
-  }
+  const handleViewDetails = useCallback(
+    (cardId: string) => {
+      router.push(`/dashboard/virtual-card/${cardId}`);
+    },
+    [router]
+  );
+
+  const handleFundSubmit = useCallback(
+    async (cardId: string, amountInCents: number) => {
+      return await fundCard(cardId, amountInCents);
+    },
+    [fundCard]
+  );
+
+  const handleWithdrawSubmit = useCallback(
+    async (cardId: string, amountInCents: number) => {
+      return await withdrawFromCard(cardId, amountInCents);
+    },
+    [withdrawFromCard]
+  );
+
+  if (!user) return null;
+
+  const features = [
+    {
+      icon: Zap,
+      title: 'Instant Creation',
+      desc: 'Generate virtual cards in seconds, ready to use immediately.',
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      icon: Shield,
+      title: 'Enhanced Security',
+      desc: 'Protect your real card details with disposable virtual numbers.',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+    {
+      icon: Globe,
+      title: 'Global Spending',
+      desc: 'Use your USD virtual card anywhere VISA/Mastercard is accepted.',
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+    },
+    {
+      icon: CreditCard,
+      title: 'Full Control',
+      desc: 'Manage funds, freeze, and monitor transactions in real-time.',
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
+    },
+  ];
 
   return (
-    <main style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-white">
+    <div
+      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      className="space-y-8"
+    >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
       `}</style>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-        
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Virtual Cards</h1>
-              <p className="text-sm text-gray-600 mt-0.5">Create and manage your USD virtual cards</p>
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {/* Header */}
+        <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71927] text-sm font-extrabold text-white">
+                1
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">
+                  Create & Manage Cards
+                </p>
+                <p className="text-xs text-gray-600">
+                  Generate and manage your USD virtual cards.
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden h-[2px] flex-1 bg-gray-200 sm:block" />
+
+            <div className="flex items-center gap-3 opacity-60">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 bg-white text-sm font-extrabold text-gray-500">
+                <CreditCard className="h-5 w-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Fund & Use</p>
+                <p className="text-xs text-gray-600">
+                  Add funds and transact globally.
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Error State Display */}
-        {cardListState.error && (
-          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-red-900">{cardListState.error}</p>
-              <p className="text-xs text-red-700 mt-1">
-                If this issue persists, please ensure your profile is complete and verified.
-              </p>
+        <div className="space-y-6 p-6 sm:p-8">
+          {/* Quick Stats */}
+          {hasCards && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cards</p>
+                <p className="text-xl font-black text-gray-900 mt-1">
+                  {cardListState.pagination.total_records}
+                </p>
+              </div>
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-4">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active</p>
+                <p className="text-xl font-black text-emerald-600 mt-1">
+                  {cardListState.cards.filter(c => c.status === 'ACTIVE').length}
+                </p>
+              </div>
+              <div className="rounded-xl bg-gray-50 border border-gray-200 p-4 col-span-2 sm:col-span-1">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Page</p>
+                <p className="text-xl font-black text-gray-900 mt-1">
+                  {cardListState.currentPage} / {cardListState.pagination.total_pages || 1}
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Main Content */}
-        <div className="space-y-6">
+          {/* Error State */}
+          {cardListState.error && (
+            <div className="rounded-2xl bg-red-50 border border-red-200 p-5 flex items-start gap-4">
+              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-red-900">{cardListState.error}</p>
+                <p className="text-xs text-red-700 mt-1">
+                  Complete your profile and verify your account to access virtual cards.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Create Card Form */}
           <CreateCardForm
             formData={createFormData}
@@ -95,12 +201,10 @@ export default function VirtualCardPage() {
             }}
             errors={createFormErrors}
             isLoading={isCreatingCard || cardListState.isLoading}
-            onSuccess={() => {
-              // Form will auto-reset in the hook
-            }}
+            onSuccess={() => {}}
           />
 
-          {/* Filter Section - Only show if there are cards */}
+          {/* Filters */}
           {hasCards && (
             <CardFilterSection
               onFiltersChange={applyFilters}
@@ -116,42 +220,57 @@ export default function VirtualCardPage() {
             isLoading={cardListState.isLoading}
             onPageChange={goToPage}
             onPageSizeChange={changePageSize}
+            onViewDetails={handleViewDetails}
+            onFund={(cardId, maskedPan) => openActionModal('fund', cardId, maskedPan)}
+            onWithdraw={(cardId, maskedPan) => openActionModal('withdraw', cardId, maskedPan)}
           />
         </div>
+      </Card>
 
-        {/* Features Section - Only show if no cards */}
-        {isEmpty && (
-          <div className="mt-16 pt-12 border-t border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-8">Why Virtual Cards?</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                {
-                  title: 'Instant Creation',
-                  desc: 'Generate virtual cards in seconds, ready to use immediately.',
-                  icon: '',
-                },
-                {
-                  title: 'Enhanced Security',
-                  desc: 'Protect your real card details with disposable virtual cards.',
-                  icon: '',
-                },
-                {
-                  title: 'Full Control',
-                  desc: 'Manage multiple cards for different purposes and merchants.',
-                  icon: '',
-                },
-              ].map((feature, idx) => (
-                <div key={idx} className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
-                  <div className="text-4xl mb-3">{feature.icon}</div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-sm text-gray-600">{feature.desc}</p>
-                </div>
-              ))}
+      {/* Features Section (when no cards) */}
+      {isEmpty && (
+        <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="p-6 sm:p-8">
+            <h2 className="text-2xl font-black text-gray-900 mb-8 text-center">
+              Why Virtual Cards?
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {features.map((feature, idx) => {
+                const Icon = feature.icon;
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                  >
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.bg} mb-4`}>
+                      <Icon className={`h-6 w-6 ${feature.color}`} />
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{feature.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        )}
-      </div>
-    </main>
+        </Card>
+      )}
+
+      {/* Fund/Withdraw Modal */}
+      <CardActionModal
+        isOpen={actionModal.isOpen}
+        action={actionModal.action}
+        cardMaskedPan={actionModal.cardMaskedPan}
+        onClose={closeActionModal}
+        onSubmit={async (amountInCents) => {
+          if (actionModal.action === 'fund' && actionModal.cardId) {
+            return await fundCard(actionModal.cardId, amountInCents);
+          } else if (actionModal.action === 'withdraw' && actionModal.cardId) {
+            return await withdrawFromCard(actionModal.cardId, amountInCents);
+          }
+          return false;
+        }}
+        isLoading={isCreatingCard}
+      />
+    </div>
   );
 }
-

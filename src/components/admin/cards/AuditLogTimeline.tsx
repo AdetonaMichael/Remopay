@@ -97,7 +97,7 @@ export const AuditLogTimeline: React.FC<AuditLogTimelineProps> = ({
               Fields Modified:
             </p>
             <div className="flex flex-wrap gap-2">
-              {log.fields_modified.map((field) => (
+              {log.fields_modified?.map((field) => (
                 <span
                   key={field}
                   className="inline-block rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"

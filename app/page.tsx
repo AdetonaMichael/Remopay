@@ -183,11 +183,14 @@ export default function RemopayLandingPage() {
               index === activeSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <img
+            <Image
               src={slide.image}
               alt={slide.title}
+              fill
+              priority={index === activeSlide}
               fetchPriority={index === activeSlide ? 'high' : 'low'}
-              className="h-full w-full object-cover object-[center_right] brightness-95 contrast-110 saturate-110"
+              sizes="100vw"
+              className="object-cover object-[center_right] brightness-95 contrast-110 saturate-110"
             />
 
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
@@ -313,12 +316,12 @@ export default function RemopayLandingPage() {
                     className="group flex-shrink-0 w-72 sm:w-80 md:w-96 overflow-hidden rounded-2xl border border-[#ff4b55]/25 bg-[#1c0606] transition duration-300 hover:-translate-y-2 hover:border-[#ff4b55] hover:shadow-2xl hover:shadow-[#d71927]/20"
                   >
                     <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden">
-                      <img
+                      <Image
                         src={service.image}
                         alt={service.title}
-                        width={448}
-                        height={256}
-                        className="h-full w-full object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
+                        fill
+                        sizes="(max-width: 640px) 288px, (max-width: 768px) 320px, 384px"
+                        className="object-cover brightness-95 contrast-110 saturate-110 transition duration-500 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
@@ -419,12 +422,16 @@ export default function RemopayLandingPage() {
             </div>
 
             <div className="relative flex justify-center">
-              <img
-                src="https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=900&q=85"
-                alt="Referral rewards"
-                className="h-44 sm:h-52 md:h-60 w-full rounded-3xl object-cover brightness-95 contrast-110 saturate-110 shadow-2xl"
-              />
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+              <div className="relative h-44 sm:h-52 md:h-60 w-full rounded-3xl overflow-hidden">
+                <Image
+                  src="https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=900&q=85"
+                  alt="Referral rewards"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover brightness-95 contrast-110 saturate-110 shadow-2xl"
+                />
+              </div>
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black/45 via-black/10 to-transparent pointer-events-none" />
               <Gift className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 md:bottom-6 md:right-6 h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 text-white drop-shadow-lg" />
             </div>
 
@@ -487,10 +494,13 @@ export default function RemopayLandingPage() {
             href="#"
             className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
           >
-            <img
+            <Image
               src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
               alt="Get it on Google Play"
+              width={180}
+              height={54}
               className="h-8 sm:h-9 md:h-10 w-auto"
+              style={{ width: 'auto', height: '100%' }}
             />
           </a>
 
@@ -498,10 +508,13 @@ export default function RemopayLandingPage() {
             href="#"
             className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
           >
-            <img
+            <Image
               src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
               alt="Download on the App Store"
+              width={180}
+              height={54}
               className="h-8 sm:h-9 md:h-10 w-auto"
+              style={{ width: 'auto', height: '100%' }}
             />
           </a>
         </div>

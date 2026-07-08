@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { CardFilters, CardBrand, CardStatus } from '@/types/card.types';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, SlidersHorizontal } from 'lucide-react';
 
 interface CardFilterSectionProps {
   onFiltersChange: (filters: CardFilters) => void;
@@ -10,10 +10,6 @@ interface CardFilterSectionProps {
   isLoading?: boolean;
 }
 
-/**
- * Card filtering UI component
- * Allows filtering by brand, status, and date
- */
 export const CardFilterSection: React.FC<CardFilterSectionProps> = ({
   onFiltersChange,
   onClear,
@@ -45,17 +41,17 @@ export const CardFilterSection: React.FC<CardFilterSectionProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Filter Toggle Button */}
+      {/* Filter Toggle */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => setIsOpen(!isOpen)}
           disabled={isLoading}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
         >
-          <Filter className="h-4 w-4" />
-          Filter Cards
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
           {hasActiveFilters && (
-            <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#d71927] text-[10px] font-bold text-white">
               {[brand, status, createdAt].filter(Boolean).length}
             </span>
           )}
@@ -65,110 +61,110 @@ export const CardFilterSection: React.FC<CardFilterSectionProps> = ({
           <button
             onClick={handleClear}
             disabled={isLoading}
-            className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50 transition-colors"
           >
             <X className="h-4 w-4" />
-            Clear filters
+            Clear
           </button>
         )}
       </div>
 
-      {/* Filter Dropdown */}
+      {/* Filter Panel */}
       {isOpen && (
-        <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-5 shadow-lg">
           {/* Brand Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Card Brand</label>
-            <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+              Card Brand
+            </label>
+            <div className="flex flex-wrap gap-2">
               {Object.values(CardBrand).map((brandOption) => (
-                <label key={brandOption} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="brand"
-                    value={brandOption}
-                    checked={brand === brandOption}
-                    onChange={(e) => setBrand(e.target.value as CardBrand)}
-                    disabled={isLoading}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm text-gray-700">{brandOption}</span>
-                </label>
-              ))}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="brand"
-                  value=""
-                  checked={brand === ''}
-                  onChange={() => setBrand('')}
+                <button
+                  key={brandOption}
+                  onClick={() => setBrand(brand === brandOption ? '' : brandOption)}
                   disabled={isLoading}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm text-gray-700">All brands</span>
-              </label>
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    brand === brandOption
+                      ? brandOption === 'VISA'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-orange-500 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {brandOption}
+                </button>
+              ))}
+              {brand && (
+                <button
+                  onClick={() => setBrand('')}
+                  className="px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Status Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Card Status</label>
-            <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+              Card Status
+            </label>
+            <div className="flex flex-wrap gap-2">
               {Object.values(CardStatus).map((statusOption) => (
-                <label key={statusOption} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="status"
-                    value={statusOption}
-                    checked={status === statusOption}
-                    onChange={(e) => setStatus(e.target.value as CardStatus)}
-                    disabled={isLoading}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm text-gray-700">{statusOption}</span>
-                </label>
-              ))}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  value=""
-                  checked={status === ''}
-                  onChange={() => setStatus('')}
+                <button
+                  key={statusOption}
+                  onClick={() => setStatus(status === statusOption ? '' : statusOption)}
                   disabled={isLoading}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm text-gray-700">All statuses</span>
-              </label>
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    status === statusOption
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {statusOption}
+                </button>
+              ))}
+              {status && (
+                <button
+                  onClick={() => setStatus('')}
+                  className="px-3 py-2 rounded-xl text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Date Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Created Date</label>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+              Created Date
+            </label>
             <input
               type="date"
               value={createdAt}
               onChange={(e) => setCreatedAt(e.target.value)}
               disabled={isLoading}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-red-100 disabled:opacity-50 transition-colors"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
             <button
               onClick={handleApplyFilters}
               disabled={isLoading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-xl bg-[#d71927] px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
             >
               Apply Filters
             </button>
             <button
               onClick={() => setIsOpen(false)}
               disabled={isLoading}
-              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
             >
-              Close
+              Cancel
             </button>
           </div>
         </div>

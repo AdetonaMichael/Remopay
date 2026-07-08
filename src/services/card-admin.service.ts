@@ -1,6 +1,7 @@
 /**
  * Card Admin Service
  * Handles all admin card operations through the API
+ * Base URL: /api/v1/admin/cards
  */
 
 import { apiClient } from './api-client';
@@ -11,17 +12,15 @@ import {
   SetCardDetailsResponse,
   GetAllCardsAdminResponse,
   GetCardAuditLogsResponse,
+  AdminCardActionResponse,
   CardAdminFilters,
+  AdminCardStatus,
 } from '@/types/card-admin.types';
 
 class CardAdminService {
   /**
    * Fetch all cards with filtering and pagination
-   *
-   * @param filters - Filter options (status, user_id, has_details, search)
-   * @param page - Page number (1-indexed)
-   * @param perPage - Items per page
-   * @returns Promise with cards list and pagination
+   * GET /admin/cards
    */
   async getCards(
     filters?: CardAdminFilters,
@@ -31,7 +30,7 @@ class CardAdminService {
     try {
       const params = new URLSearchParams();
       params.append('page', String(page));
-      params.append('per_page', String(Math.min(perPage, 100))); // Max 100 per page
+      params.append('per_page', String(Math.min(perPage, 100)));
 
       if (filters?.status) {
         params.append('status', filters.status);
@@ -43,119 +42,65 @@ class CardAdminService {
         params.append('has_details', String(filters.has_details));
       }
 
-      console.debug('[CardAdminService] Fetching cards with params:', {
-        page,
-        perPage,
-        filters,
-      });
-
       const response = await apiClient.get<GetAllCardsAdminResponse>(
         `/admin/cards?${params.toString()}`
       );
 
-      // Handle response wrapper if present
       const actualResponse = (response as any).original || response;
-
-      console.debug('[CardAdminService] Cards fetched successfully:', {
-        cardCount: actualResponse?.data?.cards?.length,
-        pagination: actualResponse?.data?.pagination,
-      });
-
       return actualResponse;
     } catch (error: any) {
-      console.error('[CardAdminService] Error fetching cards:', {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
+      console.error('[CardAdminService] Error fetching cards:', error);
       throw error;
     }
   }
 
   /**
-   * Get card details and audit logs
-   *
-   * @param cardId - Card ID or Maplerad reference
-   * @returns Promise with card details and audit logs
+   * Get card audit logs
+   * GET /admin/cards/{cardId}/audit-logs
    */
   async getCardAuditLogs(
     cardId: number | string
   ): Promise<GetCardAuditLogsResponse> {
     try {
-      console.debug('[CardAdminService] Fetching audit logs for card:', cardId);
-
       const response = await apiClient.get<GetCardAuditLogsResponse>(
         `/admin/cards/${cardId}/audit-logs`
       );
 
-      // Handle response wrapper if present
       const actualResponse = (response as any).original || response;
-
-      console.debug('[CardAdminService] Audit logs fetched:', {
-        cardId,
-        logCount: actualResponse?.data?.audit_logs?.length,
-      });
-
       return actualResponse;
     } catch (error: any) {
-      console.error('[CardAdminService] Error fetching audit logs:', {
-        message: error?.message,
-        status: error?.response?.status,
-        cardId,
-      });
+      console.error('[CardAdminService] Error fetching audit logs:', error);
       throw error;
     }
   }
 
   /**
    * Set or update card details
-   *
-   * @param cardId - Card ID
-   * @param payload - Card details to set
-   * @returns Promise with updated card info
+   * POST /admin/cards/{cardId}/set-details
    */
   async setCardDetails(
     cardId: number | string,
-    payload: Partial<SetCardDetailsRequest>
+    payload: SetCardDetailsRequest
   ): Promise<SetCardDetailsResponse> {
     try {
-      // Validate payload
       if (!cardId) {
         throw new Error('Card ID is required');
       }
 
-      if (!payload.card_number && !payload.expiry && !payload.cvv) {
-        throw new Error('At least one card detail field is required');
+      // Validate formats
+      if (payload.card_number && !/^\d{13,19}$/.test(payload.card_number)) {
+        throw new Error('Card number must be 13-19 digits');
       }
-
-      // Validate format
-      if (payload.card_number) {
-        if (!/^\d{13,19}$/.test(payload.card_number)) {
-          throw new Error('Card number must be 13-19 digits');
-        }
+      if (payload.expiry && !/^\d{2}\/\d{2}$/.test(payload.expiry)) {
+        throw new Error('Expiry must be in MM/YY format');
       }
-
-      if (payload.expiry) {
-        if (!/^\d{2}\/\d{2}$/.test(payload.expiry)) {
-          throw new Error('Expiry must be in MM/YY format');
-        }
+      if (payload.cvv && !/^\d{3,4}$/.test(payload.cvv)) {
+        throw new Error('CVV must be 3-4 digits');
       }
-
-      if (payload.cvv) {
-        if (!/^\d{3,4}$/.test(payload.cvv)) {
-          throw new Error('CVV must be 3-4 digits');
-        }
-      }
-
-      console.debug('[CardAdminService] Setting card details:', {
-        cardId,
-        fieldsProvided: Object.keys(payload).filter((k) => k !== 'notes'),
-      });
 
       const response = await apiClient.post<SetCardDetailsResponse>(
         `/admin/cards/${cardId}/set-details`,
         {
-          card_id: cardId,
           card_number: payload.card_number,
           expiry: payload.expiry,
           cvv: payload.cvv,
@@ -163,22 +108,73 @@ class CardAdminService {
         }
       );
 
-      // Handle response wrapper if present
       const actualResponse = (response as any).original || response;
-
-      console.debug('[CardAdminService] Card details set successfully:', {
-        cardId,
-        success: actualResponse?.success,
-      });
-
       return actualResponse;
     } catch (error: any) {
-      console.error('[CardAdminService] Error setting card details:', {
-        message: error?.message,
-        status: error?.response?.status,
-        errors: error?.response?.data?.errors,
-        cardId,
-      });
+      console.error('[CardAdminService] Error setting card details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Freeze a card
+   * PATCH /admin/cards/{cardId}/freeze
+   * No request body required
+   */
+  async freezeCard(cardId: number | string): Promise<AdminCardActionResponse> {
+    try {
+      if (!cardId) throw new Error('Card ID is required');
+
+      const response = await apiClient.patch<AdminCardActionResponse>(
+        `/admin/cards/${cardId}/freeze`
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse;
+    } catch (error: any) {
+      console.error('[CardAdminService] Error freezing card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unfreeze a card
+   * PATCH /admin/cards/{cardId}/unfreeze
+   * No request body required
+   */
+  async unfreezeCard(cardId: number | string): Promise<AdminCardActionResponse> {
+    try {
+      if (!cardId) throw new Error('Card ID is required');
+
+      const response = await apiClient.patch<AdminCardActionResponse>(
+        `/admin/cards/${cardId}/unfreeze`
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse;
+    } catch (error: any) {
+      console.error('[CardAdminService] Error unfreezing card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Terminate a card (irreversible)
+   * PUT /admin/cards/{cardId}/terminate
+   * No request body required
+   */
+  async terminateCard(cardId: number | string): Promise<AdminCardActionResponse> {
+    try {
+      if (!cardId) throw new Error('Card ID is required');
+
+      const response = await apiClient.put<AdminCardActionResponse>(
+        `/admin/cards/${cardId}/terminate`
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse;
+    } catch (error: any) {
+      console.error('[CardAdminService] Error terminating card:', error);
       throw error;
     }
   }

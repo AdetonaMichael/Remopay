@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.remopay.remonode.com',
+      },
       {
         protocol: 'https',
         hostname: '**.wikimedia.org',

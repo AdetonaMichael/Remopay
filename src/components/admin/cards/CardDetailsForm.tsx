@@ -71,13 +71,12 @@ export const CardDetailsForm: React.FC<CardDetailsFormProps> = ({
 
     try {
       setSuccess(false);
-      await onSubmit({
-        card_id: cardId,
-        card_number: formData.card_number || undefined,
-        expiry: formData.expiry || undefined,
-        cvv: formData.cvv || undefined,
-        notes: formData.notes || undefined,
-      });
+      const payload: SetCardDetailsRequest = {};
+      if (formData.card_number) payload.card_number = formData.card_number;
+      if (formData.expiry) payload.expiry = formData.expiry;
+      if (formData.cvv) payload.cvv = formData.cvv;
+      if (formData.notes) payload.notes = formData.notes;
+      await onSubmit(payload);
 
       setSuccess(true);
       setTimeout(() => {

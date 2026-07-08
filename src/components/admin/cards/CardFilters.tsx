@@ -56,10 +56,9 @@ export const CardFilters: React.FC<CardFiltersProps> = ({
   };
 
   const hasActiveFilters =
-    filters.status ||
+    filters.status !== undefined ||
     filters.has_details !== undefined ||
-    filters.search ||
-    filters.user_id;
+    filters.user_id !== undefined;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">

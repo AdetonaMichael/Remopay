@@ -2,7 +2,7 @@
 
 /**
  * useCards Hook
- * Handles virtual card creation, listing, filtering, and state management
+ * Complete virtual card management with creation, listing, funding, and withdrawals
  */
 
 import { useCallback, useState, useEffect } from 'react';
@@ -11,6 +11,8 @@ import { useUIStore } from '@/store/ui.store';
 import { cardService } from '@/services/card.service';
 import {
   VirtualCard,
+  CardDetail,
+  CardTransaction,
   CreateCardRequest,
   CreateCardFormData,
   CardFilters,
@@ -19,6 +21,11 @@ import {
   CardStatus,
   CardCurrency,
   CardType,
+  CardActionModalState,
+  FundCardRequest,
+  WithdrawCardRequest,
+  GetCardResponse,
+  GetCardTransactionsResponse,
 } from '@/types/card.types';
 
 interface UseCardsOptions {
@@ -51,27 +58,42 @@ export const useCards = (options?: UseCardsOptions) => {
   const [createFormData, setCreateFormData] = useState<CreateCardFormData>({
     brand: CardBrand.VISA,
     autoApprove: true,
-    amount: '0',
+    amount: '5',
   });
 
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
   const [isCreatingCard, setIsCreatingCard] = useState(false);
 
+  // Card detail state
+  const [cardDetail, setCardDetail] = useState<CardDetail | null>(null);
+  const [cardDetailLoading, setCardDetailLoading] = useState(false);
+  const [cardDetailError, setCardDetailError] = useState<string | null>(null);
+
+  // Transactions state
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsPagination, setTransactionsPagination] = useState({
+    current_page: 1,
+    total_pages: 0,
+    total_records: 0,
+    page_size: 10,
+  });
+
+  // Action modal state
+  const [actionModal, setActionModal] = useState<CardActionModalState>({
+    isOpen: false,
+    action: null,
+    cardId: null,
+    cardMaskedPan: null,
+  });
+
   // ═════════════════════════════════════════════════════════════════
   // FORM DATA MANAGEMENT
   // ═════════════════════════════════════════════════════════════════
 
-  /**
-   * Update create form field
-   */
   const updateCreateFormField = useCallback(
     (field: keyof CreateCardFormData, value: any) => {
-      setCreateFormData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-
-      // Clear error for this field
+      setCreateFormData((prev) => ({ ...prev, [field]: value }));
       if (createFormErrors[field]) {
         setCreateFormErrors((prev) => {
           const updated = { ...prev };
@@ -83,14 +105,11 @@ export const useCards = (options?: UseCardsOptions) => {
     [createFormErrors]
   );
 
-  /**
-   * Reset create form to default state
-   */
   const resetCreateForm = useCallback(() => {
     setCreateFormData({
       brand: CardBrand.VISA,
       autoApprove: true,
-      amount: '0',
+      amount: '5',
     });
     setCreateFormErrors({});
   }, []);
@@ -99,23 +118,15 @@ export const useCards = (options?: UseCardsOptions) => {
   // VALIDATION
   // ═════════════════════════════════════════════════════════════════
 
-  /**
-   * Validate create card form
-   */
   const validateCreateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
-
-    // Validate amount
     const amount = parseFloat(createFormData.amount || '0');
     if (isNaN(amount) || amount < 0) {
       errors.amount = 'Amount must be a non-negative number';
     }
-
-    // Validate brand
     if (!createFormData.brand || !Object.values(CardBrand).includes(createFormData.brand)) {
       errors.brand = 'Please select a valid card brand';
     }
-
     setCreateFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [createFormData]);
@@ -129,16 +140,14 @@ export const useCards = (options?: UseCardsOptions) => {
    */
   const createCard = useCallback(async () => {
     try {
-      // Validate form
       if (!validateCreateForm()) {
         addToast({ type: 'error', message: 'Please fix form errors' });
-        return;
+        return null;
       }
 
       setIsCreatingCard(true);
       setIsLoading(true);
 
-      // Build request payload
       const payload: CreateCardRequest = {
         currency: CardCurrency.USD,
         type: CardType.VIRTUAL,
@@ -147,35 +156,41 @@ export const useCards = (options?: UseCardsOptions) => {
         amount: Math.max(0, parseInt(createFormData.amount) || 0),
       };
 
-      // Call API
       const response = await cardService.createCard(payload);
 
       if (!response || !response.success) {
         throw new Error(response?.message || 'Failed to create card');
       }
 
-      // Success
-      const successMessage = response.message || 'Card created successfully';
-      addToast({ type: 'success', message: successMessage });
-      options?.onSuccess?.(successMessage);
+      addToast({
+        type: 'success',
+        message: response.message || 'Card created successfully',
+      });
+      options?.onSuccess?.(response.message || 'Card created successfully');
 
-      // Reset form
       resetCreateForm();
-
-      // Refresh cards list
       await fetchCards(1, cardListState.pagination.page_size, cardListState.filters);
 
       return response.data.card;
     } catch (error: any) {
       console.error('[useCards] Error creating card:', error);
 
-      // Handle specific error types
       if (error.response?.status === 400) {
-        const message = error.response?.data?.message || 'Card creation not available. Please complete your profile.';
-        addToast({ type: 'error', message });
-        options?.onError?.(error);
+        addToast({
+          type: 'error',
+          message: error.response?.data?.message || 'Please complete your profile first',
+        });
+      } else if (error.response?.status === 403) {
+        addToast({
+          type: 'error',
+          message: error.response?.data?.message || 'Tier 1 account required for card creation',
+        });
+      } else if (error.response?.status === 402) {
+        addToast({
+          type: 'error',
+          message: error.response?.data?.message || 'Insufficient balance. Card creation requires $3.',
+        });
       } else if (error.response?.status === 422) {
-        // Validation errors from backend
         const backendErrors = error.response?.data?.errors || {};
         setCreateFormErrors(
           Object.keys(backendErrors).reduce((acc: Record<string, string>, key: string) => {
@@ -184,14 +199,11 @@ export const useCards = (options?: UseCardsOptions) => {
           }, {})
         );
         addToast({ type: 'error', message: error.response?.data?.message || 'Validation failed' });
-      } else if (error.response?.status === 401) {
-        addToast({ type: 'error', message: 'Authentication failed. Please log in again.' });
       } else {
-        const message = error.message || 'An error occurred while creating card';
-        addToast({ type: 'error', message });
-        options?.onError?.(error);
+        addToast({ type: 'error', message: error.message || 'Failed to create card' });
       }
 
+      options?.onError?.(error);
       return null;
     } finally {
       setIsCreatingCard(false);
@@ -205,13 +217,8 @@ export const useCards = (options?: UseCardsOptions) => {
   const fetchCards = useCallback(
     async (page: number = 1, pageSize: number = 10, filters: CardFilters = {}) => {
       try {
-        setCardListState((prev) => ({
-          ...prev,
-          isLoading: true,
-          error: null,
-        }));
+        setCardListState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        // Build query
         const query = {
           page: Math.max(1, page),
           page_size: Math.min(Math.max(1, pageSize), 100),
@@ -220,39 +227,13 @@ export const useCards = (options?: UseCardsOptions) => {
           ...(filters.createdAt && { created_at: filters.createdAt }),
         };
 
-        console.debug('[useCards] Fetching cards with query:', query);
-
-        // Call API
         const response = await cardService.getAllCards(query);
 
-        // Enhanced logging for debugging
-        console.debug('[useCards] API Response:', {
-          success: response?.success,
-          message: response?.message,
-          hasData: !!response?.data,
-          cardsCount: response?.data?.cards?.length,
-          dataStructure: {
-            hasCards: Array.isArray(response?.data?.cards),
-            hasMeta: !!response?.data?.meta,
-          },
-        });
-
-        // Handle response validation
-        if (!response) {
-          console.error('[useCards] Received null/undefined response');
-          throw new Error('Server returned no response');
-        }
-
+        if (!response) throw new Error('Server returned no response');
         if (response.success === false) {
-          const errorMsg = response?.message || 'Failed to fetch cards';
-          console.error('[useCards] API returned error response:', {
-            success: response?.success,
-            message: errorMsg,
-          });
-          throw new Error(errorMsg);
+          throw new Error(response?.message || 'Failed to fetch cards');
         }
 
-        // Success - update state with cards and pagination
         const cardsData = response.data?.cards || [];
         const metaData = response.data?.meta || {
           current_page: page,
@@ -270,40 +251,14 @@ export const useCards = (options?: UseCardsOptions) => {
           currentPage: page,
         });
 
-        console.debug('[useCards] Successfully loaded cards', {
-          count: cardsData.length,
-          page: metaData.current_page,
-          totalPages: metaData.total_pages,
-        });
-
         return cardsData;
       } catch (error: any) {
-        const errorDetails = {
-          errorMessage: error?.message,
-          errorCode: error?.code,
-          status: error?.response?.status,
-          statusText: error?.response?.statusText,
-          responseData: error?.response?.data,
-          errorType: error?.response ? 'HTTP Error' : 'Application Error',
-        };
-
-        console.error('[useCards] Error fetching cards:', errorDetails);
-
         let errorMessage = 'Failed to load cards';
-
-        // Check if it's an HTTP error with response
         if (error.response?.status === 400) {
           errorMessage = 'Please complete your profile to view cards';
-        } else if (error.response?.status === 422) {
-          errorMessage = 'Invalid filter parameters';
         } else if (error.response?.status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
-        } else if (error.response?.status === 500) {
-          errorMessage = 'Server error - please try again later';
-        } else if (error.response?.status === 404) {
-          errorMessage = 'Cards endpoint not found. Please contact support.';
         } else if (error.message) {
-          // Use the API error message if available (from response.message)
           errorMessage = error.message;
         }
 
@@ -321,8 +276,172 @@ export const useCards = (options?: UseCardsOptions) => {
   );
 
   /**
-   * Change pagination page
+   * Get single card details
    */
+  const fetchCardDetail = useCallback(async (cardId: string) => {
+    try {
+      setCardDetailLoading(true);
+      setCardDetailError(null);
+
+      const response = await cardService.getCard(cardId);
+
+      if (!response || !response.success) {
+        throw new Error(response?.message || 'Failed to load card details');
+      }
+
+      setCardDetail(response.data.card);
+      return response.data.card;
+    } catch (error: any) {
+      const message = error.message || 'Failed to load card details';
+      setCardDetailError(message);
+      addToast({ type: 'error', message });
+      return null;
+    } finally {
+      setCardDetailLoading(false);
+    }
+  }, [addToast]);
+
+  /**
+   * Get card transactions
+   */
+  const fetchCardTransactions = useCallback(
+    async (cardId: string, page: number = 1, pageSize: number = 10) => {
+      try {
+        setTransactionsLoading(true);
+
+        const response = await cardService.getCardTransactions(cardId, {
+          page,
+          page_size: pageSize,
+        });
+
+        if (!response || !response.success) {
+          throw new Error(response?.message || 'Failed to load transactions');
+        }
+
+        const transactions = response.data?.transactions || [];
+        const meta = response.data?.meta || {
+          current_page: page,
+          total_pages: 0,
+          total_records: 0,
+          page_size: pageSize,
+        };
+
+        setCardTransactions(transactions);
+        setTransactionsPagination(meta);
+
+        return transactions;
+      } catch (error: any) {
+        console.error('[useCards] Error fetching transactions:', error);
+        addToast({
+          type: 'error',
+          message: error.message || 'Failed to load transactions',
+        });
+        return [];
+      } finally {
+        setTransactionsLoading(false);
+      }
+    },
+    [addToast]
+  );
+
+  /**
+   * Fund a card
+   */
+  const fundCard = useCallback(
+    async (cardId: string, amountInCents: number) => {
+      try {
+        setIsLoading(true);
+        const response = await cardService.fundCard(cardId, amountInCents);
+
+        if (!response || !response.success) {
+          throw new Error(response?.message || 'Failed to fund card');
+        }
+
+        addToast({
+          type: 'success',
+          message: response.message || 'Card funded successfully',
+        });
+
+        // Refresh card detail if viewing it
+        if (cardDetail?.id === cardId) {
+          await fetchCardDetail(cardId);
+        }
+
+        return true;
+      } catch (error: any) {
+        addToast({
+          type: 'error',
+          message: error.message || 'Failed to fund card',
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [addToast, setIsLoading, cardDetail, fetchCardDetail]
+  );
+
+  /**
+   * Withdraw from a card
+   */
+  const withdrawFromCard = useCallback(
+    async (cardId: string, amountInCents: number) => {
+      try {
+        setIsLoading(true);
+        const response = await cardService.withdrawFromCard(cardId, amountInCents);
+
+        if (!response || !response.success) {
+          throw new Error(response?.message || 'Failed to withdraw from card');
+        }
+
+        addToast({
+          type: 'success',
+          message: response.message || 'Withdrawal successful',
+        });
+
+        // Refresh card detail if viewing it
+        if (cardDetail?.id === cardId) {
+          await fetchCardDetail(cardId);
+        }
+
+        return true;
+      } catch (error: any) {
+        addToast({
+          type: 'error',
+          message: error.message || 'Failed to withdraw from card',
+        });
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [addToast, setIsLoading, cardDetail, fetchCardDetail]
+  );
+
+  // ═════════════════════════════════════════════════════════════════
+  // ACTION MODAL
+  // ═════════════════════════════════════════════════════════════════
+
+  const openActionModal = useCallback(
+    (action: 'fund' | 'withdraw', cardId: string, cardMaskedPan: string | null) => {
+      setActionModal({ isOpen: true, action, cardId, cardMaskedPan });
+    },
+    []
+  );
+
+  const closeActionModal = useCallback(() => {
+    setActionModal({
+      isOpen: false,
+      action: null,
+      cardId: null,
+      cardMaskedPan: null,
+    });
+  }, []);
+
+  // ═════════════════════════════════════════════════════════════════
+  // PAGINATION & FILTERS
+  // ═════════════════════════════════════════════════════════════════
+
   const goToPage = useCallback(
     (page: number) => {
       fetchCards(page, cardListState.pagination.page_size, cardListState.filters);
@@ -330,9 +449,6 @@ export const useCards = (options?: UseCardsOptions) => {
     [fetchCards, cardListState.pagination.page_size, cardListState.filters]
   );
 
-  /**
-   * Change page size
-   */
   const changePageSize = useCallback(
     (pageSize: number) => {
       fetchCards(1, pageSize, cardListState.filters);
@@ -340,9 +456,6 @@ export const useCards = (options?: UseCardsOptions) => {
     [fetchCards, cardListState.filters]
   );
 
-  /**
-   * Apply filters to cards list
-   */
   const applyFilters = useCallback(
     (newFilters: CardFilters) => {
       fetchCards(1, cardListState.pagination.page_size, newFilters);
@@ -350,22 +463,19 @@ export const useCards = (options?: UseCardsOptions) => {
     [fetchCards, cardListState.pagination.page_size]
   );
 
-  /**
-   * Clear all filters
-   */
   const clearFilters = useCallback(() => {
     fetchCards(1, cardListState.pagination.page_size, {});
   }, [fetchCards, cardListState.pagination.page_size]);
 
   /**
-   * Load initial cards on mount (only once when user is available)
+   * Load initial cards on mount
    */
   useEffect(() => {
     if (user && cardListState.cards.length === 0 && !cardListState.isLoading) {
-      // Only fetch if we don't have cards and aren't already loading
       fetchCards(1, 10, {});
     }
-  }, [user?.id]); // Only depend on user.id to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // ═════════════════════════════════════════════════════════════════
   // RETURN PUBLIC API
@@ -386,9 +496,28 @@ export const useCards = (options?: UseCardsOptions) => {
     resetCreateForm,
     createFormErrors,
     isCreatingCard,
-
-    // Operations
     createCard,
+
+    // Card detail
+    cardDetail,
+    cardDetailLoading,
+    cardDetailError,
+    fetchCardDetail,
+
+    // Transactions
+    cardTransactions,
+    transactionsLoading,
+    transactionsPagination,
+    fetchCardTransactions,
+
+    // Actions
+    fundCard,
+    withdrawFromCard,
+
+    // Action modal
+    actionModal,
+    openActionModal,
+    closeActionModal,
 
     // Computed values
     hasCards: cardListState.cards.length > 0,

@@ -233,23 +233,21 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#620707" />
         <meta name="msapplication-TileImage" content="/icon.png" />
 
-        {/* Preconnect to External Sources */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-
-        {/* DNS Prefetch */}
-        <link rel="dns-prefetch" href="https://analytics.google.com" />
+        {/* DNS Prefetch - critical origins only */}
+        <link rel="dns-prefetch" href="https://api.remopay.remonode.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
 
-        {/* Google Analytics 4 with Enhanced Tracking */}
+        {/* Preconnect to image origin */}
+        <link rel="preconnect" href="https://api.remopay.remonode.com" />
+
+        {/* Google Analytics 4 - lazy loaded to avoid blocking render */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-L0LS146KZG"
-          strategy="afterInteractive"
-          async
+          strategy="lazyOnload"
         />
         <Script
           id="google-analytics-init"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -258,37 +256,14 @@ export default function RootLayout({
               gtag('config', 'G-L0LS146KZG', {
                 'page_path': window.location.pathname,
                 'page_title': document.title,
-                'anonymize_ip': false,
-                'allow_google_signals': true,
-                'allow_ad_personalization_signals': true,
+                'anonymize_ip': true,
+                'allow_google_signals': false,
+                'allow_ad_personalization_signals': false,
                 'send_page_view': true,
                 'cookie_flags': 'SameSite=None;Secure'
               });
-              
-              // Track all navigation events
-              window.addEventListener('popstate', function() {
-                gtag('event', 'page_view', {
-                  'page_path': window.location.pathname,
-                  'page_title': document.title,
-                  'page_referrer': document.referrer
-                });
-              });
-              
-              // Enable enhanced measurement
-              gtag('event', 'page_view', {
-                'send_to': 'G-L0LS146KZG',
-                'page_title': document.title,
-                'page_path': window.location.pathname
-              });
             `,
           }}
-        />
-
-        {/* Google Ads Conversion Tracking (placeholder - update with your conversion ID) */}
-        <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-YOUR_CONVERSION_ID"
-          strategy="afterInteractive"
         />
       </head>
       <body className="min-h-full flex flex-col bg-gray-50">

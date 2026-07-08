@@ -1,41 +1,42 @@
 /**
  * Card Service
  * Handles all virtual card operations through the Maplerad API
- * Endpoints: POST /payment/issuing, GET /payment/issuing
+ * Base URL: /api/v1/payment/issuing
  */
 
 import { apiClient } from './api-client';
 import {
   VirtualCard,
+  CardDetail,
   CreateCardRequest,
   CreateCardResponse,
   GetAllCardsResponse,
+  GetCardResponse,
   CardListQuery,
+  CardTransaction,
+  GetCardTransactionsResponse,
+  CardTransactionsQuery,
+  FundCardRequest,
+  FundCardResponse,
+  WithdrawCardRequest,
+  WithdrawCardResponse,
+  GetDeclineChargesResponse,
+  DeclineChargesQuery,
   CardCurrency,
   CardType,
   CardBrand,
-  CardStatus,
+  CardPaginationMeta,
+  CardListResponse,
 } from '@/types/card.types';
 import { ApiResponse } from '@/types/api.types';
 
 class CardService {
   /**
    * Create a new virtual card
-   *
-   * @param payload - Card creation request data
-   * @returns Promise with created card data
-   *
-   * @example
-   * const card = await cardService.createCard({
-   *   currency: 'USD',
-   *   type: 'VIRTUAL',
-   *   auto_approve: true,
-   *   brand: 'VISA',
-   * });
+   * Fee: $3.00 deducted from wallet
    */
   async createCard(payload: CreateCardRequest): Promise<CreateCardResponse> {
     try {
-      // Validate payload before sending
       this.validateCreateCardPayload(payload);
 
       const response = await apiClient.post<any>(
@@ -44,14 +45,12 @@ class CardService {
           currency: payload.currency,
           type: payload.type,
           auto_approve: payload.auto_approve,
-          brand: payload.brand || CardBrand.VISA, // Default to VISA if not provided
-          amount: payload.amount || 0, // Default to 0 if not provided
+          brand: payload.brand || CardBrand.VISA,
+          amount: payload.amount || 0,
         }
       );
 
-      // Handle response wrapper - extract from 'original' if present
-      let actualResponse = (response as any).original || response;
-      
+      const actualResponse = (response as any).original || response;
       return actualResponse as CreateCardResponse;
     } catch (error: any) {
       console.error('[CardService] Error creating card:', error);
@@ -61,198 +60,252 @@ class CardService {
 
   /**
    * Fetch all virtual cards for authenticated user
-   *
-   * @param query - Query parameters for filtering and pagination
-   * @returns Promise with cards list and pagination metadata
-   *
-   * @example
-   * const response = await cardService.getAllCards({
-   *   page: 1,
-   *   page_size: 10,
-   *   brand: 'VISA',
-   *   status: 'ACTIVE'
-   * });
    */
   async getAllCards(query?: CardListQuery): Promise<GetAllCardsResponse> {
     try {
-      // Validate query parameters if provided
       if (query) {
         this.validateCardListQuery(query);
       }
 
-      // Build query string
       const params = this.buildQueryString(query);
 
-      console.debug('[CardService] Fetching cards with params:', params);
+      const response = await apiClient.get<any>('/payment/issuing', { params });
 
-      const response = await apiClient.get<any>(
-        '/payment/issuing',
-        {
-          params,
-        }
-      );
-
-      // Handle response wrapper - extract from 'original' if present
       let actualResponse = (response as any).original || response;
-      
-      // Normalize response to ensure proper structure
-      actualResponse = this.normalizeResponse(actualResponse);
-      
-      // Enhanced logging for debugging
-      console.debug('[CardService] getAllCards response:', {
-        success: actualResponse?.success,
-        message: actualResponse?.message,
-        cardsCount: actualResponse?.data?.cards?.length,
-        pagination: actualResponse?.data?.meta,
-        hasCardsData: !!actualResponse?.data?.cards,
-        hasMetaData: !!actualResponse?.data?.meta,
-      });
-      
+      actualResponse = this.normalizeListResponse(actualResponse);
+
       return actualResponse;
     } catch (error: any) {
-      console.error('[CardService] Error fetching cards:', {
-        message: error?.message,
-        status: error?.response?.status,
-        statusText: error?.response?.statusText,
-        responseData: error?.response?.data,
-        requestConfig: {
-          url: error?.config?.url,
-          method: error?.config?.method,
-          params: error?.config?.params,
-        },
-      });
+      console.error('[CardService] Error fetching cards:', error);
       throw error;
     }
   }
 
   /**
+   * Get single card details
+   * GET /payment/issuing/{id}
+   */
+  async getCard(cardId: string): Promise<GetCardResponse> {
+    try {
+      if (!cardId) {
+        throw new Error('Card ID is required');
+      }
+
+      const response = await apiClient.get<any>(`/payment/issuing/${cardId}`);
+      const actualResponse = (response as any).original || response;
+
+      return actualResponse as GetCardResponse;
+    } catch (error: any) {
+      console.error('[CardService] Error fetching card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get card transactions
+   * GET /payment/issuing/{id}/transactions
+   */
+  async getCardTransactions(
+    cardId: string,
+    query?: CardTransactionsQuery
+  ): Promise<GetCardTransactionsResponse> {
+    try {
+      if (!cardId) {
+        throw new Error('Card ID is required');
+      }
+
+      const params: Record<string, any> = {};
+      if (query) {
+        if (query.start_date) params.start_date = query.start_date;
+        if (query.end_date) params.end_date = query.end_date;
+        if (query.page) params.page = query.page;
+        if (query.page_size) params.page_size = query.page_size;
+      }
+
+      const response = await apiClient.get<any>(
+        `/payment/issuing/${cardId}/transactions`,
+        { params }
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse as GetCardTransactionsResponse;
+    } catch (error: any) {
+      console.error('[CardService] Error fetching card transactions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fund (credit) a card
+   * POST /payment/issuing/{id}/fund
+   * Amount must be in cents (minimum 100 = $1.00)
+   */
+  async fundCard(cardId: string, amountInCents: number): Promise<FundCardResponse> {
+    try {
+      if (!cardId) throw new Error('Card ID is required');
+      if (!amountInCents || amountInCents < 100) {
+        throw new Error('Minimum amount is 100 cents ($1.00)');
+      }
+      if (!Number.isInteger(amountInCents)) {
+        throw new Error('Amount must be an integer (cents)');
+      }
+
+      const payload: FundCardRequest = { amount: amountInCents };
+
+      const response = await apiClient.post<any>(
+        `/payment/issuing/${cardId}/fund`,
+        payload
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse as FundCardResponse;
+    } catch (error: any) {
+      console.error('[CardService] Error funding card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Withdraw (debit) from a card
+   * POST /payment/issuing/{id}/withdraw
+   * Amount must be in cents (minimum 100 = $1.00)
+   */
+  async withdrawFromCard(cardId: string, amountInCents: number): Promise<WithdrawCardResponse> {
+    try {
+      if (!cardId) throw new Error('Card ID is required');
+      if (!amountInCents || amountInCents < 100) {
+        throw new Error('Minimum amount is 100 cents ($1.00)');
+      }
+      if (!Number.isInteger(amountInCents)) {
+        throw new Error('Amount must be an integer (cents)');
+      }
+
+      const payload: WithdrawCardRequest = { amount: amountInCents };
+
+      const response = await apiClient.post<any>(
+        `/payment/issuing/${cardId}/withdraw`,
+        payload
+      );
+
+      const actualResponse = (response as any).original || response;
+      return actualResponse as WithdrawCardResponse;
+    } catch (error: any) {
+      console.error('[CardService] Error withdrawing from card:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get decline charges
+   * GET /payment/issuing/charges
+   */
+  async getDeclineCharges(query?: DeclineChargesQuery): Promise<GetDeclineChargesResponse> {
+    try {
+      const params: Record<string, any> = {};
+      if (query) {
+        if (query.channel) params.channel = query.channel;
+        if (query.transaction_id) params.transaction_id = query.transaction_id;
+        if (query.start_date) params.start_date = query.start_date;
+        if (query.end_date) params.end_date = query.end_date;
+        if (query.page) params.page = query.page;
+        if (query.page_size) params.page_size = query.page_size;
+        if (query.search) params.search = query.search;
+      }
+
+      const response = await apiClient.get<any>('/payment/issuing/charges', { params });
+      const actualResponse = (response as any).original || response;
+      return actualResponse as GetDeclineChargesResponse;
+    } catch (error: any) {
+      console.error('[CardService] Error fetching decline charges:', error);
+      throw error;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CONVENIENCE METHODS
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
    * Fetch cards with pagination
-   * Convenience method for common pagination use case
-   *
-   * @param page - Page number (1-indexed)
-   * @param pageSize - Items per page (1-100)
-   * @returns Promise with cards list and pagination metadata
    */
   async getCardsPaginated(page: number = 1, pageSize: number = 10): Promise<GetAllCardsResponse> {
     return this.getAllCards({
-      page: Math.max(1, page), // Ensure page is at least 1
-      page_size: Math.min(Math.max(1, pageSize), 100), // Ensure pageSize is 1-100
+      page: Math.max(1, page),
+      page_size: Math.min(Math.max(1, pageSize), 100),
     });
   }
 
   /**
    * Fetch cards filtered by brand
-   * Convenience method for brand filtering
-   *
-   * @param brand - Card brand to filter by
-   * @param page - Page number
-   * @param pageSize - Items per page
-   * @returns Promise with filtered cards list
    */
   async getCardsByBrand(
     brand: CardBrand,
     page: number = 1,
     pageSize: number = 10
   ): Promise<GetAllCardsResponse> {
-    return this.getAllCards({
-      page,
-      page_size: pageSize,
-      brand,
-    });
+    return this.getAllCards({ page, page_size: pageSize, brand });
   }
 
   /**
    * Fetch cards filtered by status
-   * Convenience method for status filtering
-   *
-   * @param status - Card status to filter by ('ACTIVE' or 'DISABLED')
-   * @param page - Page number
-   * @param pageSize - Items per page
-   * @returns Promise with filtered cards list
    */
   async getCardsByStatus(
     status: 'ACTIVE' | 'DISABLED',
     page: number = 1,
     pageSize: number = 10
   ): Promise<GetAllCardsResponse> {
-    return this.getAllCards({
-      page,
-      page_size: pageSize,
-      status: status as any,
-    });
+    return this.getAllCards({ page, page_size: pageSize, status: status as any });
   }
 
-  /**
-   * Validate create card request payload
-   * Ensures all required fields are present and valid
-   */
+  // ═══════════════════════════════════════════════════════════════════
+  // VALIDATION
+  // ═══════════════════════════════════════════════════════════════════
+
   private validateCreateCardPayload(payload: CreateCardRequest): void {
-    // Validate currency
     if (!payload.currency || payload.currency !== CardCurrency.USD) {
       throw new Error('Currency must be exactly "USD"');
     }
-
-    // Validate type
     if (!payload.type || payload.type !== CardType.VIRTUAL) {
       throw new Error('Card type must be exactly "VIRTUAL"');
     }
-
-    // Validate auto_approve
     if (typeof payload.auto_approve !== 'boolean') {
       throw new Error('Auto approve must be a boolean value (true/false)');
     }
-
-    // Validate brand if provided
     if (payload.brand && !Object.values(CardBrand).includes(payload.brand)) {
       throw new Error('Brand must be either VISA or MASTERCARD');
     }
-
-    // Validate amount if provided
     if (payload.amount !== undefined && (typeof payload.amount !== 'number' || payload.amount < 0)) {
       throw new Error('Amount must be a non-negative number');
     }
   }
 
-  /**
-   * Validate card list query parameters
-   */
   private validateCardListQuery(query: CardListQuery): void {
-    // Validate page
     if (query.page !== undefined && (typeof query.page !== 'number' || query.page < 1)) {
       throw new Error('Page must be at least 1');
     }
-
-    // Validate page_size
     if (
       query.page_size !== undefined &&
       (typeof query.page_size !== 'number' || query.page_size < 1 || query.page_size > 100)
     ) {
       throw new Error('Page size must be between 1 and 100');
     }
-
-    // Validate brand
     if (query.brand && !Object.values(CardBrand).includes(query.brand)) {
       throw new Error('Brand must be either VISA or MASTERCARD');
     }
-
-    // Validate status
     if (query.status && !['ACTIVE', 'DISABLED'].includes(query.status as any)) {
       throw new Error('Status must be either ACTIVE or DISABLED');
     }
-
-    // Validate created_at format (YYYY-MM-DD)
     if (query.created_at && !/^\d{4}-\d{2}-\d{2}$/.test(query.created_at)) {
-      throw new Error('Created at must be in format YYYY-MM-DD (e.g., 2024-05-27)');
+      throw new Error('Created at must be in format YYYY-MM-DD');
     }
   }
 
-  /**
-   * Build query string from CardListQuery object
-   * Filters out undefined values
-   */
+  // ═══════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════════════
+
   private buildQueryString(query?: CardListQuery): Record<string, any> {
     if (!query) return {};
-
     return {
       ...(query.page && { page: query.page }),
       ...(query.page_size && { page_size: query.page_size }),
@@ -262,30 +315,28 @@ class CardService {
     };
   }
 
-  /**
-   * Transform card data from API format to VirtualCard format
-   * Maps API field names to expected frontend field names
-   */
   private transformCard(card: any): VirtualCard {
     return {
       id: card.id,
       card_number: card.masked_pan || card.card_number || '',
+      masked_pan: card.masked_pan,
       cvv: card.cvv || '***',
       expiry: card.expiry || 'N/A',
       cardholder_name: card.name || card.cardholder_name || '',
-      status: card.status || CardStatus.ACTIVE,
+      name: card.name,
+      status: card.status || 'ACTIVE',
       brand: card.issuer || card.brand || CardBrand.VISA,
+      issuer: card.issuer,
       currency: card.currency || CardCurrency.USD,
+      balance: card.balance,
+      type: card.type,
+      auto_approve: card.auto_approve,
+      is_contactless: card.is_contactless,
       created_at: card.created_at,
     };
   }
 
-  /**
-   * Ensure response has proper structure with default values
-   * Handles cases where API might return partial or malformed responses
-   * Also transforms card field names from API format to expected format
-   */
-  private normalizeResponse(response: any): GetAllCardsResponse {
+  private normalizeListResponse(response: any): GetAllCardsResponse {
     if (!response) {
       return {
         success: false,
@@ -302,7 +353,6 @@ class CardService {
       };
     }
 
-    // Ensure data structure exists
     if (!response.data) {
       response.data = {
         cards: [],
@@ -315,17 +365,14 @@ class CardService {
       };
     }
 
-    // Ensure cards array exists
     if (!response.data.cards) {
       response.data.cards = [];
     }
 
-    // Transform card fields from API format to VirtualCard format
     if (Array.isArray(response.data.cards)) {
       response.data.cards = response.data.cards.map((card: any) => this.transformCard(card));
     }
 
-    // Ensure meta exists
     if (!response.data.meta) {
       response.data.meta = {
         current_page: 1,
@@ -335,13 +382,13 @@ class CardService {
       };
     }
 
-    // Map meta field names if needed (API returns 'page', 'page_size', 'total')
-    const meta = response.data.meta;
-    if (meta.page !== undefined || meta.page_size !== undefined || meta.total !== undefined) {
+    // Normalize meta from API format ({page, page_size, total}) to frontend format
+    const meta = response.data.meta as CardPaginationMeta;
+    if (meta.page !== undefined || meta.total !== undefined) {
       response.data.meta = {
         current_page: meta.page || meta.current_page || 1,
-        total_pages: Math.ceil((meta.total || 0) / (meta.page_size || 10)),
-        total_records: meta.total || 0,
+        total_pages: meta.total ? Math.ceil(meta.total / (meta.page_size || 10)) : meta.total_pages || 0,
+        total_records: meta.total || meta.total_records || 0,
         page_size: meta.page_size || 10,
       };
     }

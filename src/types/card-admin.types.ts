@@ -1,61 +1,87 @@
 /**
  * Card Admin Types
- * Types for admin card management operations
+ * Complete type definitions for admin card management operations
+ * Based on the backend API specification
  */
 
-/**
- * Card admin view with audit information
- */
+import type { CardStatus, CardBrand } from './card.types';
+
+// ═══════════════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════════════
+
+export enum AdminCardStatus {
+  ACTIVE = 'ACTIVE',
+  FROZEN = 'FROZEN',
+  TERMINATED = 'TERMINATED',
+  DISABLED = 'DISABLED',
+}
+
+export enum AuditLogAction {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  FROZEN = 'frozen',
+  UNFROZEN = 'unfrozen',
+  TERMINATED = 'terminated',
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN CARD VIEW
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface CardAdminUser {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
 export interface CardAdminView {
   id: number;
   maplerad_reference: string;
+  user_id: number;
   masked_pan: string;
   name: string;
   type: 'VIRTUAL' | 'PHYSICAL';
-  brand: 'VISA' | 'MASTERCARD';
+  brand: CardBrand;
   currency: string;
-  status: 'ACTIVE' | 'DISABLED' | 'SUSPENDED';
-  balance: number;
+  status: AdminCardStatus;
+  balance: string; // Backend returns string for balance
+  auto_approve: boolean;
+  has_details: boolean;
+  user?: CardAdminUser;
   created_at: string;
   updated_at: string;
-  user: {
-    id: number;
-    email: string;
-    first_name: string;
-    last_name: string;
-  };
-  has_details: boolean;
-  audit_logs: CardAuditLog[];
+  audit_logs?: CardAuditLog[];
 }
 
-/**
- * Card audit log entry
- */
+// ═══════════════════════════════════════════════════════════════════════
+// AUDIT LOG
+// ═══════════════════════════════════════════════════════════════════════
+
 export interface CardAuditLog {
   id: number;
-  action: 'created' | 'updated';
-  fields_modified: string[];
+  action: AuditLogAction;
+  fields_modified: string[] | null;
   admin_name: string;
   admin_email: string;
-  notes: string;
+  notes: string | null;
   ip_address: string;
+  user_agent: string | null;
   created_at: string;
 }
 
-/**
- * Set card details request
- */
+// ═══════════════════════════════════════════════════════════════════════
+// SET CARD DETAILS
+// ═══════════════════════════════════════════════════════════════════════
+
 export interface SetCardDetailsRequest {
-  card_id: number;
-  card_number?: string;
-  expiry?: string;
-  cvv?: string;
-  notes?: string;
+  card_number?: string;  // 16-digit card number
+  expiry?: string;        // MM/YY format
+  cvv?: string;           // 3-digit CVV
+  notes?: string;         // Admin notes for audit log
 }
 
-/**
- * Set card details response
- */
 export interface SetCardDetailsResponse {
   success: boolean;
   message: string;
@@ -68,25 +94,25 @@ export interface SetCardDetailsResponse {
   };
 }
 
-/**
- * Get all cards response
- */
+// ═══════════════════════════════════════════════════════════════════════
+// API RESPONSES
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface AdminCardPagination {
+  current_page: number;
+  per_page: number;
+  total: number;
+  last_page: number;
+}
+
 export interface GetAllCardsAdminResponse {
   success: boolean;
   data: {
     cards: CardAdminView[];
-    pagination: {
-      current_page: number;
-      per_page: number;
-      total: number;
-      last_page: number;
-    };
+    pagination: AdminCardPagination;
   };
 }
 
-/**
- * Get card audit logs response
- */
 export interface GetCardAuditLogsResponse {
   success: boolean;
   data: {
@@ -97,12 +123,24 @@ export interface GetCardAuditLogsResponse {
   };
 }
 
-/**
- * Card list filters
- */
+export interface AdminCardActionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    card_id: number;
+    status: AdminCardStatus;
+    masked_pan: string;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════════════════════════
+
 export interface CardAdminFilters {
-  status?: 'ACTIVE' | 'DISABLED' | 'SUSPENDED';
+  status?: AdminCardStatus;
   user_id?: number;
   has_details?: boolean;
-  search?: string;
+  page?: number;
+  per_page?: number;
 }

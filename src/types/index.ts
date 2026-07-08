@@ -22,7 +22,47 @@ export * from './notification.types';
 export * from './ledger.types';
 
 // Virtual Card types
-export * from './card.types';
+// Note: card.types exports TransactionType and TransactionStatus which conflict with api.types
+// We re-export everything except those to avoid ambiguity
+export {
+  CardBrand,
+  CardStatus,
+  CardType,
+  CardCurrency,
+  TransactionType as CardTransactionType,
+  TransactionStatus as CardTransactionStatus,
+  CARD_CREATION_FEE,
+  MIN_FUND_WITHDRAW_AMOUNT_CENTS,
+  DEFAULT_PAGE_SIZE,
+} from './card.types';
+export type {
+  CardAddress,
+  CardDetail,
+  VirtualCard,
+  CardListResponse,
+  CardPaginationMeta,
+  CreateCardRequest,
+  CreateCardResponse,
+  GetCardResponse,
+  GetAllCardsResponse,
+  CardTransaction,
+  CardTransactionListResponse,
+  GetCardTransactionsResponse,
+  CardTransactionsQuery,
+  FundCardRequest,
+  FundCardResponse,
+  WithdrawCardRequest,
+  WithdrawCardResponse,
+  CardDeclineCharge,
+  DeclineChargesQuery,
+  GetDeclineChargesResponse,
+  CardListQuery,
+  CardValidationError,
+  CardFilters,
+  CreateCardFormData,
+  CardListState,
+  CardActionModalState,
+} from './card.types';
 
 // Customer types
 export * from './customer.types';

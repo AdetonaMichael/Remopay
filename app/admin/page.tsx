@@ -236,27 +236,44 @@ export default function AdminDashboardPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         * { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        /* Smooth snap-scroll for mobile KPI cards */
+        .kpi-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .kpi-scroll {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        @media (max-width: 639px) {
+          .kpi-card-item {
+            min-width: 72vw;
+            scroll-snap-align: start;
+          }
+        }
       `}</style>
 
-      <div className="space-y-6 p-8">
+      <div className="space-y-5 sm:space-y-6 p-4 sm:p-8">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-[#111827]">Admin Dashboard</h1>
-            <p className="text-sm text-[#6b7280] mt-1">{data.period.toUpperCase()} • {data.start_date} — {data.end_date}</p>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#111827]">Admin Dashboard</h1>
+            <p className="text-xs sm:text-sm text-[#6b7280] mt-1 truncate">{data.period.toUpperCase()} • {data.start_date} — {data.end_date}</p>
           </div>
-          <div 
+          <div
             className="flex flex-col gap-3 lg:items-end"
             data-webmcp-form="dashboard-filter"
             role="group"
             aria-label="Dashboard period and date range filter"
           >
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Period filter options">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 hidden-scrollbar" role="group" aria-label="Period filter options">
               {(['day', 'week', 'month', 'year'] as const).map((p) => (
                 <Button
                   key={p}
                   variant={selectedPeriod === p ? 'primary' : 'secondary'}
                   size="sm"
+                  className="whitespace-nowrap shrink-0"
                   onClick={() => {
                     setSelectedPeriod(p);
                     setCustomRangeEnabled(false);
@@ -271,6 +288,7 @@ export default function AdminDashboardPage() {
               <Button
                 variant={customRangeEnabled ? 'primary' : 'secondary'}
                 size="sm"
+                className="whitespace-nowrap shrink-0"
                 onClick={() => setCustomRangeEnabled((value) => !value)}
                 data-webmcp-action="toggle-custom-date-range"
                 aria-pressed={customRangeEnabled}
@@ -278,101 +296,161 @@ export default function AdminDashboardPage() {
               >
                 <span className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4" aria-hidden="true" />
-                  Custom range
+                  <span className="hidden sm:inline">Custom range</span>
+                  <span className="sm:hidden">Range</span>
                 </span>
               </Button>
             </div>
 
             {customRangeEnabled && (
-              <div 
-                className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white p-3"
+              <div
+                className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 rounded-2xl border border-[#e5e7eb] bg-white p-3"
                 data-webmcp-form="custom-date-range"
                 role="group"
                 aria-label="Custom date range selector"
               >
-                <label htmlFor="start-date-input" className="text-sm text-[#6b7280]">From</label>
-                <input
-                  id="start-date-input"
-                  type="date"
-                  value={startDate}
-                  data-webmcp-input="date"
-                  aria-label="Start date for dashboard data"
-                  onChange={(event) => {
-                    const nextValue = event.target.value;
-                    setStartDate(nextValue);
-                    if (!nextValue) return;
-                    if (new Date(nextValue) > new Date(endDate)) {
-                      setEndDate(nextValue);
-                    }
-                  }}
-                  className="rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
-                />
-                <label htmlFor="end-date-input" className="text-sm text-[#6b7280]">To</label>
-                <input
-                  id="end-date-input"
-                  type="date"
-                  value={endDate}
-                  data-webmcp-input="date"
-                  aria-label="End date for dashboard data"
-                  onChange={(event) => {
-                    const nextValue = event.target.value;
-                    setEndDate(nextValue);
-                    if (!nextValue) return;
-                    if (new Date(startDate) > new Date(nextValue)) {
+                <div className="flex items-center gap-2">
+                  <label htmlFor="start-date-input" className="text-xs text-[#6b7280] whitespace-nowrap">From</label>
+                  <input
+                    id="start-date-input"
+                    type="date"
+                    value={startDate}
+                    data-webmcp-input="date"
+                    aria-label="Start date for dashboard data"
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
                       setStartDate(nextValue);
-                    }
-                  }}
-                  className="rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
-                />
+                      if (!nextValue) return;
+                      if (new Date(nextValue) > new Date(endDate)) {
+                        setEndDate(nextValue);
+                      }
+                    }}
+                    className="flex-1 min-w-0 rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="end-date-input" className="text-xs text-[#6b7280] whitespace-nowrap">To</label>
+                  <input
+                    id="end-date-input"
+                    type="date"
+                    value={endDate}
+                    data-webmcp-input="date"
+                    aria-label="End date for dashboard data"
+                    onChange={(event) => {
+                      const nextValue = event.target.value;
+                      setEndDate(nextValue);
+                      if (!nextValue) return;
+                      if (new Date(startDate) > new Date(nextValue)) {
+                        setStartDate(nextValue);
+                      }
+                    }}
+                    className="flex-1 min-w-0 rounded-lg border border-[#d1d5db] px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpiCards.map((kpi) => {
-            const Icon = kpi.icon;
-            return (
-              <Card key={kpi.label} className="p-6 rounded-2xl border border-[#e5e7eb]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-[#6b7280]">{kpi.label}</p>
-                    <p className="text-2xl font-bold text-[#111827] mt-3">{kpi.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-xl ${kpi.color}`}>
-                    <Icon className="w-5 h-5" />
+        {/* KPI Cards - Horizontal scrollable on mobile, grid on desktop */}
+        <div className="relative">
+          {/* Mobile scroll hint */}
+          <div className="flex sm:hidden items-center gap-1.5 mb-2 text-[#6b7280]">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+            <span className="text-[10px] font-medium tracking-wide uppercase">Swipe to explore</span>
+          </div>
+
+          {/* Mobile: horizontal scrollable flex */}
+          <div className="flex sm:hidden kpi-scroll overflow-x-auto gap-3 pb-2 -mx-1 px-1 snap-x snap-mandatory scroll-smooth">
+            {kpiCards.map((kpi) => {
+              const Icon = kpi.icon;
+              return (
+                <div key={kpi.label} className="kpi-card-item rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm shrink-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wide">{kpi.label}</p>
+                      <p className="text-xl font-bold text-[#111827] mt-2.5 truncate">{kpi.value}</p>
+                    </div>
+                    <div className={`p-2.5 rounded-xl ${kpi.color} shrink-0`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
-              </Card>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Desktop: grid layout */}
+          <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {kpiCards.map((kpi) => {
+              const Icon = kpi.icon;
+              return (
+                <Card key={kpi.label} className="p-5 sm:p-6 rounded-2xl border border-[#e5e7eb]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-[11px] sm:text-xs font-semibold text-[#6b7280] uppercase tracking-wide">{kpi.label}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-[#111827] mt-2 sm:mt-3 truncate">{kpi.value}</p>
+                    </div>
+                    <div className={`p-2.5 sm:p-3 rounded-xl ${kpi.color} shrink-0`}>
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* VTU Charts Grid */}
         <AdminDashboardCharts vtuByProduct={data.vtu.by_product_type} vtuByStatus={data.vtu.by_status} walletTransactions={data.wallet.transactions} />
 
         {/* Provider Balances */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-6 rounded-2xl border border-[#e5e7eb]">
-            <h3 className="text-lg font-semibold mb-6">Provider Balances</h3>
-            <div className="space-y-3">
-              <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Paystack</p><p className="font-bold text-lg mt-1">{formatFullCurrency(providerBalances.paystack)}</p></div>
-              <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">VTPass</p><p className="font-bold text-lg mt-1">{formatFullCurrency(providerBalances.vtpass)}</p></div>
-              <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Maplerad</p><p className="font-bold text-lg mt-1">{formatFullCurrency(providerBalances.maplerad)}</p></div>
-              <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Telnyx</p><p className="font-bold text-lg mt-1">{formatUSDCurrency(providerBalances.telnyx)}</p></div>
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <Card className="p-5 sm:p-6 rounded-2xl border border-[#e5e7eb]">
+            <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">Provider Balances</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+              <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Paystack</p>
+                <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#111827]">{formatFullCurrency(providerBalances.paystack)}</p>
+              </div>
+              <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">VTPass</p>
+                <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#111827]">{formatFullCurrency(providerBalances.vtpass)}</p>
+              </div>
+              <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Maplerad</p>
+                <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#111827]">{formatFullCurrency(providerBalances.maplerad)}</p>
+              </div>
+              <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Telnyx</p>
+                <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#111827]">{formatUSDCurrency(providerBalances.telnyx)}</p>
+              </div>
             </div>
           </Card>
         </div>
 
         {/* Summary */}
-        <Card className="p-6 rounded-2xl border border-[#e5e7eb]">
-          <h3 className="text-lg font-semibold mb-6">Reporting Period</h3>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Period</p><p className="font-bold mt-2">{data.period.toUpperCase()}</p></div>
-            <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Start</p><p className="font-bold mt-2">{data.start_date}</p></div>
-            <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">End</p><p className="font-bold mt-2">{data.end_date}</p></div>
-            <div className="bg-[#f8fafc] p-4 rounded-xl"><p className="text-[#6b7280] text-xs">Transactions</p><p className="font-bold mt-2">{data.vtu.summary.total_transactions}</p></div>
+        <Card className="p-5 sm:p-6 rounded-2xl border border-[#e5e7eb]">
+          <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">Reporting Period</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+              <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Period</p>
+              <p className="font-bold text-sm sm:text-base mt-1.5 sm:mt-2 text-[#111827]">{data.period.toUpperCase()}</p>
+            </div>
+            <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+              <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Start</p>
+              <p className="font-bold text-sm sm:text-base mt-1.5 sm:mt-2 text-[#111827]">{data.start_date}</p>
+            </div>
+            <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+              <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">End</p>
+              <p className="font-bold text-sm sm:text-base mt-1.5 sm:mt-2 text-[#111827]">{data.end_date}</p>
+            </div>
+            <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+              <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">Transactions</p>
+              <p className="font-bold text-sm sm:text-base mt-1.5 sm:mt-2 text-[#111827]">{data.vtu.summary.total_transactions}</p>
+            </div>
           </div>
         </Card>
       </div>

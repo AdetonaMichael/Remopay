@@ -1,10 +1,11 @@
 /**
  * Virtual Card Types
  * Complete type definitions for Maplerad virtual card operations
+ * Based on the backend API specification
  */
 
 // ═══════════════════════════════════════════════════════════════════════
-// ENUMS
+// ENUMS & CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════
 
 export enum CardBrand {
@@ -15,6 +16,8 @@ export enum CardBrand {
 export enum CardStatus {
   ACTIVE = 'ACTIVE',
   DISABLED = 'DISABLED',
+  FROZEN = 'FROZEN',
+  TERMINATED = 'TERMINATED',
 }
 
 export enum CardType {
@@ -25,24 +28,80 @@ export enum CardCurrency {
   USD = 'USD',
 }
 
+export enum TransactionType {
+  DEBIT = 'DEBIT',
+  CREDIT = 'CREDIT',
+}
+
+export enum TransactionStatus {
+  SUCCESSFUL = 'SUCCESSFUL',
+  PENDING = 'PENDING',
+  FAILED = 'FAILED',
+  DECLINED = 'DECLINED',
+}
+
+export const CARD_CREATION_FEE = 3.00;
+export const MIN_FUND_WITHDRAW_AMOUNT_CENTS = 100; // $1.00 in cents
+export const DEFAULT_PAGE_SIZE = 10;
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADDRESS TYPE
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface CardAddress {
+  street: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // CARD DATA TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Virtual Card Response from API
- * - Card numbers are always masked (e.g., 4532XXXXXXXX1234)
- * - CVV is always returned as "***" for security
+ * Full card details returned from GET /issuing/{id}
+ */
+export interface CardDetail {
+  id: string;
+  name: string;
+  card_number: string;
+  masked_pan: string;
+  expiry: string;
+  cvv: string;
+  status: CardStatus;
+  type: CardType;
+  issuer: CardBrand;
+  currency: CardCurrency;
+  balance: number;
+  balance_updated_at: string;
+  auto_approve: boolean;
+  address: CardAddress;
+  is_contactless: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Virtual Card Response from API (list view)
  */
 export interface VirtualCard {
   id: string;
   card_number: string;
+  masked_pan?: string;
   cvv: string;
   expiry: string;
   cardholder_name: string;
+  name?: string;
   status: CardStatus;
   brand: CardBrand;
+  issuer?: CardBrand;
   currency: CardCurrency;
+  balance?: number;
+  type?: CardType;
+  auto_approve?: boolean;
+  is_contactless?: boolean;
   created_at: string;
 }
 
@@ -56,12 +115,15 @@ export interface CardListResponse {
 
 /**
  * Pagination Metadata
+ * Backend returns { page, page_size, total }
  */
 export interface CardPaginationMeta {
   current_page: number;
   total_pages: number;
   total_records: number;
   page_size: number;
+  page?: number;      // Raw from API
+  total?: number;     // Raw from API
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -70,7 +132,6 @@ export interface CardPaginationMeta {
 
 /**
  * Create Card Request Payload
- * All fields must match exact values as per backend validation
  */
 export interface CreateCardRequest {
   currency: CardCurrency;
@@ -88,6 +149,20 @@ export interface CreateCardResponse {
   message: string;
   data: {
     card: VirtualCard;
+    local_card_id?: number;
+    transaction_reference?: string;
+    fee_deducted?: number;
+  };
+}
+
+/**
+ * Get Single Card Response
+ */
+export interface GetCardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    card: CardDetail;
   };
 }
 
@@ -101,75 +176,141 @@ export interface GetAllCardsResponse {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// TRANSACTION TYPES
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface CardTransaction {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  fee: number;
+  currency: string;
+  status: TransactionStatus;
+  description: string;
+  created_at: string;
+  authorization_amount: number;
+}
+
+export interface CardTransactionListResponse {
+  transactions: CardTransaction[];
+  meta: CardPaginationMeta;
+}
+
+export interface GetCardTransactionsResponse {
+  success: boolean;
+  message: string;
+  data: CardTransactionListResponse;
+}
+
+export interface CardTransactionsQuery {
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  page_size?: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// FUND / WITHDRAW TYPES
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface FundCardRequest {
+  amount: number; // Amount in cents (minimum 100 = $1.00)
+}
+
+export interface FundCardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    funding: {
+      id: string;
+    };
+  };
+}
+
+export interface WithdrawCardRequest {
+  amount: number; // Amount in cents (minimum 100 = $1.00)
+}
+
+export interface WithdrawCardResponse {
+  success: boolean;
+  message: string;
+  data: {
+    withdrawal: {
+      id: string;
+    };
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DECLINE CHARGES TYPES
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface CardDeclineCharge {
+  created_at: string;
+  card_id: string;
+  reason: string;
+  card_transaction_id: string;
+  fee: number; // In cents
+  channel: 'WALLET' | 'CARD';
+}
+
+export interface DeclineChargesQuery {
+  channel?: 'WALLET' | 'CARD';
+  transaction_id?: string;
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  page_size?: number;
+  search?: string;
+}
+
+export interface GetDeclineChargesResponse {
+  success: boolean;
+  message: string;
+  data: {
+    charges: CardDeclineCharge[];
+    meta: CardPaginationMeta;
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 // FILTER & PAGINATION TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Card List Query Parameters
- */
 export interface CardListQuery {
   page?: number;
   page_size?: number;
   brand?: CardBrand;
   status?: CardStatus;
-  created_at?: string; // YYYY-MM-DD format
+  created_at?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // ERROR RESPONSE TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Validation Error Response
- */
 export interface CardValidationError {
   success: false;
   message: string;
-  errors?: {
-    currency?: string[];
-    type?: string[];
-    auto_approve?: string[];
-    brand?: string[];
-    amount?: string[];
-    page?: string[];
-    page_size?: string[];
-    created_at?: string[];
-  };
-}
-
-/**
- * Profile Incomplete Error Response
- */
-export interface CardProfileError {
-  success: false;
-  message: string;
+  errors?: Record<string, string[]>;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // UI STATE TYPES
 // ═══════════════════════════════════════════════════════════════════════
 
-/**
- * Card List Filter State
- */
 export interface CardFilters {
   brand?: CardBrand;
   status?: CardStatus;
   createdAt?: string;
 }
 
-/**
- * Card Creation Form State
- */
 export interface CreateCardFormData {
   brand: CardBrand;
   autoApprove: boolean;
-  amount: string; // String for form handling, converted to number on submit
+  amount: string;
 }
 
-/**
- * Card List UI State
- */
 export interface CardListState {
   cards: VirtualCard[];
   pagination: CardPaginationMeta;
@@ -177,4 +318,14 @@ export interface CardListState {
   error: string | null;
   filters: CardFilters;
   currentPage: number;
+}
+
+/**
+ * Fund/Withdraw Modal State
+ */
+export interface CardActionModalState {
+  isOpen: boolean;
+  action: 'fund' | 'withdraw' | null;
+  cardId: string | null;
+  cardMaskedPan: string | null;
 }
