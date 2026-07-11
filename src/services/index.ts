@@ -19,5 +19,6 @@ export { advertisementService } from './advertisement.service';
 export { promotionalEmailService } from './promotional-email.service';
 export { usdAccountService } from './usd-account.service';
 export { airtimeToCashService } from './airtime-to-cash.service';
+export { usdWalletService } from './usd-wallet.service';
 export { ledgerService } from './ledger.service';
 export { vtuSubsidyApi } from './vtu-subsidy.service';

@@ -172,11 +172,11 @@ export function PINSetupModal({
                   maxLength={4}
                   inputMode="numeric"
                   disabled={isLoading || !!successMessage}
-                  className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] transition-all ${
+                  className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] text-gray-900 placeholder:text-gray-400 transition-all ${
                     errors.currentPin
                       ? 'border-[#fca5a5] bg-[#fef2f2]'
                       : 'border-[#e5e7eb] focus:border-[#4a5ff7] focus:outline-none'
-                  } disabled:bg-[#f3f4f6]`}
+                  } disabled:bg-[#f3f4f6] disabled:text-gray-500`}
                 />
                 <button
                   type="button"
@@ -210,11 +210,11 @@ export function PINSetupModal({
                 maxLength={4}
                 inputMode="numeric"
                 disabled={isLoading || !!successMessage}
-                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] transition-all ${
+                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] text-gray-900 placeholder:text-gray-400 transition-all ${
                   errors.newPin
                     ? 'border-[#fca5a5] bg-[#fef2f2]'
                     : 'border-[#e5e7eb] focus:border-[#4a5ff7] focus:outline-none'
-                } disabled:bg-[#f3f4f6]`}
+                } disabled:bg-[#f3f4f6] disabled:text-gray-500`}
               />
               <button
                 type="button"
@@ -247,11 +247,11 @@ export function PINSetupModal({
                 maxLength={4}
                 inputMode="numeric"
                 disabled={isLoading || !!successMessage}
-                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] transition-all ${
+                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] text-gray-900 placeholder:text-gray-400 transition-all ${
                   errors.confirmPin
                     ? 'border-[#fca5a5] bg-[#fef2f2]'
                     : 'border-[#e5e7eb] focus:border-[#4a5ff7] focus:outline-none'
-                } disabled:bg-[#f3f4f6]`}
+                } disabled:bg-[#f3f4f6] disabled:text-gray-500`}
               />
               <button
                 type="button"
@@ -282,11 +282,11 @@ export function PINSetupModal({
                 }}
                 placeholder="Enter your password"
                 disabled={isLoading || !!successMessage}
-                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-base transition-all ${
+                className={`w-full rounded-[12px] border-2 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 transition-all ${
                   errors.password
                     ? 'border-[#fca5a5] bg-[#fef2f2]'
                     : 'border-[#e5e7eb] focus:border-[#4a5ff7] focus:outline-none'
-                } disabled:bg-[#f3f4f6]`}
+                } disabled:bg-[#f3f4f6] disabled:text-gray-500`}
               />
               <button
                 type="button"

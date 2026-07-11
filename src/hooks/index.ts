@@ -22,3 +22,4 @@ export { useUsdAccount } from './useUsdAccount';
 export { useAirtimeToCash } from './useAirtimeToCash';
 export { useLedger } from './useLedger';
 export { useVtuRecipients } from './useVtuRecipients';
+export { useUsdWallet } from './useUsdWallet';

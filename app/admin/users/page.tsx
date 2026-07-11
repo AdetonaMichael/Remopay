@@ -103,6 +103,7 @@ export default function AdminUsersPage() {
   const [userDetails, setUserDetails] = useState<AdminUser | null>(null);
   const [userTransactions, setUserTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -302,7 +303,13 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async (page = 1) => {
     try {
-      setLoading(true);
+      if (page === currentPage && users.length > 0) {
+        setLoading(true);
+      } else if (page !== 1 || users.length > 0) {
+        setIsPaginationLoading(true);
+      } else {
+        setLoading(true);
+      }
       const filterParams: any = {
         search: filters.search || undefined,
       };
@@ -341,6 +348,7 @@ export default function AdminUsersPage() {
       showAlert('Failed to fetch users', 'error');
     } finally {
       setLoading(false);
+      setIsPaginationLoading(false);
     }
   };
 
@@ -1224,47 +1232,116 @@ export default function AdminUsersPage() {
       </Card>
 
       {/* ── Pagination ───────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 rounded-[24px] border border-[#e5e7eb] bg-white px-5 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.04)] sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-[#6b7280]">
-          Showing{' '}
-          <span className="font-semibold text-[#111827]">
-            {(currentPage - 1) * 10 + 1}
-          </span>
-          {' - '}
-          <span className="font-semibold text-[#111827]">
-            {Math.min(currentPage * 10, totalUsersCount)}
-          </span>{' '}
-          of{' '}
-          <span className="font-semibold text-[#111827]">{totalUsersCount}</span>{' '}
-          users
-        </div>
+      {totalPages > 1 && (
+        <div className="flex flex-col gap-4 rounded-[24px] border border-[#e5e7eb] bg-white px-6 py-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm font-medium text-[#6b7280]">
+              Showing{' '}
+              <span className="font-black text-[#111827]">
+                {(currentPage - 1) * 10 + 1}
+              </span>{' '}
+              to{' '}
+              <span className="font-black text-[#111827]">
+                {Math.min(currentPage * 10, totalUsersCount)}
+              </span>{' '}
+              of{' '}
+              <span className="font-black text-[#111827]">{totalUsersCount}</span>{' '}
+              users
+            </div>
 
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            className="h-11 rounded-xl border-[#d1d5db] px-4"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft size={16} />
-            Previous
-          </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* First */}
+              <button
+                type="button"
+                disabled={currentPage <= 1 || isPaginationLoading}
+                onClick={() => setCurrentPage(1)}
+                className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+              >
+                First
+              </button>
 
-          <div className="rounded-xl bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-[#111827]">
-            {currentPage} / {totalPages}
+              {/* Prev */}
+              <button
+                type="button"
+                disabled={currentPage <= 1 || isPaginationLoading}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+              >
+                <ChevronLeft size={16} className="text-[#111]" />
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from(
+                  { length: Math.min(totalPages, 5) },
+                  (_, i) => {
+                    let pageNum: number;
+
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (
+                      currentPage >=
+                      totalPages - 2
+                    ) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        disabled={isPaginationLoading}
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black transition-colors ${
+                          pageNum === currentPage
+                            ? 'bg-[#d71927] text-white shadow-lg shadow-[#d71927]/20'
+                            : 'border border-black/10 bg-white text-[#111] hover:bg-[#fff1f2]'
+                        } disabled:cursor-not-allowed disabled:opacity-40`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+
+              {/* Next */}
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || isPaginationLoading}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(prev + 1, totalPages)
+                  )
+                }
+                className="h-10 rounded-lg border border-black/10 bg-white px-3 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+              >
+                <ChevronRight size={16} className="text-[#111]" />
+              </button>
+
+              {/* Last */}
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || isPaginationLoading}
+                onClick={() => setCurrentPage(totalPages)}
+                className="h-10 rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-[#111] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[#fff1f2]"
+              >
+                Last
+              </button>
+            </div>
           </div>
 
-          <Button
-            variant="outline"
-            className="h-11 rounded-xl border-[#d1d5db] px-4"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-            <ChevronRight size={16} />
-          </Button>
+          {isPaginationLoading && (
+            <div className="flex items-center justify-center gap-2 text-sm text-[#6b7280]">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d71927] border-t-transparent" />
+              Loading...
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* ── User Details Modal ───────────────────────────────────────────── */}
       {showDetails && userDetails && (

@@ -1,718 +1,1208 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowRight,
-  CheckCircle2,
   Copy,
   Share2,
-  Loader,
-  AlertCircle,
-  TrendingUp,
+  Check,
   Users,
+  TrendingUp,
   Wallet,
+  Award,
+  Search,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Gift,
+  UserCheck,
+  Target,
+  DollarSign,
+  Loader2,
 } from 'lucide-react';
 
-import { Button } from '@/components/shared/Button';
 import { Card } from '@/components/shared/Card';
-import { Spinner } from '@/components/shared/Spinner';
+import { Button } from '@/components/shared/Button';
 import { useAlert } from '@/hooks/useAlert';
 import { useAuth } from '@/hooks/useAuth';
-import { referralService, ReferralLink, ReferralStats, ReferralMilestone, ReferralProgram } from '@/services/referral.service';
+import { referralService } from '@/services/referral.service';
+import type {
+  ReferralApiResponseData,
+  ReferralFilters,
+  ReferralRecord,
+  ReferralPaginationMeta,
+  ReferralLinkInfo,
+  ReferralStatus,
+} from '@/types/referral.types';
+import {
+  REFERRAL_STATUS_CONFIG,
+  MILESTONE_LABELS,
+} from '@/types/referral.types';
 
-function formatCurrency(amount?: number | null) {
-  if (amount === undefined || amount === null) return '₦0';
+// ==============================
+// Constants
+// ==============================
+
+const REFERRAL_LINK_BASE = 'https://remopay.remonode.com/auth/register?ref=';
+
+// ==============================
+// Utility Functions
+// ==============================
+
+function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('en-NG', {
+function formatDate(dateString: string): string {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleDateString('en-NG', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
 }
 
-function normalizeReferralLink(link: string, code: string) {
-  // Transform the referral link to the correct format
-  // From: http://remopay-nginx/register?ref=CODE
-  // To: https://remopay.remonode.com/auth/register?ref=CODE
-  return `https://remopay.remonode.com/auth/register?ref=${code}`;
+function formatDateTime(dateString: string): string {
+  if (!dateString) return '—';
+  return new Date(dateString).toLocaleDateString('en-NG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-function getStatusBadgeStyle(status: string) {
-  switch (status) {
-    case 'paid':
-      return 'bg-green-500/10 text-green-600';
-    case 'eligible':
-      return 'bg-amber-500/10 text-amber-600';
-    case 'pending':
-    default:
-      return 'bg-gray-500/10 text-gray-600';
+/**
+ * Construct the correct referral link from a referral code
+ */
+function buildReferralLink(code: string): string {
+  return `${REFERRAL_LINK_BASE}${code}`;
+}
+
+// ==============================
+// Sub-Components
+// ==============================
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  valueColor = 'text-gray-900',
+  iconBg = 'bg-gray-100',
+  iconColor = 'text-gray-600',
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  valueColor?: string;
+  iconBg?: string;
+  iconColor?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-gray-500">
+            {label}
+          </p>
+          <p className={`text-2xl font-extrabold tracking-tight ${valueColor}`}>
+            {value}
+          </p>
+        </div>
+        <div className={`rounded-xl ${iconBg} p-3`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: ReferralStatus }) {
+  const config = REFERRAL_STATUS_CONFIG[status];
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${config.color}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${config.dotColor}`} />
+      {config.label}
+    </span>
+  );
+}
+
+function MilestoneProgressBar({ percentage }: { percentage: number }) {
+  const color =
+    percentage === 100
+      ? 'bg-emerald-500'
+      : percentage >= 50
+      ? 'bg-blue-500'
+      : 'bg-amber-500';
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-2 w-full flex-1 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ease-out ${color}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <span className="w-10 text-right text-xs font-bold text-gray-500">
+        {percentage}%
+      </span>
+    </div>
+  );
+}
+
+function MilestoneChecklist({ record }: { record: ReferralRecord }) {
+  const completedCount = MILESTONE_LABELS.filter(
+    (m) => record.milestones[m.key].completed
+  ).length;
+  const totalCount = MILESTONE_LABELS.length;
+
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-gray-500">
+          Milestones ({completedCount}/{totalCount})
+        </p>
+        {record.is_fully_qualified && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
+            <Check className="h-3 w-3" />
+            Complete
+          </span>
+        )}
+      </div>
+      <div className="space-y-2">
+        {MILESTONE_LABELS.map(({ key, label }) => {
+          const milestone = record.milestones[key];
+          return (
+            <div key={key} className="flex items-center gap-2.5">
+              <div
+                className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                  milestone.completed
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-300 bg-white'
+                }`}
+              >
+                {milestone.completed && (
+                  <Check className="h-3 w-3 text-emerald-600" />
+                )}
+              </div>
+              <span
+                className={`text-sm ${
+                  milestone.completed
+                    ? 'font-semibold text-gray-900'
+                    : 'text-gray-400'
+                }`}
+              >
+                {label}
+              </span>
+              {milestone.completed_at && (
+                <span className="ml-auto text-xs text-gray-400">
+                  {formatDate(milestone.completed_at)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PayoutStatus({ record }: { record: ReferralRecord }) {
+  if (record.status === 'paid') {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <div className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+          <Check className="h-4 w-4" />
+          <span>
+            Earned {formatCurrency(record.payout_earned)}
+            {record.payout_paid_at
+              ? ` · Paid ${formatDate(record.payout_paid_at)}`
+              : ''}
+          </span>
+        </div>
+      </div>
+    );
   }
+
+  if (record.status === 'eligible') {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <div className="flex items-center gap-2 text-sm font-bold text-amber-700">
+          <DollarSign className="h-4 w-4" />
+          <span>
+            Ready for Payout — {formatCurrency(record.payout_earned)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-center gap-2 text-sm font-semibold text-gray-600">
+        <Target className="h-4 w-4" />
+        <span>
+          Complete all milestones to earn{' '}
+          <span className="font-bold">₦200</span>
+        </span>
+      </div>
+    </div>
+  );
 }
 
-export default function ReferralPage() {
-  // State management
-  const [referralLinks, setReferralLinks] = useState<ReferralLink[]>([]);
-  const [userReferralLinks, setUserReferralLinks] = useState<ReferralLink[]>([]);
-  const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [milestones, setMilestones] = useState<ReferralMilestone[]>([]);
-  const [programs, setPrograms] = useState<ReferralProgram[]>([]);
+function ReferralRow({ record }: { record: ReferralRecord }) {
+  const [expanded, setExpanded] = useState(false);
 
-  // Loading states
-  const [loadingLinks, setLoadingLinks] = useState(true);
-  const [loadingUserReferrals, setLoadingUserReferrals] = useState(true);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingMilestones, setLoadingMilestones] = useState(true);
-  const [loadingPrograms, setLoadingPrograms] = useState(true);
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white transition-all hover:border-gray-300 hover:shadow-sm">
+      {/* Main Row */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-4 p-4 text-left sm:px-6"
+      >
+        {/* Avatar */}
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#d71927]/10 text-sm font-extrabold text-[#d71927]">
+          {record.referred_user.name
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase()}
+        </div>
 
-  // Error states
-  const [errorLinks, setErrorLinks] = useState<string | null>(null);
-  const [errorUserReferrals, setErrorUserReferrals] = useState<string | null>(null);
-  const [errorStats, setErrorStats] = useState<string | null>(null);
-  const [errorMilestones, setErrorMilestones] = useState<string | null>(null);
-  const [errorPrograms, setErrorPrograms] = useState<string | null>(null);
+        {/* User Info */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-gray-900">
+            {record.referred_user.name}
+          </p>
+          <p className="truncate text-xs text-gray-500">
+            {record.referred_user.email}
+          </p>
+        </div>
 
-  // UI states
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [withdrawalAmount, setWithdrawalAmount] = useState('');
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
+        {/* Program & Date */}
+        <div className="hidden min-w-0 sm:block sm:max-w-[140px]">
+          <p className="truncate text-xs font-semibold text-gray-700">
+            {record.program}
+          </p>
+          <p className="truncate text-xs text-gray-400">
+            {formatDate(record.referred_at)}
+          </p>
+        </div>
 
-  const { user } = useAuth();
-  const { success: showSuccess, error: showError } = useAlert();
+        {/* Progress */}
+        <div className="hidden w-32 md:block">
+          <MilestoneProgressBar percentage={record.progress_percentage} />
+        </div>
 
-  // Fetch all data on mount
-  useEffect(() => {
-    if (user?.id) {
-      fetchAllData();
-    }
-  }, [user?.id]);
+        {/* Status */}
+        <div className="hidden sm:block">
+          <StatusBadge status={record.status} />
+        </div>
 
-  const fetchAllData = async () => {
-    Promise.all([
-      fetchReferralLinks(),
-      fetchUserReferralData(),
-      fetchStats(),
-      fetchMilestones(),
-      fetchPrograms(),
-    ]);
+        {/* Earnings */}
+        <div className="text-right">
+          <p className="text-sm font-extrabold text-gray-900">
+            {record.payout_earned > 0
+              ? formatCurrency(record.payout_earned)
+              : '—'}
+          </p>
+        </div>
+
+        {/* Expand indicator */}
+        <ChevronRight
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${
+            expanded ? 'rotate-90' : ''
+          }`}
+        />
+      </button>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 pb-5 pt-4 sm:px-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Left: Milestone Checklist */}
+            <MilestoneChecklist record={record} />
+
+            {/* Right: Details */}
+            <div className="space-y-4">
+              {/* Contact Info */}
+              <div className="space-y-2">
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-gray-500">
+                  Referred User
+                </p>
+                <div className="space-y-1.5 text-sm">
+                  {record.referred_user.phone && (
+                    <p className="text-gray-600">
+                      <span className="font-semibold text-gray-500">Phone:</span>{' '}
+                      {record.referred_user.phone}
+                    </p>
+                  )}
+                  <p className="text-gray-600">
+                    <span className="font-semibold text-gray-500">Joined:</span>{' '}
+                    {formatDate(record.referred_user.joined_at)}
+                  </p>
+                  <p className="text-gray-600">
+                    <span className="font-semibold text-gray-500">Referred:</span>{' '}
+                    {formatDateTime(record.referred_at)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Referral Code */}
+              <div className="rounded-xl bg-gray-50 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500">
+                      Referral Code
+                    </p>
+                    <p className="font-mono text-sm font-bold text-gray-900">
+                      {record.referral_code}
+                    </p>
+                  </div>
+                  <StatusBadge status={record.status} />
+                </div>
+              </div>
+
+              {/* Payout Info */}
+              <PayoutStatus record={record} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReferralFiltersBar({
+  filters,
+  onChange,
+  total,
+}: {
+  filters: ReferralFilters;
+  onChange: (filters: ReferralFilters) => void;
+  total: number;
+}) {
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+
+  // Debounce search
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      onChange({ ...filtersRef.current, search: value || undefined, page: 1 });
+    }, 400);
   };
 
-  const fetchReferralLinks = async () => {
+  const clearFilters = () => {
+    setSearchInput('');
+    onChange({ page: 1, per_page: 15 });
+  };
+
+  const hasActiveFilters = !!(
+    filters.status ||
+    filters.search ||
+    filters.date_from ||
+    filters.date_to
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Search & Filters Row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, email, or phone..."
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/10"
+          />
+          {searchInput && (
+            <button
+              onClick={() => {
+                setSearchInput('');
+                onChange({ ...filtersRef.current, search: undefined, page: 1 });
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Status Filter */}
+        <select
+          value={filters.status || ''}
+          onChange={(e) =>
+            onChange({
+              ...filtersRef.current,
+              status: (e.target.value as ReferralStatus) || undefined,
+              page: 1,
+            })
+          }
+          className="h-10 rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-semibold text-gray-700 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/10"
+        >
+          <option value="">All Statuses</option>
+          <option value="pending">In Progress</option>
+          <option value="eligible">Ready for Payout</option>
+          <option value="paid">Paid</option>
+        </select>
+
+        {/* Date From */}
+        <div className="relative">
+          <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="date"
+            value={filters.date_from || ''}
+            onChange={(e) =>
+              onChange({
+                ...filtersRef.current,
+                date_from: e.target.value || undefined,
+                page: 1,
+              })
+            }
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3.5 text-sm font-medium text-gray-700 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/10"
+          />
+        </div>
+
+        {/* Date To */}
+        <div className="relative">
+          <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="date"
+            value={filters.date_to || ''}
+            onChange={(e) =>
+              onChange({
+                ...filtersRef.current,
+                date_to: e.target.value || undefined,
+                page: 1,
+              })
+            }
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-3.5 text-sm font-medium text-gray-700 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/10"
+          />
+        </div>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-sm font-bold text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+          >
+            <X className="h-4 w-4" />
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Results Count */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          <span className="font-semibold text-gray-700">{total}</span>{' '}
+          {total === 1 ? 'referral' : 'referrals'}
+          {hasActiveFilters && ' found'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ReferralPagination({
+  meta,
+  onPageChange,
+}: {
+  meta: ReferralPaginationMeta;
+  onPageChange: (page: number) => void;
+}) {
+  const pages = useMemo(() => {
+    const delta = 2;
+    const range: (number | 'ellipsis')[] = [];
+    const left = Math.max(2, meta.current_page - delta);
+    const right = Math.min(meta.last_page - 1, meta.current_page + delta);
+
+    range.push(1);
+    if (left > 2) range.push('ellipsis');
+    for (let i = left; i <= right; i++) range.push(i);
+    if (right < meta.last_page - 1) range.push('ellipsis');
+    if (meta.last_page > 1) range.push(meta.last_page);
+
+    return range;
+  }, [meta.current_page, meta.last_page]);
+
+  if (meta.last_page <= 1) return null;
+
+  return (
+    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+      <p className="text-sm text-gray-500">
+        Showing{' '}
+        <span className="font-semibold text-gray-700">{meta.from}</span>–
+        <span className="font-semibold text-gray-700">{meta.to}</span> of{' '}
+        <span className="font-semibold text-gray-700">{meta.total}</span>
+      </p>
+
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(meta.current_page - 1)}
+          disabled={meta.current_page <= 1}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {pages.map((page, idx) =>
+          page === 'ellipsis' ? (
+            <span
+              key={`ellipsis-${idx}`}
+              className="flex h-9 w-9 items-center justify-center text-sm text-gray-400"
+            >
+              ...
+            </span>
+          ) : (
+            <button
+              key={page}
+              onClick={() => onPageChange(page as number)}
+              className={`flex h-9 min-w-[36px] items-center justify-center rounded-xl px-2 text-sm font-bold transition ${
+                page === meta.current_page
+                  ? 'bg-[#d71927] text-white shadow-sm shadow-red-200'
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              {page}
+            </button>
+          )
+        )}
+
+        <button
+          onClick={() => onPageChange(meta.current_page + 1)}
+          disabled={meta.current_page >= meta.last_page}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReferralLinkCard({
+  link,
+  constructedLink,
+}: {
+  link: ReferralLinkInfo;
+  constructedLink: string;
+}) {
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const { success: showSuccess } = useAlert();
+
+  const handleCopyLink = async () => {
     try {
-      setLoadingLinks(true);
-      setErrorLinks(null);
-      const links = await referralService.getMyReferralLinks();
-      setReferralLinks(links);
-    } catch (error: any) {
-      setErrorLinks(error.message || 'Failed to load referral links');
-    } finally {
-      setLoadingLinks(false);
+      await navigator.clipboard.writeText(constructedLink);
+      setLinkCopied(true);
+      showSuccess('Referral link copied!');
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      showSuccess('Referral link copied!');
     }
   };
 
-  const fetchUserReferralData = async () => {
+  const handleCopyCode = async () => {
     try {
-      setLoadingUserReferrals(true);
-      setErrorUserReferrals(null);
-      if (!user?.id) return;
-      const data = await referralService.getUserReferralData(user.id);
-      setUserReferralLinks(data.referralLinks || []);
-    } catch (error: any) {
-      console.error('[ReferralPage] Error fetching user referral data:', error);
-      setErrorUserReferrals(error.message || 'Failed to load your referral data');
-    } finally {
-      setLoadingUserReferrals(false);
+      await navigator.clipboard.writeText(link.code);
+      setCodeCopied(true);
+      showSuccess('Referral code copied!');
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch {
+      showSuccess('Referral code copied!');
     }
   };
 
-  const fetchStats = async () => {
-    try {
-      setLoadingStats(true);
-      setErrorStats(null);
-      const data = await referralService.getStats();
-      setStats(data);
-    } catch (error: any) {
-      setErrorStats(error.message || 'Failed to load statistics');
-    } finally {
-      setLoadingStats(false);
-    }
-  };
-
-  const fetchMilestones = async () => {
-    try {
-      setLoadingMilestones(true);
-      setErrorMilestones(null);
-
-      // Fetch actual milestone data from backend
-      const milestonesData = await referralService.getMilestones();
-      
-      console.log('[ReferralPage] Fetched milestones from backend:', milestonesData);
-      console.log(`[ReferralPage] Total referrals: ${milestonesData.length}`);
-
-      // Use backend data directly - no transformation needed
-      setMilestones(milestonesData);
-    } catch (error: any) {
-      console.error('[ReferralPage] Error fetching milestones:', error);
-      setErrorMilestones(error.message || 'Failed to load referrals');
-    } finally {
-      setLoadingMilestones(false);
-    }
-  };
-
-  const fetchPrograms = async () => {
-    try {
-      setLoadingPrograms(true);
-      setErrorPrograms(null);
-      const data = await referralService.getPrograms();
-      setPrograms(data);
-    } catch (error: any) {
-      setErrorPrograms(error.message || 'Failed to load programs');
-    } finally {
-      setLoadingPrograms(false);
-    }
-  };
-
-  const copyToClipboard = async (text: string, code: string) => {
-    const success = await referralService.copyToClipboard(text);
-    if (success) {
-      setCopiedCode(code);
-      showSuccess('Copied to clipboard!');
-      setTimeout(() => setCopiedCode(null), 2000);
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Join me on Remopay`,
+        text: `Use my referral code ${link.code} to sign up and earn rewards!`,
+        url: constructedLink,
+      });
     } else {
-      showError('Failed to copy. Please try again.');
-    }
-  };
-
-  const shareLink = async (link: string, code: string) => {
-    try {
-      await referralService.shareReferralLink(link, code);
-      showSuccess('Shared successfully!');
-    } catch (error) {
-      showError('Failed to share. Copied to clipboard instead.');
-      await referralService.copyToClipboard(link);
-    }
-  };
-
-  const handleWithdrawal = async () => {
-    const amount = parseFloat(withdrawalAmount);
-
-    if (!amount || amount < 100) {
-      showError('Minimum withdrawal is ₦100');
-      return;
-    }
-
-    if (stats && amount > stats.available_balance) {
-      showError('Insufficient balance');
-      return;
-    }
-
-    try {
-      setIsWithdrawing(true);
-      await referralService.requestWithdrawal(amount);
-      showSuccess('Withdrawal request submitted!');
-      setWithdrawalAmount('');
-      // Refresh stats
-      await fetchStats();
-    } catch (error: any) {
-      showError(error.message || 'Withdrawal failed');
-    } finally {
-      setIsWithdrawing(false);
+      handleCopyLink();
     }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section - Referral Links */}
-      <section className="relative overflow-hidden rounded-[32px] border border-black/5 bg-[#100303] px-6 py-8 shadow-[0_20px_70px_rgba(16,3,3,0.16)] sm:px-8 sm:py-10">
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#d71927]/25 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-44 w-44 rounded-full bg-orange-500/10 blur-3xl" />
-
-        <div className="relative z-10 space-y-8">
-          <div>
-            <h1 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-white sm:text-4xl">
-              Earn rewards by inviting friends to Remopay.
-            </h1>
-
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/60 sm:text-base">
-              Share your unique referral link and earn ₦200 for every friend who completes all signup milestones.
-            </p>
+    <div className="rounded-2xl border border-gray-200 bg-white p-4 transition-all hover:shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-gray-900">
+              {link.program}
+            </span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+              {link.total_referred}{' '}
+              {link.total_referred === 1 ? 'referral' : 'referrals'}
+            </span>
+            {link.qualified_referred > 0 && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                {link.qualified_referred} qualified
+              </span>
+            )}
           </div>
 
-          {/* Loading State */}
-          {loadingLinks && (
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          )}
+          {/* Code row with separate copy button */}
+          <div className="flex items-center gap-2">
+            <code className="rounded-lg bg-gray-50 px-2.5 py-1 font-mono text-sm font-bold text-[#d71927]">
+              {link.code}
+            </code>
+            <button
+              onClick={handleCopyCode}
+              className="flex h-7 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-500 transition hover:bg-gray-50 hover:text-[#d71927]"
+              title="Copy referral code"
+            >
+              {codeCopied ? (
+                <Check className="h-3 w-3 text-emerald-500" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+              {codeCopied ? 'Copied' : 'Copy Code'}
+            </button>
+            <span className="hidden text-xs text-gray-400 sm:inline">
+              Created {formatDate(link.created_at)}
+            </span>
+          </div>
 
-          {/* Error State */}
-          {errorLinks && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-              <p className="text-sm text-red-400 flex items-center gap-2">
-                <AlertCircle size={16} />
-                {errorLinks}
-              </p>
-            </div>
-          )}
-
-          {/* Referral Links */}
-          {!loadingLinks && referralLinks.length > 0 && (
-            <div className="space-y-4">
-              {referralLinks.map((link) => (
-                <div key={link.code} className="rounded-[24px] border border-white/10 bg-white/[0.06] p-4 backdrop-blur">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40 mb-3">
-                    {link.program}
-                  </p>
-
-                  <div className="space-y-3">
-                    {/* Link Display */}
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-                      <div className="min-w-0 flex-1 break-all rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm font-semibold text-white/90">
-                        {normalizeReferralLink(link.link, link.code)}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => copyToClipboard(normalizeReferralLink(link.link, link.code), link.code)}
-                          className="h-10 rounded-xl bg-[#d71927] px-4 font-black text-white shadow-lg shadow-[#d71927]/20 hover:bg-[#b91521]"
-                        >
-                          <Copy size={14} />
-                          {copiedCode === link.code ? 'Copied!' : 'Copy'}
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => shareLink(normalizeReferralLink(link.link, link.code), link.code)}
-                          className="h-10 rounded-xl bg-white/10 px-4 font-black text-white border border-white/20 hover:bg-white/20"
-                        >
-                          <Share2 size={14} />
-                          Share
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Code Display */}
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-white/40">Code:</p>
-                      <div className="flex-1 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-2xl font-black tracking-wide text-[#ff6b76]">
-                        {link.code}
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => copyToClipboard(link.code, `code-${link.code}`)}
-                        className="h-10 rounded-xl bg-white/10 px-4 font-black text-white border border-white/20 hover:bg-white/20"
-                      >
-                        <Copy size={14} />
-                        {copiedCode === `code-${link.code}` ? 'Copied!' : 'Copy'}
-                      </Button>
-                    </div>
-
-                    {/* Created Date */}
-                    <p className="text-xs text-white/40">
-                      Created: {formatDate(link.created_at)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {!loadingLinks && referralLinks.length === 0 && !errorLinks && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-              <p className="text-sm text-amber-200 flex items-center gap-2">
-                <AlertCircle size={16} />
-                No referral links found. Create one to get started.
-              </p>
-            </div>
-          )}
+          <p className="truncate text-xs text-gray-400">{constructedLink}</p>
         </div>
-      </section>
 
-      {/* Your Referrals by Link Section */}
-      <section className="rounded-[32px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)] sm:p-8">
-        <h2 className="text-2xl font-black tracking-tight text-[#111]">Your Referral Links</h2>
-        <p className="mt-1 text-sm font-medium text-black/50">View referrals by each of your links</p>
+        <div className="flex flex-shrink-0 gap-2">
+          <button
+            onClick={handleCopyLink}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-[#d71927]"
+            title="Copy referral link"
+          >
+            {linkCopied ? (
+              <Check className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-[#d71927]"
+            title="Share referral link"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {loadingUserReferrals ? (
-          <div className="flex justify-center py-8">
-            <Spinner />
-          </div>
-        ) : errorUserReferrals ? (
-          <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-            <p className="text-sm text-red-600 flex items-center gap-2">
-              <AlertCircle size={16} />
-              {errorUserReferrals}
-            </p>
-          </div>
-        ) : userReferralLinks.length > 0 ? (
-          <div className="mt-6 space-y-4">
-            {userReferralLinks.map((link) => {
-              const referralCount = link.referrals?.length || 0;
-              return (
-                <div key={link.code} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-black text-[#111] text-lg">{link.program}</h3>
-                        <span className="inline-block rounded-full bg-[#d71927]/10 px-3 py-1 text-xs font-black text-[#d71927]">
-                          {referralCount} {referralCount === 1 ? 'referral' : 'referrals'}
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-black/60 font-mono">{link.code}</p>
-                      <p className="text-xs text-black/40 mt-2">Created: {formatDate(link.created_at)}</p>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <div className="rounded-2xl bg-[#d71927]/10 p-4">
-                        <Users className="h-6 w-6 text-[#d71927]" />
-                      </div>
-                    </div>
-                  </div>
+// ==============================
+// Main Page Component
+// ==============================
 
-                  {/* Referrals List */}
-                  {link.referrals && link.referrals.length > 0 && (
-                    <div className="mt-4 border-t border-black/5 pt-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-black/40 mb-3">
-                        Referred Users
-                      </p>
-                      <div className="space-y-2">
-                        {link.referrals.map((referral) => (
-                          <div key={referral.id} className="flex items-center justify-between rounded-lg bg-white p-3 border border-black/5">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-black/80 truncate">{referral.name}</p>
-                              <p className="text-xs text-black/50 truncate">{referral.email}</p>
-                            </div>
-                            <p className="text-xs text-black/40 ml-3">{formatDate(referral.created_at)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+const INITIAL_FILTERS: ReferralFilters = {
+  page: 1,
+  per_page: 15,
+};
+
+export default function ReferralPage() {
+  const { user } = useAuth();
+  const { success: showSuccess, error: showError } = useAlert();
+
+  // Data state
+  const [data, setData] = useState<ReferralApiResponseData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filters state
+  const [filters, setFilters] = useState<ReferralFilters>(INITIAL_FILTERS);
+
+  // Copy state for main referral link
+  const [mainLinkCopied, setMainLinkCopied] = useState(false);
+
+  // Construct the main referral link from user's first referral code
+  const mainReferralLink = useMemo(() => {
+    if (data?.authReferralLink) {
+      // If backend provides authReferralLink, extract the code from it
+      // and construct the proper URL
+      const match = data.authReferralLink.match(/ref=([A-Za-z0-9]+)/);
+      const code = match?.[1];
+      if (code) return buildReferralLink(code);
+    }
+    // Fallback: use first referral link's code
+    if (data?.referral_links?.[0]?.code) {
+      return buildReferralLink(data.referral_links[0].code);
+    }
+    return null;
+  }, [data?.authReferralLink, data?.referral_links]);
+
+  // Fetch referrals
+  const fetchReferrals = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await referralService.fetchMyReferrals(filters, user.id);
+      setData(result);
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Failed to load referrals';
+      setError(errorMsg);
+      showError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, filters, showError]);
+
+  // Initial fetch and refetch on filter change
+  useEffect(() => {
+    fetchReferrals();
+  }, [fetchReferrals]);
+
+  // Handle filter changes
+  const handleFilterChange = useCallback((newFilters: ReferralFilters) => {
+    setFilters(newFilters);
+  }, []);
+
+  // Handle page changes
+  const handlePageChange = useCallback((page: number) => {
+    setFilters((prev) => ({ ...prev, page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Copy main referral link
+  const handleCopyMainLink = async () => {
+    if (!mainReferralLink) return;
+    try {
+      await navigator.clipboard.writeText(mainReferralLink);
+      setMainLinkCopied(true);
+      showSuccess('Referral link copied!');
+      setTimeout(() => setMainLinkCopied(false), 2000);
+    } catch {
+      showSuccess('Referral link copied!');
+    }
+  };
+
+  // Compute stat cards
+  const statsCards = useMemo(() => {
+    if (!data?.stats) return [];
+    const s = data.stats;
+    return [
+      {
+        icon: Users,
+        label: 'Total Referrals',
+        value: s.total_referrals.toLocaleString(),
+        valueColor: 'text-gray-900',
+        iconBg: 'bg-[#d71927]/10',
+        iconColor: 'text-[#d71927]',
+      },
+      {
+        icon: UserCheck,
+        label: 'Fully Qualified',
+        value: s.fully_qualified_referrals.toLocaleString(),
+        valueColor: 'text-emerald-700',
+        iconBg: 'bg-emerald-50',
+        iconColor: 'text-emerald-600',
+      },
+      {
+        icon: TrendingUp,
+        label: 'Total Earnings',
+        value: formatCurrency(s.total_earnings),
+        valueColor: 'text-[#d71927]',
+        iconBg: 'bg-[#d71927]/10',
+        iconColor: 'text-[#d71927]',
+      },
+      {
+        icon: Wallet,
+        label: 'Available Balance',
+        value: formatCurrency(s.available_balance),
+        valueColor: 'text-emerald-700',
+        iconBg: 'bg-emerald-50',
+        iconColor: 'text-emerald-600',
+      },
+    ];
+  }, [data?.stats]);
+
+  // ==============================
+  // Loading State
+  // ==============================
+  if (loading && !data) {
+    return (
+      <div className="space-y-8">
+        {/* Skeleton Header */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-64 rounded-lg bg-gray-200" />
+            <div className="h-4 w-96 rounded-lg bg-gray-100" />
+            <div className="h-12 w-full rounded-xl bg-gray-100" />
           </div>
-        ) : (
-          <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-            <p className="text-sm text-amber-600">No referral data available yet. Share your referral links to get started.</p>
-          </div>
-        )}
-      </section>
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {loadingStats ? (
-          <div className="col-span-full flex justify-center py-8">
-            <Spinner />
-          </div>
-        ) : errorStats ? (
-          <div className="col-span-full rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-            <p className="text-sm text-red-400 flex items-center gap-2">
-              <AlertCircle size={16} />
-              {errorStats}
-            </p>
-          </div>
-        ) : stats ? (
-          <>
-            <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-black/40">Total Referrals</p>
-                  <p className="mt-3 text-3xl font-black text-[#111]">{stats.total_referrals}</p>
-                </div>
-                <div className="rounded-2xl bg-[#d71927]/10 p-3">
-                  <Users className="h-5 w-5 text-[#d71927]" />
-                </div>
+        </div>
+
+        {/* Skeleton Stats */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-gray-200 bg-white p-5"
+            >
+              <div className="space-y-3">
+                <div className="h-3 w-20 rounded bg-gray-200" />
+                <div className="h-7 w-28 rounded-lg bg-gray-100" />
               </div>
-            </Card>
+            </div>
+          ))}
+        </div>
 
-            <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-black/40">Active Referrals</p>
-                  <p className="mt-3 text-3xl font-black text-[#111]">{stats.active_referrals}</p>
+        {/* Skeleton Table */}
+        <div className="animate-pulse space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-gray-200 bg-white p-5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-gray-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-40 rounded bg-gray-200" />
+                  <div className="h-3 w-56 rounded bg-gray-100" />
                 </div>
-                <div className="rounded-2xl bg-green-500/10 p-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
+                <div className="h-3 w-20 rounded bg-gray-100" />
               </div>
-            </Card>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-            <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-black/40">Total Earnings</p>
-                  <p className="mt-3 text-3xl font-black text-[#d71927]">{formatCurrency(stats.total_earnings)}</p>
-                </div>
-                <div className="rounded-2xl bg-[#d71927]/10 p-3">
-                  <TrendingUp className="h-5 w-5 text-[#d71927]" />
-                </div>
+  // ==============================
+  // Error State
+  // ==============================
+  if (error && !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+            <TrendingUp className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-extrabold text-red-900">
+            Failed to load referrals
+          </h2>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
+          <Button
+            onClick={fetchReferrals}
+            className="mt-6 rounded-xl bg-[#d71927] px-6 font-bold text-white hover:bg-[#b81420]"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==============================
+  // Empty State (no referrals at all)
+  // ==============================
+  const hasNoReferrals = data && data.referrals.data.length === 0 && !filters.status && !filters.search && !filters.date_from && !filters.date_to;
+
+  if (hasNoReferrals) {
+    return (
+      <div className="space-y-8">
+        {/* Hero / Share Link */}
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+          <div className="p-6 sm:p-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#d71927]/10">
+                <Gift className="h-6 w-6 text-[#d71927]" />
               </div>
-            </Card>
-
-            <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-black/40">Available Balance</p>
-                  <p className="mt-3 text-3xl font-black text-green-600">{formatCurrency(stats.available_balance)}</p>
-                </div>
-                <div className="rounded-2xl bg-green-500/10 p-3">
-                  <Wallet className="h-5 w-5 text-green-500" />
-                </div>
-              </div>
-            </Card>
-          </>
-        ) : null}
-      </section>
-
-      {/* Referral Programs Section */}
-      <section>
-        <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-          <h2 className="text-2xl font-black tracking-tight text-[#111]">Available Programs</h2>
-          <p className="mt-1 text-sm font-medium text-black/50">Earn rewards from multiple referral programs</p>
-
-          {loadingPrograms ? (
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          ) : errorPrograms ? (
-            <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-              <p className="text-sm text-red-600 flex items-center gap-2">
-                <AlertCircle size={16} />
-                {errorPrograms}
-              </p>
-            </div>
-          ) : programs.length > 0 ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {programs.map((program) => (
-                <div key={program.id} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5">
-                  <h3 className="font-black text-[#111]">{program.name}</h3>
-                  <p className="mt-2 text-sm text-black/60">
-                    Duration: {program.lifetime_minutes} minutes ({Math.round(program.lifetime_minutes / 1440)} days)
-                  </p>
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className="text-sm font-bold text-black/40">Earn ₦200 per referral</p>
-                    <ArrowRight className="h-4 w-4 text-[#d71927]" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-              <p className="text-sm text-amber-600">No programs available at the moment.</p>
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Milestones Section */}
-      <section>
-        <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-          <h2 className="text-2xl font-black tracking-tight text-[#111]">Your Referrals</h2>
-          <p className="mt-1 text-sm font-medium text-black/50">Track milestones and earnings from referred users</p>
-
-          {loadingMilestones ? (
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          ) : errorMilestones ? (
-            <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-              <p className="text-sm text-red-600 flex items-center gap-2">
-                <AlertCircle size={16} />
-                {errorMilestones}
-              </p>
-            </div>
-          ) : milestones.length > 0 ? (
-            <div className="mt-6 space-y-4">
-              <div className="mb-4 rounded-xl border border-green-500/20 bg-green-500/5 p-3">
-                <p className="text-xs text-green-600">
-                  ✓ Found {milestones.length} referral(s)
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+                  Refer & Earn
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Invite friends and earn ₦200 per referral
                 </p>
               </div>
-              {milestones.map((milestone) => (
-                <div key={milestone.milestone_id} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-black text-[#111]">{milestone.referred_user.name}</h3>
-                      <p className="text-sm text-black/60">{milestone.referred_user.email}</p>
-                      <p className="text-xs text-black/40 mt-1">{milestone.program} • Code: {milestone.referral_code}</p>
-                    </div>
-                    <div className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wide ${getStatusBadgeStyle(milestone.status)}`}>
-                      {milestone.status}
-                    </div>
+            </div>
+            {mainReferralLink && (
+              <div className="mt-6">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-gray-500">
+                  Your Referral Link
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 truncate rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm text-gray-700">
+                    {mainReferralLink}
                   </div>
-
-                  {/* Progress Bar */}
-                  <div className="mt-4">
-                    <div className="mb-2 flex items-center justify-between text-xs">
-                      <span className="font-bold text-black/60">Progress</span>
-                      <span className="font-black text-[#111]">{milestone.progress_percentage}%</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-black/10">
-                      <div
-                        className="h-full rounded-full bg-[#d71927]"
-                        style={{ width: `${milestone.progress_percentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Milestones Checklist */}
-                  <div className="mt-4 space-y-2">
-                    {Object.entries({
-                      'Email Verified': milestone.milestones.email_verified,
-                      'Phone Verified': milestone.milestones.phone_verified,
-                      'Wallet Funded ₦100': milestone.milestones.wallet_funded_100,
-                      'First Transaction': milestone.milestones.first_transaction,
-                    }).map(([label, m]) => (
-                      <div key={label} className="flex items-center gap-2 text-sm">
-                        <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${
-                          m.completed
-                            ? 'border-green-500 bg-green-500/10'
-                            : 'border-black/20 bg-transparent'
-                        }`}>
-                          {m.completed && <CheckCircle2 size={14} className="text-green-500" />}
-                        </div>
-                        <span className={m.completed ? 'text-black/80 font-bold' : 'text-black/50'}>
-                          {label}
-                        </span>
-                        {m.completed_at && (
-                          <span className="ml-auto text-xs text-black/40">
-                            {formatDate(m.completed_at)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Payout Info */}
-                  {milestone.is_fully_qualified && (
-                    <div className={`mt-4 rounded-xl border p-3 ${
-                      milestone.status === 'paid'
-                        ? 'border-green-500/20 bg-green-500/10'
-                        : milestone.status === 'eligible'
-                        ? 'border-amber-500/20 bg-amber-500/10'
-                        : 'border-gray-500/20 bg-gray-500/10'
-                    }`}>
-                      <p className={`text-sm font-black ${
-                        milestone.status === 'paid'
-                          ? 'text-green-600'
-                          : milestone.status === 'eligible'
-                          ? 'text-amber-600'
-                          : 'text-gray-600'
-                      }`}>
-                        {milestone.status === 'paid' ? (
-                          <>✓ Earned ₦{milestone.payout_earned.toFixed(2)} - {milestone.payout_paid_at ? `Paid on ${formatDate(milestone.payout_paid_at)}` : 'Processing'}</>
-                        ) : milestone.status === 'eligible' ? (
-                          <>⏳ Ready for Payout - ₦{milestone.payout_earned.toFixed(2)}</>
-                        ) : (
-                          <>🎯 Complete all milestones to earn ₦200</>
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Incomplete Referral Info */}
-                  {!milestone.is_fully_qualified && (
-                    <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/10 p-3">
-                      <p className="text-sm font-black text-blue-600 mb-2">⏳ In Progress ({milestone.progress_percentage}%)</p>
-                      <p className="text-xs text-blue-600">Waiting for remaining milestones to be completed. You'll earn ₦200 once all 4 are done.</p>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleCopyMainLink}
+                    className="flex h-12 items-center gap-2 rounded-xl bg-[#d71927] px-5 font-bold text-white shadow-lg shadow-[#d71927]/20 transition hover:bg-[#b81420]"
+                  >
+                    {mainLinkCopied ? (
+                      <>
+                        <Check className="h-4 w-4" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" /> Copy
+                      </>
+                    )}
+                  </button>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
-              <p className="text-sm text-amber-600">No referrals yet. Share your link to get started!</p>
-            </div>
-          )}
-        </Card>
-      </section>
-
-      {/* Withdrawal Section */}
-      {stats && stats.available_balance > 0 && (
-        <section>
-          <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-            <h2 className="text-2xl font-black tracking-tight text-[#111]">Withdraw Earnings</h2>
-            <p className="mt-1 text-sm font-medium text-black/50">
-              Available Balance: <span className="font-black text-[#d71927]">{formatCurrency(stats.available_balance)}</span>
-            </p>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="text-sm font-black uppercase tracking-wide text-black/60">Amount (₦)</label>
-                <input
-                  type="number"
-                  value={withdrawalAmount}
-                  onChange={(e) => setWithdrawalAmount(e.target.value)}
-                  placeholder="Enter amount (minimum ₦100)"
-                  className="mt-2 w-full rounded-2xl border border-black/10 bg-[#f8f8f8] px-4 py-3 text-[#111] placeholder-black/40 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/20"
-                  min="100"
-                  max={stats.available_balance}
-                />
-                <p className="mt-2 text-xs text-black/50">Minimum: ₦100 | Maximum: {formatCurrency(stats.available_balance)}</p>
               </div>
+            )}
+          </div>
+        </div>
 
-              <Button
-                onClick={handleWithdrawal}
-                disabled={isWithdrawing || !withdrawalAmount}
-                className="h-11 w-full rounded-xl bg-[#d71927] font-black text-white hover:bg-[#b91521] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isWithdrawing ? (
-                  <span className="flex items-center gap-2">
-                    <Loader className="h-4 w-4 animate-spin" />
-                    Processing...
-                  </span>
-                ) : (
-                  'Request Withdrawal'
-                )}
-              </Button>
-            </div>
-          </Card>
-        </section>
-      )}
+        {/* Stats */}
+        {data.stats && (
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {statsCards.map((card, i) => (
+              <StatCard key={i} {...card} />
+            ))}
+          </div>
+        )}
 
-      {/* How It Works Section */}
-      <section>
-        <Card className="rounded-[28px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-          <h2 className="text-2xl font-black tracking-tight text-[#111]">How It Works</h2>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
+        {/* Empty State */}
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white py-16">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gray-50">
+            <Users className="h-10 w-10 text-gray-300" />
+          </div>
+          <h3 className="text-xl font-extrabold text-gray-900">
+            No referrals yet
+          </h3>
+          <p className="mt-2 max-w-sm text-center text-sm text-gray-500">
+            Share your referral link with friends and family. You'll earn ₦200
+            for every friend who completes all milestones.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              {
-                step: '1',
-                title: 'Share Your Link',
-                description: 'Copy and share your unique referral link',
-              },
-              {
-                step: '2',
-                title: 'User Registers',
-                description: 'They sign up using your referral link',
-              },
-              {
-                step: '3',
-                title: 'Complete Milestones',
-                description: 'They verify email, phone, fund wallet, and transact',
-              },
-              {
-                step: '4',
-                title: 'Earn ₦200',
-                description: 'You get ₦200 once all milestones are completed',
-              },
+              { step: '1', title: 'Share Your Link' },
+              { step: '2', title: 'They Sign Up' },
+              { step: '3', title: 'Complete Milestones' },
+              { step: '4', title: 'You Earn ₦200' },
             ].map((item) => (
-              <div key={item.step} className="rounded-[24px] border border-black/5 bg-[#f8f8f8] p-5 text-center">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#d71927] text-lg font-black text-white shadow-lg shadow-[#d71927]/20">
+              <div
+                key={item.step}
+                className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center"
+              >
+                <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#d71927] text-xs font-extrabold text-white">
                   {item.step}
                 </div>
-                <h3 className="mt-4 font-black text-[#111]">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-black/60">{item.description}</p>
+                <p className="text-sm font-bold text-gray-900">{item.title}</p>
               </div>
             ))}
           </div>
-        </Card>
-      </section>
+        </div>
+      </div>
+    );
+  }
+
+  // ==============================
+  // Main Data View
+  // ==============================
+  return (
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white shadow-sm">
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[#d71927]/10">
+                <Gift className="h-7 w-7 text-[#d71927]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
+                  Refer & Earn Rewards
+                </h1>
+                <p className="mt-1.5 text-sm text-gray-500">
+                  Share your unique link and earn{' '}
+                  <span className="font-bold text-gray-900">₦200</span> for every
+                  friend who completes all signup milestones.
+                </p>
+              </div>
+            </div>
+
+            {/* Earnings Summary Badge */}
+            {data?.stats && (
+              <div className="flex flex-shrink-0 items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 px-5 py-3">
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-gray-500">
+                    Total Earned
+                  </p>
+                  <p className="text-lg font-extrabold text-emerald-600">
+                    {formatCurrency(data.stats.total_earnings)}
+                  </p>
+                </div>
+                <div className="h-8 w-px bg-gray-200" />
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-gray-500">
+                    Balance
+                  </p>
+                  <p className="text-lg font-extrabold text-gray-900">
+                    {formatCurrency(data.stats.available_balance)}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Referral Link */}
+          {mainReferralLink && (
+            <div className="mt-6">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-gray-500">
+                Your Referral Link
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex-1 truncate rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm text-gray-700">
+                  {mainReferralLink}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopyMainLink}
+                    className="flex h-12 items-center gap-2 rounded-xl bg-[#d71927] px-5 font-bold text-white shadow-lg shadow-[#d71927]/20 transition hover:bg-[#b81420]"
+                  >
+                    {mainLinkCopied ? (
+                      <>
+                        <Check className="h-4 w-4" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" /> Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      {data?.stats && (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {statsCards.map((card, i) => (
+            <StatCard key={i} {...card} />
+          ))}
+        </div>
+      )}
+
+      {/* Referral Links */}
+      {data?.referral_links && data.referral_links.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight text-gray-900">
+              Referral Links
+            </h2>
+            <span className="text-xs text-gray-400">
+              {data.referral_links.length}{' '}
+              {data.referral_links.length === 1 ? 'link' : 'links'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {data.referral_links.map((link) => (
+              <ReferralLinkCard
+                key={link.id}
+                link={link}
+                constructedLink={buildReferralLink(link.code)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Referrals Section */}
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 px-6 py-5 sm:px-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-extrabold tracking-tight text-gray-900">
+                Referrals
+              </h2>
+              <p className="mt-0.5 text-sm text-gray-500">
+                Track progress and earnings from referred users
+              </p>
+            </div>
+            <Award className="h-6 w-6 text-gray-300" />
+          </div>
+        </div>
+
+        <div className="p-4 sm:p-6">
+          {/* Filters */}
+          <ReferralFiltersBar
+            filters={filters}
+            onChange={handleFilterChange}
+            total={data?.referrals.meta.total || 0}
+          />
+
+          {/* Loading Overlay for filter changes */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[#d71927]" />
+            </div>
+          )}
+
+          {/* Referrals List */}
+          {!loading && data?.referrals.data && (
+            <>
+              {data.referrals.data.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {data.referrals.data.map((record, idx) => (
+                    <ReferralRow
+                      key={record.milestone_id ?? `referral-${idx}`}
+                      record={record}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-50">
+                    <Search className="h-6 w-6 text-gray-300" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">
+                    No referrals match your filters
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Try adjusting your search or filter criteria.
+                  </p>
+                  <Button
+                    onClick={() => setFilters(INITIAL_FILTERS)}
+                    className="mt-4 rounded-xl border border-gray-200 bg-white px-4 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {!loading && data?.referrals.meta && data.referrals.data.length > 0 && (
+          <div className="border-t border-gray-100 px-6 py-4 sm:px-8">
+            <ReferralPagination
+              meta={data.referrals.meta}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,6 +1,12 @@
 import { apiClient } from './api-client';
 import { ApiResponse } from '@/types/api.types';
 import { debug } from '@/utils/debug.utils';
+import type {
+  ReferralApiResponse,
+  ReferralApiResponseData,
+  ReferralLinkInfo,
+  ReferralFilters,
+} from '@/types/referral.types';
 
 /**
  * Referral Link Data
@@ -88,6 +94,49 @@ export interface ReferralMilestone {
  * Handles all referral-related operations
  */
 class ReferralService {
+  /**
+   * Fetch authenticated user's referrals from the unified endpoint
+   * GET /api/v1/referrals/single or GET /api/v1/referrals/single/{userId}
+   * Supports pagination, filters, search, date range, and sorting
+   */
+  async fetchMyReferrals(
+    filters: ReferralFilters = {},
+    userId?: number
+  ): Promise<ReferralApiResponseData> {
+    try {
+      debug.log('[ReferralService] Fetching referrals:', { filters, userId });
+
+      const params = new URLSearchParams();
+      if (filters.page) params.set('page', String(filters.page));
+      if (filters.per_page) params.set('per_page', String(filters.per_page));
+      if (filters.status) params.set('status', filters.status);
+      if (filters.program_id) params.set('program_id', String(filters.program_id));
+      if (filters.search) params.set('search', filters.search);
+      if (filters.date_from) params.set('date_from', filters.date_from);
+      if (filters.date_to) params.set('date_to', filters.date_to);
+      if (filters.sort_by) params.set('sort_by', filters.sort_by);
+      if (filters.sort_dir) params.set('sort_dir', filters.sort_dir);
+
+      const query = params.toString();
+      const baseEndpoint = userId
+        ? `/referrals/single/${userId}`
+        : '/referrals/single';
+      const endpoint = query ? `${baseEndpoint}?${query}` : baseEndpoint;
+
+      const response = await apiClient.get<ReferralApiResponseData>(endpoint);
+
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch referrals');
+      }
+
+      debug.log('[ReferralService] Referrals fetched successfully');
+      return response.data!;
+    } catch (error: any) {
+      debug.error('[ReferralService] Failed to fetch referrals', error);
+      throw error;
+    }
+  }
+
   /**
    * Get all available referral programs (public)
    */

@@ -276,22 +276,26 @@ class ApiClient {
           return this.axiosInstance(config);
         }
 
-        // Handle 401 - Unauthorized (session expired or invalid token)
+        // Handle 401 - Unauthorized
+        // NOTE: We do NOT clear tokens or redirect here. Doing so would be
+        // destructive — a single 401 from a non-critical endpoint would
+        // forcibly log out the user even when they have a valid session.
+        // Callers are responsible for handling 401s gracefully and deciding
+        // when (if ever) to escalate to a full logout.
+        // The `status` field is included so callers can distinguish between
+        // critical (wallet, transactions → trigger logout) and non-critical
+        // (virtual accounts, ads → just show error) endpoints.
         if (error.response?.status === 401) {
-          this.log('[ApiClient] Got 401 - session expired or invalid token, performing full logout');
-          if (typeof window !== 'undefined') {
-            // Clear token and auth store immediately
-            this.clearToken();
-            try {
-              sessionStorage.removeItem('auth-store');
-              localStorage.removeItem('auth-store');
-            } catch (e) {
-              debug.warn('[ApiClient] Error clearing auth store');
-            }
-            // Redirect to landing page
-            window.location.href = '/';
-          }
-          return Promise.reject('Session expired - please login again');
+          this.log('[ApiClient] Got 401 - unauthorized, returning formatted error');
+          const formattedError = this.formatError(error);
+          debug.error('[ApiClient] 401 error details:', {
+            message: formattedError.message,
+            url: error.config?.url,
+          });
+          return Promise.reject({
+            ...formattedError,
+            status: 401,
+          });
         }
 
         // Handle 403 - Forbidden access

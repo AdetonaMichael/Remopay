@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCards } from '@/hooks/useCards';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
+import { useUsdWallet } from '@/hooks/useUsdWallet';
 import {
   CardList,
   CreateCardForm,
@@ -18,12 +19,15 @@ import {
   Globe,
   Zap,
   AlertCircle,
+  DollarSign,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function VirtualCardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
+  const { usdWalletState, formattedUsdBalance, fetchUsdWallet } = useUsdWallet();
 
   const {
     cardListState,
@@ -155,6 +159,41 @@ export default function VirtualCardPage() {
         </div>
 
         <div className="space-y-6 p-6 sm:p-8">
+          {/* USD Wallet Balance Summary */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-lg transition-shadow">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d71927]">
+                  <DollarSign className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">USD Wallet Balance</p>
+                  <p className="text-xl font-black text-gray-900">
+                    {usdWalletState.isLoading ? (
+                      <span className="animate-pulse text-gray-400">...</span>
+                    ) : (
+                      formattedUsdBalance
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={fetchUsdWallet}
+                disabled={usdWalletState.isLoading}
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-gray-600 ${usdWalletState.isLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Use your USD balance to fund virtual cards. Convert NGN to USD in the{' '}
+              <a href="/dashboard/wallet" className="font-bold text-[#d71927] hover:text-[#b81420] underline">
+                Wallet
+              </a>
+              .
+            </p>
+          </div>
+
           {/* Quick Stats */}
           {hasCards && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

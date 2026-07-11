@@ -119,7 +119,7 @@ const getTransactionIcon = (type: string, status: string) => {
 };
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
@@ -190,7 +190,7 @@ export default function DashboardPage() {
     }
   }, [user?.id]);
 
-  // Fetch wallet and transactions
+  // Fetch wallet and transactions (critical data)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -225,8 +225,14 @@ export default function DashboardPage() {
         } else if (Array.isArray(transactionsRes?.data?.transactions)) {
           setTransactions(transactionsRes.data.transactions);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching dashboard data:', err);
+        // Critical endpoints (wallet + transactions) returning 401 means
+        // the token is genuinely expired/invalid — log the user out.
+        if (err?.status === 401) {
+          await logout();
+          return;
+        }
         setError('Failed to load dashboard data');
         setTransactions([]);
       } finally {
@@ -235,7 +241,7 @@ export default function DashboardPage() {
     };
 
     fetchData();
-  }, [user?.id, currentPage]);
+  }, [user?.id, currentPage, logout]);
 
   // Merge accounts from both the dedicated-account endpoint and the virtual
   // account (DVA) endpoint into one normalized collection, so the carousel
