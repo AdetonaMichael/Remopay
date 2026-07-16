@@ -80,27 +80,27 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
       {/* Modal */}
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden animate-in zoom-in-95">
         {/* Header */}
-        <div className={`px-6 py-5 ${isFunding ? 'bg-gradient-to-r from-emerald-600 to-emerald-500' : 'bg-gradient-to-r from-amber-600 to-orange-500'}`}>
+        <div className="bg-[#f9fafb] px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
                 {isFunding ? (
-                  <ArrowDownLeft className="h-5 w-5 text-white" />
+                  <ArrowDownLeft className="h-5 w-5 text-gray-600" />
                 ) : (
-                  <ArrowUpRight className="h-5 w-5 text-white" />
+                  <ArrowUpRight className="h-5 w-5 text-gray-600" />
                 )}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-gray-900">
                   {isFunding ? 'Fund Card' : 'Withdraw from Card'}
                 </h3>
-                <p className="text-sm text-white/80">{maskedDisplay}</p>
+                <p className="text-sm text-gray-500">{maskedDisplay}</p>
               </div>
             </div>
             <button
               onClick={handleClose}
               disabled={submitting || isLoading}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors disabled:opacity-50"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors disabled:opacity-50"
             >
               <X className="h-4 w-4" />
             </button>
@@ -126,9 +126,7 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
                   disabled={submitting || isLoading}
                   className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                     amount === String(preset)
-                      ? isFunding
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-amber-600 text-white shadow-sm'
+                      ? 'bg-[#d71927] text-white shadow-sm'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   } disabled:opacity-50`}
                 >
@@ -185,11 +183,7 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
             <button
               type="submit"
               disabled={submitting || isLoading || !amount}
-              className={`flex-1 rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 ${
-                isFunding
-                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:shadow-lg hover:shadow-emerald-200'
-                  : 'bg-gradient-to-r from-amber-600 to-orange-500 hover:shadow-lg hover:shadow-amber-200'
-              }`}
+              className="flex-1 rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 bg-[#d71927] hover:bg-[#b0141f] hover:shadow-lg hover:shadow-red-200"
             >
               {submitting ? (
                 <>

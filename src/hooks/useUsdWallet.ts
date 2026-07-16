@@ -3,18 +3,27 @@
 /**
  * useUsdWallet Hook
  * Manages USD wallet state, balance fetching, and transaction display
+ *
+ * IMPORTANT:
+ * - The GET /api/v1/usd/wallet/summary endpoint returns balance as a float
+ *   IN DOLLARS (e.g. 0.71 = $0.71), NOT in cents.
+ * - Transaction amounts are decimal strings (e.g. "0.71") — always parseFloat().
+ * - metadata can be null — use optional chaining: tx.metadata?.rate
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { usdWalletService } from '@/services/usd-wallet.service';
 import { fxService } from '@/services/fx.service';
 import type {
   UsdWalletState,
+  ParsedUsdTransaction,
   WalletCurrency,
   ConversionState,
+  UsdTransaction,
 } from '@/types/usd-wallet.types';
+import { parseUsdTransaction, formatUsdAmount } from '@/types/usd-wallet.types';
 import type {
   GenerateFxQuoteRequest,
   ExecuteFxExchangeRequest,
@@ -47,6 +56,32 @@ export const useUsdWallet = () => {
     isLoading: false,
     error: null,
   });
+
+  // ═════════════════════════════════════════════════════════════════
+  // DERIVED / COMPUTED VALUES
+  // ═════════════════════════════════════════════════════════════════
+
+  /**
+   * Balance is already in dollars from the API (e.g. 0.71 = $0.71).
+   * No division by 100 needed (unlike /wallets/balances endpoint which uses cents).
+   */
+  const formattedUsdBalance = useMemo(
+    () => formatUsdAmount(state.balance),
+    [state.balance]
+  );
+
+  /**
+   * USD balance in dollar units — identity of state.balance since it's already in dollars.
+   */
+  const usdBalanceInDollars = state.balance;
+
+  /**
+   * Parsed transactions with proper types, formatted strings, and derived isCredit.
+   */
+  const parsedTransactions: ParsedUsdTransaction[] = useMemo(
+    () => state.recentTransactions.map(parseUsdTransaction),
+    [state.recentTransactions]
+  );
 
   // ═════════════════════════════════════════════════════════════════
   // CONVERSION STATE
@@ -112,7 +147,7 @@ export const useUsdWallet = () => {
 
       if (response.data) {
         setState({
-          balance: response.data.balance,
+          balance: response.data.balance,          // already in dollars, no ÷ 100
           lastSyncedAt: response.data.last_synced_at,
           recentTransactions: response.data.recent_transactions,
           isLoading: false,
@@ -132,24 +167,6 @@ export const useUsdWallet = () => {
       fetchUsdWallet();
     }
   }, [isAuthenticated, fetchUsdWallet]);
-
-  // ═════════════════════════════════════════════════════════════════
-  // FORMATTING HELPERS
-  // ═════════════════════════════════════════════════════════════════
-
-  /**
-   * Get the formatted USD balance for display
-   * Converts cents to dollars: 15050 cents → "$150.50"
-   */
-  const formattedUsdBalance = `$${(state.balance / 100).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-
-  /**
-   * Get the USD balance in dollar units (not cents)
-   */
-  const usdBalanceInDollars = state.balance / 100;
 
   // ═════════════════════════════════════════════════════════════════
   // CONVERSION OPERATIONS
@@ -254,7 +271,6 @@ export const useUsdWallet = () => {
       const response = await fxService.executeExchange(request);
 
       if (!response.success) {
-        // Handle specific error cases
         const errorMsg = response.message || 'Conversion failed';
 
         if (errorMsg.toLowerCase().includes('expired')) {
@@ -319,6 +335,7 @@ export const useUsdWallet = () => {
     formattedUsdBalance,
     usdBalanceInDollars,
     recentTransactions: state.recentTransactions,
+    parsedTransactions,           // NEW: pre-parsed transactions with isCredit, formatting
     isLoading: state.isLoading,
     error: state.error,
     fetchUsdWallet,

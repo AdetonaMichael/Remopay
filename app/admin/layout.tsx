@@ -9,19 +9,13 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
-  Smartphone,
   Gift,
-  Share2,
-  Bell,
   BarChart3,
   FileText,
   TrendingUp,
-  Award,
-  AlertCircle,
   Zap,
   LogOut,
   X,
-  Mail,
   Globe,
   Phone,
   BookOpen,
@@ -36,22 +30,10 @@ const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
-  { label: 'Card Management', href: '/admin/cards', icon: CreditCard },
-  { label: 'Services', href: '/admin/services', icon: Smartphone },
   { label: 'Airtime to Cash', href: '/admin/airtime-to-cash', icon: Phone },
   { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
-  { label: 'Rewards', href: '/admin/rewards', icon: Gift },
-  { label: 'Campaigns', href: '/admin/rewards/campaigns', icon: TrendingUp },
-  { label: 'Loyalty Tiers', href: '/admin/loyalty', icon: Award },
-  { label: 'Loyalty Users', href: '/admin/loyalty/users', icon: Users },
-  { label: 'Referrals', href: '/admin/referrals', icon: Share2 },
-  { label: 'Abuse Flags', href: '/admin/rewards/abuse-flags', icon: AlertCircle }, 
   { label: 'Advertisements', href: '/admin/advertisements', icon: Zap },
-  { label: 'Email Campaigns', href: '/admin/promotional-emails', icon: Mail },
-  { label: 'Notifications', href: '/admin/notifications', icon: Bell },
-  { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { label: 'Reports', href: '/admin/reports', icon: FileText },
   // Ledger System
   // Ledger System
   { label: 'Ledger Dashboard', href: '/admin/ledger', icon: BookOpen },
@@ -222,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <p className="text-xl font-black tracking-tight text-white">Remopay</p>
                 <p className="text-xs font-semibold text-white/45">Admin</p>
               </div>
-            </Link>
+            </Link>                                                                                                                                                                                                                                                                                                                                                                                   
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white flex-shrink-0"
@@ -235,7 +217,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </aside>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] px-4 py-6 text-[#111] ">
+        <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8]  text-[#111] ">
           {children}
         </main>
       </div>

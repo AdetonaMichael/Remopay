@@ -28,11 +28,11 @@ const TXN_LABELS: Record<string, string> = {
   conversion_in: 'Conversion In',
   conversion_out: 'Conversion Out',
   card_funding: 'Card Funding',
-  refund: 'Refund',
+  card_refund: 'Card Refund',
 };
 
 function label(type: string) { return TXN_LABELS[type] || type; }
-function isCredit(type: string) { return ['credit', 'conversion_in', 'refund'].includes(type); }
+function isCredit(type: string) { return ['credit', 'conversion_in', 'card_refund'].includes(type); }
 
 export const UsdWalletCard: React.FC<UsdWalletCardProps> = ({
   state, formattedBalance, onRefresh, onConvertNgnToUsd, onConvertUsdToNgn, onFundCard,
@@ -141,7 +141,7 @@ export const UsdWalletCard: React.FC<UsdWalletCardProps> = ({
           <div className="space-y-2">
             {recent.map(txn => {
               const credit = isCredit(txn.type);
-              const amt = `$${(txn.amount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+              const amt = `$${parseFloat(txn.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
               return (
                 <div key={txn.id}
                   className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 transition-all hover:border-gray-300 hover:bg-gray-50">

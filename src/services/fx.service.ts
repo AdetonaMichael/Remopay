@@ -98,14 +98,38 @@ export const fxService = {
       
       if (response.success && Array.isArray(response.data)) {
         // Transform API response to match FxTransaction interface
-        const transformedData: FxTransaction[] = response.data.map(item => ({
-          transaction_reference: item.reference || item.transaction_reference,
-          source: item.source,
-          target: item.target,
-          rate: item.rate,
-          created_at: item.created_at || new Date().toISOString(),
-          updated_at: item.updated_at || new Date().toISOString(),
-        }));
+        // Supports both old format (source/target objects) and new format (direction, usd_amount, ngn_amount)
+        const transformedData: FxTransaction[] = response.data.map(item => {
+          // New format: { direction, usd_amount, ngn_amount, rate, reference }
+          if (item.direction && (item.usd_amount !== undefined || item.ngn_amount !== undefined)) {
+            const isNgnToUsd = item.direction === 'ngn_to_usd';
+            return {
+              transaction_reference: item.reference || item.transaction_reference || '',
+              source: {
+                currency: isNgnToUsd ? 'NGN' as const : 'USD' as const,
+                amount: isNgnToUsd ? Math.round(item.ngn_amount * 100) : Math.round(item.usd_amount * 100),
+                human_readable_amount: isNgnToUsd ? item.ngn_amount : item.usd_amount,
+              },
+              target: {
+                currency: isNgnToUsd ? 'USD' as const : 'NGN' as const,
+                amount: isNgnToUsd ? Math.round(item.usd_amount * 100) : Math.round(item.ngn_amount * 100),
+                human_readable_amount: isNgnToUsd ? item.usd_amount : item.ngn_amount,
+              },
+              rate: item.rate || 0,
+              created_at: item.created_at || new Date().toISOString(),
+              updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+            };
+          }
+          // Old format: { source: {...}, target: {...} }
+          return {
+            transaction_reference: item.reference || item.transaction_reference || '',
+            source: item.source,
+            target: item.target,
+            rate: item.rate,
+            created_at: item.created_at || new Date().toISOString(),
+            updated_at: item.updated_at || new Date().toISOString(),
+          };
+        });
         
         return {
           success: response.success,

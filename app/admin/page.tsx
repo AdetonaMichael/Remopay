@@ -27,6 +27,10 @@ import { formatCurrency } from '@/utils/format.utils';
 import { adminService } from '@/services/admin.service';
 import { paymentService } from '@/services/payment.service';
 import { AdminStatisticsData } from '@/types/vtu.types';
+import type {
+  WalletBalance,
+  MapleradWalletBalancesData,
+} from '@/types/maplerad.types';
 
 function formatCompactCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) return '₦0';
@@ -65,6 +69,7 @@ export default function AdminDashboardPage() {
   const [startDate, setStartDate] = useState(formatDateInput(new Date()));
   const [endDate, setEndDate] = useState(formatDateInput(new Date()));
   const [providerBalances, setProviderBalances] = useState({ paystack: 0, vtpass: 0, maplerad: 0, telnyx: 0 });
+  const [mapleradWallets, setMapleradWallets] = useState<MapleradWalletBalancesData | null>(null);
 
   const isAdmin = useMemo(() => Boolean(user?.roles?.some((r) => r === 'admin')), [user]);
 
@@ -170,15 +175,27 @@ export default function AdminDashboardPage() {
           console.error('❌ [VTPass] Failed to fetch balance:', err);
         }
 
-        // Maplerad
+        // Maplerad — Legacy single balance (fallback)
         try {
-          console.log('🔄 [Maplerad] Fetching balance from /payment/maplerad-balance');
+          console.log('🔄 [Maplerad] Fetching legacy balance from /payment/maplerad-balance');
           const res = await paymentService.getMapleradBalance();
           console.log('✅ [Maplerad] Response:', res);
           balances.maplerad = res.success ? parseFloat(res.data?.balance || '0') : 0;
           console.log('   Final balance:', balances.maplerad);
         } catch (err) {
-          console.error('❌ [Maplerad] Failed to fetch balance:', err);
+          console.error('❌ [Maplerad] Failed to fetch legacy balance:', err);
+        }
+
+        // Maplerad — Aggregated wallets (Treasury NGN, Treasury USD, Spend USD)
+        try {
+          console.log('🔄 [Maplerad Wallets] Fetching from /payment/wallets/balances');
+          const res = await paymentService.getMapleradWalletBalances();
+          console.log('✅ [Maplerad Wallets] Response:', res);
+          if (res.success && res.data) {
+            setMapleradWallets(res.data);
+          }
+        } catch (err) {
+          console.error('❌ [Maplerad Wallets] Failed to fetch wallet balances:', err);
         }
 
         // Telnyx
@@ -254,7 +271,7 @@ export default function AdminDashboardPage() {
         }
       `}</style>
 
-      <div className="space-y-5 sm:space-y-6 p-4 sm:p-8">
+      <div className="space-y-5 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="min-w-0">
@@ -429,6 +446,45 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </Card>
+
+          {/* Maplerad Wallet Balances */}
+          <Card className="p-5 sm:p-6 rounded-2xl border border-[#e5e7eb]">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-semibold">Maplerad Wallet Balances</h3>
+              {mapleradWallets && (
+                <span className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">
+                  Aggregated
+                </span>
+              )}
+            </div>
+            {mapleradWallets ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <WalletBalanceCard
+                  label="NGN Wallet"
+                  wallet={mapleradWallets.ngn}
+                  symbol="₦"
+                  formatFn={formatFullCurrency}
+                />
+                <WalletBalanceCard
+                  label="USD Wallet"
+                  wallet={mapleradWallets.usd}
+                  symbol="$"
+                  formatFn={formatUSDCurrency}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                  <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">NGN Wallet</p>
+                  <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#d1d5db] italic">Unavailable</p>
+                </div>
+                <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+                  <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">USD Wallet</p>
+                  <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#d1d5db] italic">Unavailable</p>
+                </div>
+              </div>
+            )}
+          </Card>
         </div>
 
         {/* Summary */}
@@ -453,6 +509,44 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+/** Small helper component to render a single Maplerad wallet balance card */
+function WalletBalanceCard({
+  label,
+  wallet,
+  symbol,
+  formatFn,
+}: {
+  label: string;
+  wallet: WalletBalance | null;
+  symbol: string;
+  formatFn: (value: number | null | undefined) => string;
+}) {
+  if (!wallet) {
+    return (
+      <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+        <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">{label}</p>
+        <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#d1d5db] italic">N/A</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#f8fafc] p-3 sm:p-4 rounded-xl">
+      <p className="text-[10px] sm:text-xs font-medium text-[#6b7280] uppercase tracking-wide">{label}</p>
+      <p className="font-bold text-sm sm:text-lg mt-1.5 sm:mt-1 text-[#111827]">
+        {symbol}
+        {(wallet.available_balance ?? wallet.balance).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </p>
+      <div className="flex items-center gap-2 mt-1">
+        <span className="text-[9px] sm:text-[10px] font-medium text-[#6b7280]">{wallet.currency}</span>
       </div>
     </div>
   );

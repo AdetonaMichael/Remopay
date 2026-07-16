@@ -84,3 +84,6 @@ export * from './airtime-to-cash.types';
 
 // Settlement Management types
 export * from './settlement.types';
+
+// Maplerad Wallet types
+export * from './maplerad.types';

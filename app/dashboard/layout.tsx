@@ -10,7 +10,6 @@ import {
   CreditCard,
   DollarSign,
   FileText,
-  Gift,
   Globe,
   Home,
   LogOut,
@@ -21,8 +20,6 @@ import {
   Wallet,
   Wifi,
   X,
-  Award,
-  Flame,
   Users,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -89,14 +86,11 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/tv', label: 'TV Subscription', icon: Tv },
     { href: '/dashboard/bills', label: 'Electricity Token', icon: FileText },
     { href: '/dashboard/transfer', label: 'Transfer Money', icon: ArrowRightLeft },
-    { href: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+    { href: '/dashboard/wallet', label: 'FX Conversion', icon: Wallet },
     { href: '/dashboard/virtual-card', label: 'Virtual Cards', icon: CreditCard },
     { href: '/dashboard/usd-account', label: 'USD Account', icon: DollarSign },
     { href: '/dashboard/history', label: 'History', icon: Activity },
-    { href: '/dashboard/rewards', label: 'Rewards', icon: Gift },
-    { href: '/dashboard/loyalty', label: 'Loyalty Tier', icon: Award },
     { href: '/dashboard/referral', label: 'Referrals', icon: Users },
-    { href: '/dashboard/streaks', label: 'Streaks', icon: Flame },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 

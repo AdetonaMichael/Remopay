@@ -1,6 +1,10 @@
 import { apiClient } from './api-client';
 import { debug } from '@/utils/debug.utils';
 import { ApiResponse } from '@/types/api.types';
+import type {
+  MapleradWalletBalancesData,
+  MapleradRawWalletsResponse,
+} from '@/types/maplerad.types';
 
 /**
  * Payment Service
@@ -472,7 +476,8 @@ class PaymentService {
   }
 
   /**
-   * Get Maplerad balance
+   * Get Maplerad legacy single balance
+   * @deprecated Use getMapleradWalletBalances() instead which returns all 3 wallets
    */
   async getMapleradBalance(): Promise<ApiResponse<any>> {
     try {
@@ -484,6 +489,57 @@ class PaymentService {
       return response;
     } catch (error: any) {
       debug.error('[PaymentService] Failed to fetch Maplerad balance', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get Maplerad aggregated wallet balances (RECOMMENDED)
+   * Returns Treasury NGN, Treasury USD, and Spend USD wallets
+   * with amounts already normalised to major units.
+   *
+   * Endpoint: GET /payment/wallets/balances
+   */
+  async getMapleradWalletBalances(): Promise<ApiResponse<MapleradWalletBalancesData>> {
+    try {
+      debug.log('[PaymentService] Fetching Maplerad wallet balances');
+
+      const response = await apiClient.get<MapleradWalletBalancesData>(
+        '/payment/wallets/balances'
+      );
+
+      debug.log('[PaymentService] Maplerad wallet balances fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch Maplerad wallet balances', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get raw Maplerad wallets
+   * Fetches the raw wallet list from Maplerad, optionally filtered by wallet_type.
+   * Note: Amounts are in the smallest currency unit — divide by 100 for major units.
+   *
+   * Endpoint: GET /payment/wallets
+   * @param walletType Optional filter: 'TREASURY' | 'SPEND'
+   */
+  async getMapleradWallets(
+    walletType?: 'TREASURY' | 'SPEND'
+  ): Promise<ApiResponse<MapleradRawWalletsResponse>> {
+    try {
+      debug.log('[PaymentService] Fetching Maplerad raw wallets', { walletType });
+
+      const params = walletType ? { wallet_type: walletType } : undefined;
+      const response = await apiClient.get<MapleradRawWalletsResponse>(
+        '/payment/wallets',
+        { params }
+      );
+
+      debug.log('[PaymentService] Maplerad raw wallets fetched successfully');
+      return response;
+    } catch (error: any) {
+      debug.error('[PaymentService] Failed to fetch Maplerad raw wallets', error);
       throw error;
     }
   }
