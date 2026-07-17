@@ -34,7 +34,9 @@ const adminNavItems = [
   { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },
   { label: 'Advertisements', href: '/admin/advertisements', icon: Zap },
-  // Ledger System
+  // Card Fee Management
+  { label: 'Card Fees', href: '/admin/cards/fees', icon: CreditCard },
+  { label: 'Fee History', href: '/admin/cards/fees/transactions', icon: BarChart3 },
   // Ledger System
   { label: 'Ledger Dashboard', href: '/admin/ledger', icon: BookOpen },
   { label: 'Ledger Accounts', href: '/admin/ledger/accounts', icon: BookOpen },

@@ -32,6 +32,35 @@ import { ApiResponse } from '@/types/api.types';
 
 class CardService {
   /**
+   * Get the fee schedule for card operations
+   * GET /issuing/fees/schedule
+   */
+  async getFeeSchedule(): Promise<{
+    success: boolean;
+    data: {
+      fee_schedule: Array<{
+        fee_type: string;
+        display_name: string;
+        description: string;
+        currency: string;
+        fee_calculation_type: string;
+        our_fee: { fixed_amount: number; percentage_rate: number; threshold: number | null };
+        provider_fee: { calculation_type: string; fixed_amount: number | null; percentage_rate: number | null; threshold: number | null };
+      }>;
+      currency: string;
+      note: string;
+    };
+  }> {
+    try {
+      const response = await apiClient.get('/payment/issuing/fees/schedule');
+      return (response as any).original || response;
+    } catch (error: any) {
+      console.error('[CardService] Error fetching fee schedule:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Create a new virtual card
    * Fee: $3.00 deducted from wallet
    */

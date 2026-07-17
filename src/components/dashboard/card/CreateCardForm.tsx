@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { CreateCardFormData, CardBrand } from '@/types/card.types';
 import { Plus, Loader, AlertCircle, CreditCard, Info } from 'lucide-react';
+import { cardService } from '@/services/card.service';
 
 interface CreateCardFormProps {
   formData: CreateCardFormData;
@@ -12,6 +13,15 @@ interface CreateCardFormProps {
   errors: Record<string, string>;
   isLoading: boolean;
   onSuccess?: () => void;
+}
+
+interface FeeDisplay {
+  our_fee: number;
+  provider_fee: number;
+  total_fee: number;
+  display_name: string;
+  description: string;
+  currency: string;
 }
 
 export const CreateCardForm: React.FC<CreateCardFormProps> = ({
@@ -24,6 +34,48 @@ export const CreateCardForm: React.FC<CreateCardFormProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feeSchedule, setFeeSchedule] = useState<FeeDisplay | null>(null);
+  const [feeLoading, setFeeLoading] = useState(true);
+
+  // Fetch issuance fee on mount
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        const response = await cardService.getFeeSchedule();
+        if (response?.data?.fee_schedule) {
+          const issuanceFee = response.data.fee_schedule.find(
+            (f: any) => f.fee_type === 'issuance'
+          );
+          if (issuanceFee) {
+            const ourFee = parseFloat(String(issuanceFee.our_fee?.fixed_amount || 0));
+            const providerFee = parseFloat(String(issuanceFee.provider_fee?.fixed_amount || 0));
+            setFeeSchedule({
+              our_fee: ourFee,
+              provider_fee: providerFee,
+              total_fee: ourFee + providerFee,
+              display_name: issuanceFee.display_name,
+              description: issuanceFee.description,
+              currency: issuanceFee.currency || 'USD',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch fee schedule:', err);
+        // Fallback to defaults
+        setFeeSchedule({
+          our_fee: 0,
+          provider_fee: 2,
+          total_fee: 2,
+          display_name: 'Card Issuance',
+          description: 'One-time fee for issuing a new virtual card',
+          currency: 'USD',
+        });
+      } finally {
+        setFeeLoading(false);
+      }
+    };
+    fetchFees();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +96,7 @@ export const CreateCardForm: React.FC<CreateCardFormProps> = ({
       onFieldChange('amount', '5');
     }
   };
+const feeAmount = feeLoading ? '...' : `$${(feeSchedule?.total_fee || 0).toFixed(2)}`;
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden transition-all duration-300">
@@ -59,7 +112,10 @@ export const CreateCardForm: React.FC<CreateCardFormProps> = ({
           </div>
           <div className="text-left">
             <h3 className="text-base font-bold text-gray-900">Create New Card</h3>
-            <p className="text-sm text-gray-500 mt-0.5">Get a virtual USD card instantly ($3 fee applies)</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Get a virtual USD card instantly
+              {feeSchedule && ` (${feeAmount} fee applies)`}
+            </p>
           </div>
         </div>
         <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform duration-300 ${
@@ -185,19 +241,6 @@ export const CreateCardForm: React.FC<CreateCardFormProps> = ({
                   <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#d71927] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
                 </div>
               </label>
-            </div>
-
-            {/* Fee Notice */}
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">Card Creation Fee</p>
-                  <p className="text-xs text-amber-800 mt-0.5">
-                    A one-time $3.00 fee will be deducted from your wallet balance upon card creation.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Submit Button */}

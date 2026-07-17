@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, ArrowDownLeft, ArrowUpRight, Loader, DollarSign, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, ArrowDownLeft, ArrowUpRight, Loader, DollarSign, AlertCircle, Info } from 'lucide-react';
+import { cardService } from '@/services/card.service';
 
 interface CardActionModalProps {
   isOpen: boolean;
@@ -10,6 +11,13 @@ interface CardActionModalProps {
   onClose: () => void;
   onSubmit: (amountInCents: number) => Promise<boolean>;
   isLoading?: boolean;
+}
+
+interface FeeScheduleInfo {
+  fee_type: string;
+  display_name: string;
+  our_fee: { fixed_amount: number; percentage_rate: number; threshold: number | null };
+  provider_fee: { calculation_type: string; fixed_amount: number | null; percentage_rate: number | null; threshold: number | null };
 }
 
 export const CardActionModal: React.FC<CardActionModalProps> = ({
@@ -23,6 +31,76 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [feeSchedule, setFeeSchedule] = useState<FeeScheduleInfo | null>(null);
+
+  useEffect(() => {
+    if (isOpen && action === 'fund') {
+      const fetchFundingFee = async () => {
+        try {
+          const response = await cardService.getFeeSchedule();
+          if (response?.data?.fee_schedule) {
+            const fee = response.data.fee_schedule.find(
+              (f: any) => f.fee_type === 'funding'
+            );
+            if (fee) {
+              setFeeSchedule({
+                fee_type: fee.fee_type,
+                display_name: fee.display_name,
+                our_fee: fee.our_fee,
+                provider_fee: fee.provider_fee,
+              });
+            }
+          }
+        } catch {
+          // Silently fail
+        }
+      };
+      fetchFundingFee();
+    }
+  }, [isOpen, action]);
+
+  const parsedAmount = parseFloat(amount) || 0;
+
+  const feeCalculation = useMemo(() => {
+    if (!feeSchedule || !parsedAmount || parsedAmount < 1) return null;
+
+    // Calculate provider fee
+    const providerFeeConfig = feeSchedule.provider_fee;
+    const threshold = providerFeeConfig.threshold;
+    let providerFee = 0;
+    let providerDesc = '';
+
+    if (providerFeeConfig.calculation_type === 'fixed' && providerFeeConfig.fixed_amount) {
+      providerFee = providerFeeConfig.fixed_amount;
+      providerDesc = `Flat $${providerFee.toFixed(2)}`;
+    } else if (threshold && parsedAmount >= threshold) {
+      // Above threshold: 2% for Maplerad
+      providerFee = parsedAmount * 0.02;
+      providerDesc = `2% of $${parsedAmount.toFixed(2)} (≥ $${threshold.toFixed(2)})`;
+    } else if (threshold && parsedAmount < threshold) {
+      // Below threshold: $1 fixed
+      providerFee = 1;
+      providerDesc = `$${providerFee.toFixed(2)} (< $${threshold.toFixed(2)})`;
+    }
+
+    // Calculate our fee
+    const ourFeeConfig = feeSchedule.our_fee;
+    let ourFee = 0;
+    let ourDesc = '';
+
+    if (ourFeeConfig.fixed_amount > 0) {
+      ourFee = ourFeeConfig.fixed_amount;
+      ourDesc = `Fixed $${ourFee.toFixed(4)}`;
+    } else if (ourFeeConfig.percentage_rate > 0) {
+      ourFee = parsedAmount * (ourFeeConfig.percentage_rate / 100);
+      ourDesc = `${ourFeeConfig.percentage_rate}% of $${parsedAmount.toFixed(2)}`;
+    }
+
+    const totalFee = providerFee + ourFee;
+    const totalDeduction = parsedAmount + totalFee;
+
+    return { providerFee, ourFee, totalFee, totalDeduction, providerDesc, ourDesc };
+  }, [feeSchedule, parsedAmount]);
 
   if (!isOpen || !action) return null;
 
@@ -46,7 +124,6 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
       return;
     }
 
-    // Convert dollars to cents
     const amountInCents = Math.round(parsedAmount * 100);
 
     setSubmitting(true);
@@ -110,31 +187,33 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Preset Amounts */}
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-3">
-              Quick Amount
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {presetAmounts.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => {
-                    setAmount(String(preset));
-                    setError(null);
-                  }}
-                  disabled={submitting || isLoading}
-                  className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    amount === String(preset)
-                      ? 'bg-[#d71927] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } disabled:opacity-50`}
-                >
-                  ${preset}
-                </button>
-              ))}
+          {isFunding && (
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-3">
+                Quick Amount
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {presetAmounts.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setAmount(String(preset));
+                      setError(null);
+                    }}
+                    disabled={submitting || isLoading}
+                    className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                      amount === String(preset)
+                        ? 'bg-[#d71927] text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    } disabled:opacity-50`}
+                  >
+                    ${preset}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Custom Amount */}
           <div>
@@ -165,10 +244,31 @@ export const CardActionModal: React.FC<CardActionModalProps> = ({
                 <span className="text-sm">{error}</span>
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-2">
-              Amount will be converted to cents internally (e.g., $10.00 = 1000 cents). Minimum $1.00.
-            </p>
           </div>
+
+          {/* Fee Display for Funding */}
+          {isFunding && feeCalculation && parsedAmount >= 1 && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <p className="text-xs font-semibold text-amber-900">Fee Breakdown</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-amber-800">
+                    <span>Funding amount:</span>
+                    <span className="text-right font-bold text-gray-900">${parsedAmount.toFixed(2)}</span>
+                    <span>Provider fee ({feeCalculation.providerDesc}):</span>
+                    <span className="text-right font-bold text-gray-700">${feeCalculation.providerFee.toFixed(2)}</span>
+                    <span>Our fee:</span>
+                    <span className="text-right font-bold text-[#d71927]">${feeCalculation.ourFee.toFixed(4)}</span>
+                    <span className="border-t border-amber-300 pt-1">Total to deduct:</span>
+                    <span className="text-right font-bold text-gray-900 border-t border-amber-300 pt-1">
+                      ${feeCalculation.totalDeduction.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
