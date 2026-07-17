@@ -83,7 +83,7 @@ export default function TierUpgradePage() {
   // Show tier selection if not selected
   if (!selectedTier) {
     return (
-      <div className="space-y-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="space-y-8 max-w-full overflow-x-hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <style jsx global>{`
           @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
         `}</style>
@@ -193,7 +193,7 @@ export default function TierUpgradePage() {
 
   // Show form based on tier
   return (
-    <div className="space-y-8" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="space-y-8 max-w-full overflow-x-hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       <div className="flex items-center gap-2 pb-4">
         <Button variant="ghost" onClick={() => setSelectedTier(null)}>
           <ChevronLeft size={20} />

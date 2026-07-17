@@ -133,14 +133,14 @@ export function DataPricingShowcase() {
   const hasError = currentNetwork.error;
 
   return (
-    <section className="bg-[#100303] px-5 py-16 sm:py-20 md:py-24 lg:px-8">
+    <section className="bg-white px-5 py-16 sm:py-20 md:py-24 lg:px-8">
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
         <div className="text-center mb-10 sm:mb-12">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Data Pricing
           </h2>
-          <p className="mt-3 max-w-2xl mx-auto text-sm leading-6 text-white/60">
+          <p className="mt-3 max-w-2xl mx-auto text-sm leading-6 text-gray-600">
             Affordable data plans across all major networks. See the latest
             prices and buy instantly.
           </p>
@@ -157,8 +157,8 @@ export function DataPricingShowcase() {
                 className={clsx(
                   'inline-flex items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm font-bold transition-all',
                   isActive
-                    ? 'border-white/20 bg-white text-gray-900 shadow-sm'
-                    : 'border-white/10 bg-white/5 text-white/60 hover:border-white/25 hover:text-white/80',
+                    ? 'border-[#d71927] bg-[#d71927] text-white shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
                 )}
               >
                 <div className="relative h-5 w-5 overflow-hidden rounded">
@@ -176,12 +176,12 @@ export function DataPricingShowcase() {
           })}
         </div>
 
-        {/* Content Card - dark blend */}
-        <div className="rounded-xl border border-white/10 bg-[#1c0606] shadow-sm">
+        {/* Content Card */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           {/* Card Header */}
-          <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+          <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-white/10 bg-white/5 p-1">
+              <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-1">
                 <Image
                   src={currentNetwork.logo}
                   alt={currentNetwork.name}
@@ -191,10 +191,10 @@ export function DataPricingShowcase() {
                 />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-gray-900">
                   {currentNetwork.name} Data Plans
                 </h3>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-gray-500">
                   {isLoading
                     ? 'Loading...'
                     : `${activeVariations.length} of ${currentNetwork.variations.length} plans`}
@@ -206,8 +206,8 @@ export function DataPricingShowcase() {
           {/* Loading */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-              <p className="mt-3 text-sm font-medium text-white/60">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              <p className="mt-3 text-sm font-medium text-gray-500">
                 Loading plans...
               </p>
             </div>
@@ -216,16 +216,16 @@ export function DataPricingShowcase() {
           {/* Error */}
           {!isLoading && hasError && (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-                <AlertCircle className="h-6 w-6 text-white/40" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <AlertCircle className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="mt-4 text-sm font-semibold text-white">
+              <p className="mt-4 text-sm font-semibold text-gray-900">
                 Unable to load plans
               </p>
-              <p className="mt-1 text-xs text-white/50">{hasError}</p>
+              <p className="mt-1 text-xs text-gray-500">{hasError}</p>
               <button
                 onClick={() => fetchVariations(currentNetwork)}
-                className="mt-4 rounded-lg border border-white/10 px-4 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/5"
+                className="mt-4 rounded-lg border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
               >
                 Retry
               </button>
@@ -235,13 +235,13 @@ export function DataPricingShowcase() {
           {/* Empty */}
           {!isLoading && !hasError && activeVariations.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-                <AlertCircle className="h-6 w-6 text-white/40" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <AlertCircle className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="mt-4 text-sm font-semibold text-white">
+              <p className="mt-4 text-sm font-semibold text-gray-900">
                 No plans available
               </p>
-              <p className="mt-1 text-xs text-white/50">
+              <p className="mt-1 text-xs text-gray-500">
                 Check back later for updated pricing.
               </p>
             </div>
@@ -250,26 +250,26 @@ export function DataPricingShowcase() {
           {/* Plans - Mobile Cards */}
           {!isLoading && !hasError && activeVariations.length > 0 && (
             <>
-              <div className="divide-y divide-white/10 sm:hidden">
+              <div className="divide-y divide-gray-100 sm:hidden">
                 {activeVariations.map((variation) => {
                   const price = formatPrice(variation);
                   return (
                     <div key={variation.variation_code} className="px-5 py-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                          <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
                             {variation.name}
                           </p>
-                          <p className="mt-1 text-xs text-white/50">
+                          <p className="mt-1 text-xs text-gray-500">
                             {extractValidity(variation.name)}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
-                          <p className="text-sm font-bold text-white">
+                          <p className="text-sm font-bold text-gray-900">
                             {price.display}
                           </p>
                           {price.original && (
-                            <p className="mt-0.5 text-xs text-white/40 line-through">
+                            <p className="mt-0.5 text-xs text-gray-400 line-through">
                               ₦{price.original.toLocaleString()}.00
                             </p>
                           )}
@@ -284,46 +284,46 @@ export function DataPricingShowcase() {
               <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/[0.04]">
-                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-white/50">
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                         Plan Name
                       </th>
-                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-white/50">
+                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                         Validity
                       </th>
-                      <th className="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-white/50 w-40">
+                      <th className="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-gray-500 w-40">
                         Price
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/10">
+                  <tbody className="divide-y divide-gray-100">
                     {activeVariations.map((variation, idx) => {
                       const price = formatPrice(variation);
                       return (
                         <tr
                           key={variation.variation_code}
                           className={clsx(
-                            'transition-colors hover:bg-white/[0.04]',
-                            idx % 2 === 1 && 'bg-white/[0.02]',
+                            'transition-colors hover:bg-gray-50',
+                            idx % 2 === 1 && 'bg-gray-50/50',
                           )}
                         >
                           <td className="px-6 py-4">
-                            <p className="text-sm font-semibold text-white leading-snug max-w-lg truncate">
+                            <p className="text-sm font-semibold text-gray-900 leading-snug max-w-lg truncate">
                               {variation.name}
                             </p>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm text-white/60">
+                            <span className="text-sm text-gray-600">
                               {extractValidity(variation.name)}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div>
-                              <span className="text-sm font-bold text-white">
+                              <span className="text-sm font-bold text-gray-900">
                                 {price.display}
                               </span>
                               {price.original && (
-                                <p className="mt-0.5 text-xs text-white/40 line-through">
+                                <p className="mt-0.5 text-xs text-gray-400 line-through">
                                   ₦{price.original.toLocaleString()}.00
                                 </p>
                               )}
@@ -340,14 +340,14 @@ export function DataPricingShowcase() {
 
           {/* Footer CTA */}
           {!isLoading && !hasError && activeVariations.length > 0 && (
-            <div className="border-t border-white/10 px-5 py-4 sm:px-6">
+            <div className="border-t border-gray-100 px-5 py-4 sm:px-6">
               <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-gray-500">
                   Prices update in real-time. Log in to see personalized rates.
                 </p>
                 <a
                   href="/auth/register"
-                  className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-gray-900 transition hover:bg-white/90"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#d71927] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#b91420]"
                 >
                   Buy {currentNetwork.name} Data
                 </a>

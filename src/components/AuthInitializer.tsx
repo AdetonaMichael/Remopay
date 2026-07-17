@@ -153,6 +153,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/auth',
       '/',
       '/about',
+      '/careers',
       '/faq',
       '/privacy',
       '/terms',

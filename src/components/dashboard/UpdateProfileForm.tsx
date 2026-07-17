@@ -248,7 +248,7 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
       )}
 
       {/* Section Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
+      <div className="flex gap-1 sm:gap-2 border-b border-gray-200 overflow-x-auto">
         {[
           { id: 'personal', label: 'Personal' },
           { id: 'contact', label: 'Contact' },
@@ -258,7 +258,7 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
           <button
             key={tab.id}
             onClick={() => setActiveSection(tab.id as any)}
-            className={`px-4 py-3 font-semibold text-sm transition-colors whitespace-nowrap ${
+            className={`px-3 sm:px-4 py-2.5 sm:py-3 font-semibold text-xs sm:text-sm transition-colors whitespace-nowrap ${
               activeSection === tab.id
                 ? 'text-[#d71927] border-b-2 border-[#d71927]'
                 : 'text-gray-600 hover:text-gray-900'
@@ -471,7 +471,7 @@ export const UpdateProfileForm: React.FC<UpdateProfileFormProps> = ({
         )}
 
         {/* Submit Button */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <Button
             type="submit"
             disabled={loading}

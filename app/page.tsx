@@ -6,7 +6,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   BadgeCheck,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
@@ -16,7 +15,6 @@ import {
   Headphones,
   Linkedin,
   Mail,
-  ReceiptText,
   ShieldCheck,
   Smartphone,
   Tv,
@@ -172,9 +170,10 @@ export default function RemopayLandingPage() {
   const currentHero = heroSlides[activeSlide];
 
   return (
-    <main className="min-h-screen bg-[#100303] text-white">
+    <main className="min-h-screen bg-white text-gray-900">
       <LandingTopbar />
 
+      {/* ===== Hero Section ===== */}
       <section className="relative min-h-[560px] sm:min-h-[640px] md:min-h-[700px] lg:min-h-[760px] overflow-hidden pt-16 sm:pt-20">
         {heroSlides.map((slide, index) => (
           <div
@@ -281,20 +280,21 @@ export default function RemopayLandingPage() {
         </div>
       </section>
 
-      <section id="services" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-14 sm:py-16 md:py-20 lg:px-8">
+      {/* ===== Services Section ===== */}
+      <section id="services" className="border-t border-gray-100 bg-gray-50/50 px-5 py-14 sm:py-16 md:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {/* Header section */}
           <div className="mb-8 sm:mb-10 md:mb-12">
-            <h2 className="h2">
-              Our <span className="text-[#ff2635]">Services</span>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              Our <span className="text-[#d71927]">Services</span>
             </h2>
-            <p className="mt-3 sm:mt-4 md:mt-5 max-w-2xl body-base text-white/70">
+            <p className="mt-3 sm:mt-4 md:mt-5 max-w-2xl text-gray-600">
               Everything you need for everyday payments in one simple app.
             </p>
 
             <Link
               href="/auth/register"
-              className="mt-6 sm:mt-7 md:mt-8 inline-flex items-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-6 sm:py-3.5 md:py-4 button-md text-white transition hover:bg-[#b91420]"
+              className="mt-6 sm:mt-7 md:mt-8 inline-flex items-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-6 sm:py-3.5 md:py-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#b91420]"
             >
               View All Services <ArrowRight size={18} />
             </Link>
@@ -313,7 +313,7 @@ export default function RemopayLandingPage() {
                 return (
                   <div
                     key={service.title}
-                    className="group flex-shrink-0 w-72 sm:w-80 md:w-96 overflow-hidden rounded-2xl border border-[#ff4b55]/25 bg-[#1c0606] transition duration-300 hover:-translate-y-2 hover:border-[#ff4b55] hover:shadow-2xl hover:shadow-[#d71927]/20"
+                    className="group flex-shrink-0 w-72 sm:w-80 md:w-96 overflow-hidden rounded-2xl border border-gray-200 bg-white transition duration-300 hover:-translate-y-2 hover:border-red-200 hover:shadow-xl"
                   >
                     <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden">
                       <Image
@@ -326,21 +326,21 @@ export default function RemopayLandingPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
                       <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 flex h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 items-center justify-center rounded-full bg-[#d71927] shadow-lg">
-                        <Icon className="h-5 w-5 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+                        <Icon className="h-5 w-5 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
                       </div>
                     </div>
 
                     <div className="p-4 sm:p-5 md:p-6">
-                      <h3 className="h5 text-[#ff2635]">
+                      <h3 className="text-lg font-bold text-gray-900">
                         {service.title}
                       </h3>
-                      <p className="mt-2 body-sm text-white/75">
+                      <p className="mt-2 text-sm text-gray-600">
                         {service.desc}
                       </p>
 
                       <button
                         aria-label={`View ${service.title}`}
-                        className="mt-4 sm:mt-5 flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-[#d71927] transition group-hover:translate-x-1"
+                        className="mt-4 sm:mt-5 flex h-8 w-8 sm:h-8 sm:w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-[#d71927] text-white transition group-hover:translate-x-1"
                       >
                         <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </button>
@@ -353,30 +353,31 @@ export default function RemopayLandingPage() {
             {/* Navigation buttons */}
             <button
               onClick={() => scrollServices('left')}
-              className="absolute left-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 -translate-x-6 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+              className="absolute left-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 -translate-x-6 items-center justify-center rounded-full border border-gray-300 bg-white shadow-md transition hover:bg-gray-50 lg:flex"
               aria-label="Scroll services left"
             >
-              <ChevronLeft size={22} />
+              <ChevronLeft size={22} className="text-gray-600" />
             </button>
 
             <button
               onClick={() => scrollServices('right')}
-              className="absolute right-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 translate-x-6 items-center justify-center rounded-full border border-white/20 bg-black/20 backdrop-blur transition hover:bg-white/10 lg:flex"
+              className="absolute right-0 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 translate-x-6 items-center justify-center rounded-full border border-gray-300 bg-white shadow-md transition hover:bg-gray-50 lg:flex"
               aria-label="Scroll services right"
             >
-              <ChevronRight size={22} />
+              <ChevronRight size={22} className="text-gray-600" />
             </button>
           </div>
         </div>
       </section>
 
-      <section id="security" className="bg-[#100303] px-5 py-10 sm:py-12 md:py-14 lg:px-8">
-        <div className="mx-auto max-w-7xl border-t border-[#ff4b55]/20 pt-10 sm:pt-12 md:pt-14">
+      {/* ===== Why Choose Remopay ===== */}
+      <section id="security" className="bg-white px-5 py-10 sm:py-12 md:py-14 lg:px-8">
+        <div className="mx-auto max-w-7xl border-t border-gray-200 pt-10 sm:pt-12 md:pt-14">
           <div className="text-center">
-            <h2 className="h2">
-              Why Choose <span className="text-[#ff2635]">Remopay?</span>
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              Why Choose <span className="text-[#d71927]">Remopay?</span>
             </h2>
-            <p className="mt-3 body-base text-white/65">
+            <p className="mt-3 text-gray-600">
               We make payments simple, fast and rewarding.
             </p>
           </div>
@@ -388,11 +389,11 @@ export default function RemopayLandingPage() {
               return (
                 <div
                   key={item.title}
-                  className="shrink-0 w-[280px] snap-start rounded-2xl border border-[#ff4b55]/25 bg-gradient-to-br from-[#230707] to-[#120303] p-5 sm:p-6 md:w-auto md:shrink md:snap-none"
+                  className="shrink-0 w-[280px] snap-start rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 md:w-auto md:shrink md:snap-none transition hover:border-red-200 hover:shadow-sm"
                 >
-                  <Icon className="mb-4 sm:mb-5 md:mb-6 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-[#ff737b]" />
-                  <h3 className="h5 font-semibold">{item.title}</h3>
-                  <p className="mt-3 body-sm text-white/65">{item.desc}</p>
+                  <Icon className="mb-4 sm:mb-5 md:mb-6 h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 text-[#d71927]" />
+                  <h3 className="text-lg font-bold text-gray-900">{item.title}</h3>
+                  <p className="mt-3 text-sm text-gray-600">{item.desc}</p>
                 </div>
               );
             })}
@@ -400,22 +401,24 @@ export default function RemopayLandingPage() {
         </div>
       </section>
 
+      {/* ===== Data Pricing Showcase ===== */}
       <DataPricingShowcase />
 
-      <section id="rewards" className="bg-[#100303] px-5 pb-10 sm:pb-12 md:pb-14 lg:px-8">
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-[#ff4b55]/25 bg-gradient-to-r from-[#b91420] via-[#7f0f17] to-[#220606] p-5 sm:p-6 md:p-8 shadow-2xl shadow-[#d71927]/20 lg:p-12">
+      {/* ===== Rewards Section ===== */}
+      <section id="rewards" className="bg-white px-5 pb-10 sm:pb-12 md:pb-14 lg:px-8">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-red-200 bg-gradient-to-r from-[#d71927] via-[#b91420] to-[#7f0f17] p-5 sm:p-6 md:p-8 shadow-xl lg:p-12">
           <div className="grid grid-cols-1 items-center gap-6 sm:gap-8 lg:grid-cols-[1fr_1fr_0.8fr]">
             <div>
-              <h2 className="h2">
+              <h2 className="text-3xl font-bold text-white sm:text-4xl">
                 Invite. Earn. Repeat.
               </h2>
-              <p className="mt-3 sm:mt-4 max-w-md body-base leading-relaxed text-white/80">
+              <p className="mt-3 sm:mt-4 max-w-md text-gray-100">
                 Refer your friends and earn up to ₦200 per verified referral.
               </p>
 
               <Link
                 href="/auth/register"
-                className="mt-5 sm:mt-7 inline-flex items-center gap-2 sm:gap-3 rounded-xl bg-white px-5 py-3 sm:px-6 sm:py-3.5 md:py-4 button-md text-[#9b111e] transition hover:bg-white/90"
+                className="mt-5 sm:mt-7 inline-flex items-center gap-2 sm:gap-3 rounded-xl bg-white px-5 py-3 sm:px-6 sm:py-3.5 md:py-4 text-sm font-bold text-[#d71927] shadow-sm transition hover:bg-gray-100"
               >
                 Start Referring <ArrowRight size={18} />
               </Link>
@@ -436,27 +439,28 @@ export default function RemopayLandingPage() {
             </div>
 
             <div className="rounded-2xl border border-white/20 bg-black/20 p-5 sm:p-6 md:p-7 backdrop-blur">
-              <p className="caption-sm text-white/70 font-semibold">Your Reward Wallet</p>
-              <h3 className="mt-4 display-md text-[#ff737b]">₦200</h3>
-              <p className="mt-2 body-sm text-white/60">Available Balance</p>
+              <p className="text-xs font-semibold text-white/70">Your Reward Wallet</p>
+              <p className="mt-4 text-3xl font-bold text-white sm:text-4xl">₦200</p>
+              <p className="mt-2 text-sm text-white/60">Available Balance</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-[#100303] px-5 pb-12 sm:pb-14 md:pb-16 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 rounded-3xl border border-[#ff4b55]/25 bg-[#180505] p-4 sm:p-5 md:p-6 md:grid-cols-4 lg:p-8">
+      {/* ===== Stats Section ===== */}
+      <section className="bg-white px-5 pb-12 sm:pb-14 md:pb-16 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 md:grid-cols-4 lg:p-8 shadow-sm">
           {stats.map((stat) => {
             const Icon = stat.icon;
 
             return (
-              <div key={stat.label} className="flex items-center gap-3 sm:gap-4 md:gap-5 border-white/10 md:border-r md:last:border-0">
-                <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-full border border-[#ff4b55]/50">
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-[#ff737b]" />
+              <div key={stat.label} className="flex items-center gap-3 sm:gap-4 md:gap-5 border-gray-200 md:border-r md:last:border-0">
+                <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-full border border-red-200 bg-red-50">
+                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-[#d71927]" />
                 </div>
                 <div>
-                  <h3 className="stat-value">{stat.value}</h3>
-                  <p className="text-xs font-semibold text-white/70">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 sm:text-3xl">{stat.value}</p>
+                  <p className="text-xs font-semibold text-gray-500">{stat.label}</p>
                 </div>
               </div>
             );
@@ -464,144 +468,139 @@ export default function RemopayLandingPage() {
         </div>
       </section>
 
-
+      {/* ===== Download App Section ===== */}
       <section
-  id="download-app"
-  className="relative bg-[#100303] px-5 pb-16 sm:pb-20 md:pb-24 pt-6 sm:pt-8 md:pt-10 lg:px-8"
->
-  {/* Blur circles only on desktop to avoid mobile compositing artifacts */}
-  <div className="absolute left-0 top-20 h-56 w-56 sm:h-72 sm:w-72 md:h-80 md:w-80 rounded-full bg-[#d71927]/20 blur-3xl hidden md:block" />
-  <div className="absolute right-0 bottom-0 h-64 w-64 sm:h-80 sm:w-80 md:h-96 md:w-96 rounded-full bg-[#ff737b]/10 blur-3xl hidden md:block" />
+        id="download-app"
+        className="relative bg-white px-5 pb-16 sm:pb-20 md:pb-24 pt-6 sm:pt-8 md:pt-10 lg:px-8"
+      >
+        <div className="relative mx-auto max-w-7xl rounded-[1.5rem] sm:rounded-[1.75rem] md:rounded-[2rem] border border-gray-200 bg-gray-50 p-4 sm:p-6 md:p-8 shadow-sm lg:p-12">
+          <div className="grid grid-cols-1 items-center gap-8 sm:gap-10 md:gap-12 lg:grid-cols-[1fr_0.9fr]">
 
-  <div className="relative mx-auto max-w-7xl rounded-[1.5rem] sm:rounded-[1.75rem] md:rounded-[2rem] border border-[#ff4b55]/25 bg-[#140404] p-4 sm:p-6 md:p-8 shadow-2xl shadow-[#d71927]/10 lg:p-12">
-    <div className="grid grid-cols-1 items-center gap-8 sm:gap-10 md:gap-12 lg:grid-cols-[1fr_0.9fr]">
+            <div>
+              <h2 className="max-w-xl text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+                Everything you need,
+                <br />
+                <span className="text-[#d71927]">right in your pocket.</span>
+              </h2>
 
-    <div>
-      <h2 className="max-w-xl display-lg text-white">
-        Everything you need,
-        <br />
-        <span className="text-[#ff2635]">right in your pocket.</span>
-      </h2>
+              <p className="mt-4 sm:mt-5 max-w-xl text-gray-600">
+                Download the Remopay mobile app to buy airtime, data, pay bills, fund
+                your wallet, track transactions, and earn rewards anytime.
+              </p>
 
-      <p className="mt-4 sm:mt-5 max-w-xl body-lg text-white/70">
-        Download the Remopay mobile app to buy airtime, data, pay bills, fund
-        your wallet, track transactions, and earn rewards anytime.
-      </p>
+              <div className="mt-6 sm:mt-8">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-3 sm:mb-4">
+                  <a
+                    href="#"
+                    className="inline-flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-5 py-3 sm:px-6 sm:py-3.5 text-gray-700 shadow-sm transition hover:bg-gray-50"
+                  >
+                    <Image
+                      src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
+                      alt="Get it on Google Play"
+                      width={180}
+                      height={54}
+                      className="h-8 sm:h-9 md:h-10 w-auto"
+                      style={{ width: 'auto', height: '100%' }}
+                    />
+                  </a>
 
-      <div className="mt-6 sm:mt-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 mb-3 sm:mb-4">
-          <a
-            href="#"
-            className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
-          >
-            <Image
-              src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg"
-              alt="Get it on Google Play"
-              width={180}
-              height={54}
-              className="h-8 sm:h-9 md:h-10 w-auto"
-              style={{ width: 'auto', height: '100%' }}
-            />
-          </a>
-
-          <a
-            href="#"
-            className="inline-flex items-center justify-center gap-3 rounded-xl border border-white/15 bg-black px-5 py-3 sm:px-6 sm:py-3.5 text-white transition hover:bg-white/10"
-          >
-            <Image
-              src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
-              alt="Download on the App Store"
-              width={180}
-              height={54}
-              className="h-8 sm:h-9 md:h-10 w-auto"
-              style={{ width: 'auto', height: '100%' }}
-            />
-          </a>
-        </div>
-        <a
-          href="https://api.remopay.remonode.com/Remopay.apk"
-          download
-          className="flex items-center justify-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 button-md text-white shadow-lg transition hover:bg-[#b91420] w-full"
-        >
-          Direct Download
-          <ArrowRight size={18} />
-        </a>
-      </div>
-    </div>
-
-    <div className="relative flex justify-center lg:justify-end">
-      <div className="absolute top-10 h-48 w-48 sm:h-60 sm:w-60 md:h-72 md:w-72 rounded-full bg-[#d71927]/30 blur-3xl hidden md:block" />
-
-      {/* Phone mockup frame */}
-      <div className="relative">
-        {/* Outer phone body */}
-        <div className="relative h-[440px] w-[220px] sm:h-[520px] sm:w-[260px] md:h-[600px] md:w-[300px] lg:h-[680px] lg:w-[340px] rounded-[2rem] sm:rounded-[2.25rem] md:rounded-[2.75rem] lg:rounded-[3rem] bg-gradient-to-br from-gray-900 via-black to-gray-950 p-2 sm:p-2.5 md:p-3 shadow-2xl shadow-black/80">
-          {/* Phone bezel/frame */}
-          <div className="relative h-full w-full overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] md:rounded-[2.25rem] lg:rounded-[2.5rem] bg-black">
-            {/* Notch */}
-            <div className="absolute left-1/2 top-0 z-30 h-5 w-24 sm:h-6 sm:w-28 md:h-6 md:w-32 lg:h-7 lg:w-40 -translate-x-1/2 rounded-b-3xl bg-black shadow-lg" />
-            
-            {/* Screen */}
-            <div className="relative h-full w-full overflow-hidden bg-black">
-              <img
-                src="/remopay5.png"
-                alt="Remopay mobile app preview"
-                className="h-full w-full object-cover"
-              />
+                  <a
+                    href="#"
+                    className="inline-flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-5 py-3 sm:px-6 sm:py-3.5 text-gray-700 shadow-sm transition hover:bg-gray-50"
+                  >
+                    <Image
+                      src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+                      alt="Download on the App Store"
+                      width={180}
+                      height={54}
+                      className="h-8 sm:h-9 md:h-10 w-auto"
+                      style={{ width: 'auto', height: '100%' }}
+                    />
+                  </a>
+                </div>
+                <a
+                  href="https://api.remopay.remonode.com/Remopay.apk"
+                  download
+                  className="flex items-center justify-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 text-sm font-bold text-white shadow-sm transition hover:bg-[#b91420] w-full"
+                >
+                  Direct Download
+                  <ArrowRight size={18} />
+                </a>
+              </div>
             </div>
 
-            {/* Screen reflection effect */}
-            <div className="absolute inset-0 rounded-[1.75rem] sm:rounded-[2rem] md:rounded-[2.25rem] lg:rounded-[2.5rem] bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+            <div className="relative flex justify-center lg:justify-end">
+              {/* Phone mockup frame */}
+              <div className="relative">
+                {/* Outer phone body */}
+                <div className="relative h-[440px] w-[220px] sm:h-[520px] sm:w-[260px] md:h-[600px] md:w-[300px] lg:h-[680px] lg:w-[340px] rounded-[2rem] sm:rounded-[2.25rem] md:rounded-[2.75rem] lg:rounded-[3rem] bg-gradient-to-br from-gray-900 via-black to-gray-950 p-2 sm:p-2.5 md:p-3 shadow-2xl shadow-black/30">
+                  {/* Phone bezel/frame */}
+                  <div className="relative h-full w-full overflow-hidden rounded-[1.75rem] sm:rounded-[2rem] md:rounded-[2.25rem] lg:rounded-[2.5rem] bg-black">
+                    {/* Notch */}
+                    <div className="absolute left-1/2 top-0 z-30 h-5 w-24 sm:h-6 sm:w-28 md:h-6 md:w-32 lg:h-7 lg:w-40 -translate-x-1/2 rounded-b-3xl bg-black shadow-lg" />
+                    
+                    {/* Screen */}
+                    <div className="relative h-full w-full overflow-hidden bg-black">
+                      <img
+                        src="/remopay5.png"
+                        alt="Remopay mobile app preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
 
-            {/* Home indicator area */}
-            <div className="absolute bottom-2 left-1/2 z-30 h-1 w-20 sm:w-24 md:w-28 lg:w-32 -translate-x-1/2 rounded-full bg-white/20" />
+                    {/* Screen reflection effect */}
+                    <div className="absolute inset-0 rounded-[1.75rem] sm:rounded-[2rem] md:rounded-[2.25rem] lg:rounded-[2.5rem] bg-gradient-to-br from-white/10 via-transparent to-transparent" />
+
+                    {/* Home indicator area */}
+                    <div className="absolute bottom-2 left-1/2 z-30 h-1 w-20 sm:w-24 md:w-28 lg:w-32 -translate-x-1/2 rounded-full bg-white/20" />
+                  </div>
+
+                  {/* Phone side details */}
+                  <div className="absolute left-0 top-32 z-20 h-12 w-1 rounded-r-lg bg-gray-700/60" />
+                  <div className="absolute right-0 top-48 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
+                  <div className="absolute right-0 top-80 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
+                </div>
+
+                {/* Floating stat cards */}
+                <div className="absolute -left-10 top-32 hidden rounded-2xl border border-gray-200 bg-white p-3 shadow-lg md:p-4 md:block">
+                  <p className="text-xs font-semibold text-gray-500">Wallet Balance</p>
+                  <p className="mt-1 text-lg font-bold text-gray-900">₦25,680.50</p>
+                </div>
+
+                <div className="absolute -right-10 bottom-32 hidden rounded-2xl border border-gray-200 bg-white p-3 shadow-lg md:p-4 md:block">
+                  <p className="text-xs font-semibold text-gray-500">Reward Wallet</p>
+                  <p className="mt-1 text-lg font-bold text-[#d71927]">₦200</p>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Phone side details */}
-          <div className="absolute left-0 top-32 z-20 h-12 w-1 rounded-r-lg bg-gray-700/60" />
-          <div className="absolute right-0 top-48 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
-          <div className="absolute right-0 top-80 z-20 h-16 w-1 rounded-l-lg bg-gray-700/60" />
         </div>
+      </section>
 
-        {/* Floating stat cards */}
-        <div className="absolute -left-10 top-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-3 md:p-4 shadow-xl backdrop-blur md:block">
-          <p className="caption-xs text-white/50 font-semibold">Wallet Balance</p>
-          <p className="mt-1 h4 text-white">₦25,680.50</p>
-        </div>
-
-        <div className="absolute -right-10 bottom-32 hidden rounded-2xl border border-[#ff4b55]/30 bg-[#180505]/90 p-3 md:p-4 shadow-xl backdrop-blur md:block">
-          <p className="caption-xs text-white/50 font-semibold">Reward Wallet</p>
-          <p className="mt-1 h4 text-[#ff737b]">₦200</p>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-</section>
-
-      <footer id="about" className="border-t border-[#ff4b55]/20 bg-[#140404] px-5 py-8 sm:py-10 md:py-12 lg:px-8">
+      {/* ===== Footer ===== */}
+      <footer id="about" className="border-t border-gray-200 bg-white px-5 py-8 sm:py-10 md:py-12 lg:px-8">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 sm:gap-8 md:gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Image src="/icon.png" alt="Remopay Logo" width={44} height={44} className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11" />
-              <span className="h5 font-bold">Remopay</span>
+              <span className="text-lg font-bold text-gray-900">Remopay</span>
             </div>
-            <p className="mt-4 sm:mt-5 max-w-sm body-sm text-white/65">
+            <p className="mt-4 sm:mt-5 max-w-sm text-sm text-gray-700">
               Pay smarter, live better with fast, secure and reliable payments.
             </p>
           </div>
 
           {[
-            ['Company', [['About Us', '/about'], ['Careers', '/about'], ['Blog', '/'], ['Contact Us', '/support']]],
+            ['Company', [['About Us', '/about'], ['Careers', '/careers'], ['Blog', '/'], ['Contact Us', '/support']]],
             ['Help', [['FAQs', '/faq'], ['Support Center', '/support'], ['Terms of Service', '/terms'], ['Privacy Policy', '/privacy']]],
             ['Services', [['Airtime', '/vtu/airtime'], ['Data', '/vtu/data'], ['Electricity', '/vtu/bills'], ['TV Subscription', '/vtu/tv'], ['Multi-Currency', '/multi-currency'], ['More Services', '/vtu']]],
           ].map(([title, links]: any) => (
             <div key={title}>
-              <h3 className="mb-3 sm:mb-4 h6 font-semibold">{title}</h3>
+              <h3 className="mb-3 sm:mb-4 text-sm font-bold text-gray-900">{title}</h3>
               <ul className="space-y-2 sm:space-y-3">
                 {links.map((item: any) => (
                   <li key={item[0]}>
-                    <Link href={item[1]} className="body-sm text-white/60 hover:text-[#ff737b]">{item[0]}</Link>
+                    <Link href={item[1]} className="text-sm text-gray-700 hover:text-[#d71927] transition">{item[0]}</Link>
                   </li>
                 ))}
               </ul>
@@ -609,13 +608,13 @@ export default function RemopayLandingPage() {
           ))}
 
           <div>
-            <h3 className="mb-3 sm:mb-4 h6 font-semibold">Follow Us</h3>
+            <h3 className="mb-3 sm:mb-4 text-sm font-bold text-gray-900">Follow Us</h3>
             <div className="flex gap-2.5 sm:gap-3">
               <a
                 href="https://www.linkedin.com/products/remonode-remopay/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10 transition-colors"
+                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:border-red-200 hover:text-[#d71927] hover:bg-red-50 transition-colors"
                 aria-label="Visit Remopay on LinkedIn"
                 title="Visit Remopay on LinkedIn"
               >
@@ -623,7 +622,7 @@ export default function RemopayLandingPage() {
               </a>
               <a
                 href="mailto:support@remopay.com"
-                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-white/20 hover:bg-white/10 transition-colors"
+                className="flex h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 items-center justify-center rounded-full border border-gray-300 text-gray-700 hover:border-red-200 hover:text-[#d71927] hover:bg-red-50 transition-colors"
                 aria-label="Email support@remopay.com"
                 title="Email support@remopay.com"
               >
@@ -631,8 +630,8 @@ export default function RemopayLandingPage() {
               </a>
             </div>
 
-            <p className="mt-5 sm:mt-6 caption-sm text-white/50">
-              © 2026 Remopay. All rights reserved.
+            <p className="mt-5 sm:mt-6 text-xs text-gray-500">
+              &copy; 2026 Remopay. All rights reserved.
             </p>
           </div>
         </div>

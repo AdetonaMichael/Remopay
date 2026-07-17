@@ -37,6 +37,7 @@ export function PhoneVerificationEnforcer({ children }: { children: React.ReactN
     '/auth',
     '/',
     '/about',
+    '/careers',
     '/faq',
     '/privacy',
     '/terms',

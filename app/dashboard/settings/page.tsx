@@ -120,18 +120,19 @@ export default function SettingsPage() {
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-      className="space-y-8"
+      className="space-y-8 max-w-full overflow-x-hidden"
     >
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
       `}</style>
 
-      <div className="grid gap-8 xl:grid-cols-[360px_1fr]">
-        <aside className="space-y-6">
-          <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] xl:sticky xl:top-8">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                <User size={26} />
+      <div className="grid w-full gap-6 sm:gap-8 xl:grid-cols-[360px_1fr]">
+        <aside className="space-y-4 sm:space-y-6 min-w-0">
+          <Card className="rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-4 sm:p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] xl:sticky xl:top-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                <User size={20} className="sm:hidden" />
+                <User size={26} className="hidden sm:block" />
               </div>
 
               <div className="min-w-0">
@@ -142,7 +143,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-[24px] border border-[#EEF2F7] bg-[#FCFCFF] p-5">
+            <div className="mt-4 sm:mt-6 rounded-[16px] sm:rounded-[24px] border border-[#EEF2F7] bg-[#FCFCFF] p-4 sm:p-5">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
                 Current Tier
               </p>
@@ -150,9 +151,9 @@ export default function SettingsPage() {
               {tierLoading ? (
                 <div className="mt-4 h-16 animate-pulse rounded-2xl bg-[#F3F4F6]" />
               ) : tierStatus ? (
-                <div className="mt-4 flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-2xl font-extrabold text-[#111827]">
+                <div className="mt-3 sm:mt-4 flex items-start justify-between gap-3 sm:gap-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xl sm:text-2xl font-extrabold text-[#111827]">
                       {tierStatus.current_tier.name}
                     </p>
                     <p className="mt-1 text-sm text-[#667085]">
@@ -181,11 +182,11 @@ export default function SettingsPage() {
             </div>
 
             {tierStatus?.next_tier && tierStatus.current_tier.level !== 2 && (
-              <div className="mt-4 rounded-[24px] border border-[#F0DADA] bg-[#FFF7F7] p-5">
+              <div className="mt-3 sm:mt-4 rounded-[16px] sm:rounded-[24px] border border-[#F0DADA] bg-[#FFF7F7] p-4 sm:p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#d71927]">
                   Next Upgrade
                 </p>
-                <p className="mt-2 text-lg font-extrabold text-[#111827]">
+                <p className="mt-1 sm:mt-2 text-base sm:text-lg font-extrabold text-[#111827]">
                   {tierStatus.next_tier.name}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[#667085]">
@@ -197,9 +198,9 @@ export default function SettingsPage() {
           </Card>
         </aside>
 
-        <main>
+        <main className="min-w-0">
           <Tab.Group>
-            <Tab.List className="grid grid-cols-1 gap-3 rounded-[32px] border border-[#E6E9F5] bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:grid-cols-2 xl:grid-cols-4">
+            <Tab.List className="flex gap-3 overflow-x-auto rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:grid sm:grid-cols-2 xl:grid-cols-4 scrollbar-hide">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
 
@@ -208,7 +209,7 @@ export default function SettingsPage() {
                     key={tab.label}
                     className={({ selected }) =>
                       classNames(
-                        'rounded-2xl px-4 py-4 text-left transition-all duration-200 focus:outline-none',
+                        'rounded-2xl px-3 sm:px-4 py-3 sm:py-4 text-left transition-all duration-200 focus:outline-none flex-shrink-0 sm:flex-shrink',
                         selected
                           ? 'bg-[#d71927] text-white shadow-[0_14px_30px_rgba(98,7,7,0.24)]'
                           : 'bg-[#FCFCFF] text-[#111827] hover:bg-[#FFF5F5]'
@@ -216,24 +217,28 @@ export default function SettingsPage() {
                     }
                   >
                     {({ selected }) => (
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2 sm:gap-3">
                         <div
                           className={classNames(
-                            'rounded-2xl p-3',
+                            'rounded-xl sm:rounded-2xl p-2 sm:p-3',
                             selected ? 'bg-white/15' : 'bg-[#FFF5F5]'
                           )}
                         >
                           <Icon
+                            size={16}
+                            className={`sm:hidden ${selected ? 'text-white' : 'text-[#d71927]'}`}
+                          />
+                          <Icon
                             size={18}
-                            className={selected ? 'text-white' : 'text-[#d71927]'}
+                            className={`hidden sm:block ${selected ? 'text-white' : 'text-[#d71927]'}`}
                           />
                         </div>
 
                         <div>
-                          <p className="text-sm font-extrabold">{tab.label}</p>
+                          <p className="text-xs sm:text-sm font-extrabold leading-tight">{tab.label}</p>
                           <p
                             className={classNames(
-                              'mt-1 text-xs leading-5',
+                              'mt-0.5 sm:mt-1 text-[10px] sm:text-xs leading-4 sm:leading-5',
                               selected ? 'text-white/75' : 'text-[#667085]'
                             )}
                           >
@@ -248,14 +253,15 @@ export default function SettingsPage() {
             </Tab.List>
 
             <Tab.Panels className="mt-6">
-              <Tab.Panel>
-                <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:p-8">
-                  <div className="mb-8">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                      <Zap size={24} />
+              <Tab.Panel className="min-w-0">
+                <Card className="rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-4 sm:p-6 sm:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)] w-full">
+                  <div className="mb-6 sm:mb-8">
+                    <div className="mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                      <Zap size={20} className="sm:hidden" />
+                      <Zap size={24} className="hidden sm:block" />
                     </div>
 
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#111827]">
                       Account Tier Upgrade
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-[#667085]">
@@ -305,14 +311,15 @@ export default function SettingsPage() {
                 </Card>
               </Tab.Panel>
 
-              <Tab.Panel>
-                <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:p-8">
-                  <div className="mb-8">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                      <User size={24} />
+              <Tab.Panel className="min-w-0">
+                <Card className="rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-4 sm:p-6 sm:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)] w-full">
+                  <div className="mb-6 sm:mb-8">
+                    <div className="mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                      <User size={20} className="sm:hidden" />
+                      <User size={24} className="hidden sm:block" />
                     </div>
 
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#111827]">
                       Update Profile
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-[#667085]">
@@ -339,14 +346,15 @@ export default function SettingsPage() {
                 </Card>
               </Tab.Panel>
 
-              <Tab.Panel>
-                <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:p-8">
-                  <div className="mb-8">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                      <ShieldCheck size={24} />
+              <Tab.Panel className="min-w-0">
+                <Card className="rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-4 sm:p-6 sm:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)] w-full">
+                  <div className="mb-6 sm:mb-8">
+                    <div className="mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                      <ShieldCheck size={20} className="sm:hidden" />
+                      <ShieldCheck size={24} className="hidden sm:block" />
                     </div>
 
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#111827]">
                       Security Settings
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-[#667085]">
@@ -355,13 +363,14 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[28px] border border-[#EEF2F7] bg-[#FCFCFF] p-5">
-                      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                        <KeyRound size={22} />
+                  <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                    <div className="rounded-[20px] sm:rounded-[28px] border border-[#EEF2F7] bg-[#FCFCFF] p-4 sm:p-5">
+                      <div className="mb-3 sm:mb-4 flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                        <KeyRound size={18} className="sm:hidden" />
+                        <KeyRound size={22} className="hidden sm:block" />
                       </div>
 
-                      <h3 className="text-lg font-extrabold text-[#111827]">
+                      <h3 className="text-base sm:text-lg font-extrabold text-[#111827]">
                         Transaction PIN
                       </h3>
                       <p className="mt-2 text-sm leading-6 text-[#667085]">
@@ -378,12 +387,13 @@ export default function SettingsPage() {
                       </Button>
                     </div>
 
-                    <div className="rounded-[28px] border border-[#EEF2F7] bg-[#FCFCFF] p-5">
-                      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF5F5] text-[#d71927]">
-                        <Lock size={22} />
+                    <div className="rounded-[20px] sm:rounded-[28px] border border-[#EEF2F7] bg-[#FCFCFF] p-4 sm:p-5">
+                      <div className="mb-3 sm:mb-4 flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-xl sm:rounded-2xl bg-[#FFF5F5] text-[#d71927]">
+                        <Lock size={18} className="sm:hidden" />
+                        <Lock size={22} className="hidden sm:block" />
                       </div>
 
-                      <h3 className="text-lg font-extrabold text-[#111827]">
+                      <h3 className="text-base sm:text-lg font-extrabold text-[#111827]">
                         Account Protection
                       </h3>
                       <p className="mt-2 text-sm leading-6 text-[#667085]">
@@ -402,14 +412,15 @@ export default function SettingsPage() {
                 </Card>
               </Tab.Panel>
 
-              <Tab.Panel>
-                <Card className="rounded-[32px] border border-[#E6E9F5] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.06)] sm:p-8">
-                  <div className="mb-8">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
-                      <Trash2 size={24} />
+              <Tab.Panel className="min-w-0">
+                <Card className="rounded-[24px] sm:rounded-[32px] border border-[#E6E9F5] bg-white p-4 sm:p-6 sm:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.06)] w-full">
+                  <div className="mb-6 sm:mb-8">
+                    <div className="mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-red-50 text-red-600">
+                      <Trash2 size={20} className="sm:hidden" />
+                      <Trash2 size={24} className="hidden sm:block" />
                     </div>
 
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#111827]">
                       Privacy & Account
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-[#667085]">

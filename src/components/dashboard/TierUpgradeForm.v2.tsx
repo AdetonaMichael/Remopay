@@ -585,8 +585,9 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
 
               {/* Dropdown Menu */}
               {phoneDropdownOpen && (
-                <div 
-                  className="absolute top-full left-0 mt-2 w-80 bg-white border-2 border-black/10 rounded-2xl shadow-xl z-50"
+                <div
+                  className="absolute top-full left-0 mt-2 w-[320px] sm:w-80 bg-white border-2 border-black/10 rounded-2xl shadow-xl z-50"
+                  style={{ maxWidth: 'calc(100vw - 2rem)' }}
                 >
                   {/* Search Header */}
                   <div className="sticky top-0 p-3 border-b-2 border-black/10 bg-gradient-to-b from-black/2 to-white rounded-t-2xl">
@@ -734,7 +735,7 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
       {/* BVN */}
       <div>
         <h4 className="font-semibold text-[#111] mb-4">Identification</h4>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             label="BVN (11 digits)"
             type="text"
@@ -745,7 +746,7 @@ export const TierUpgradeFormV2: React.FC<TierUpgradeFormProps> = ({
             required
             className="flex-1"
           />
-          <div className="pt-8">
+          <div className="pt-0 sm:pt-8">
             <Button
               type="button"
               onClick={handleVerifyBVN}
