@@ -26,6 +26,8 @@ interface DataFormData {
   variationCode?: string;
   variationName?: string;
   variationAmount?: string;
+  subsidizedAmount?: string;
+  savings?: number;
 }
 
 export default function DataPage() {
@@ -143,6 +145,9 @@ export default function DataPage() {
       return;
     }
 
+    const hasSubsidy = variation.subsidized?.enabled === true;
+    const isZeroAmount = Number(variation.variation_amount || 0) === 0;
+
     const dataToStore: DataFormData = {
       provider: selectedProvider,
       providerName: provider.name,
@@ -150,6 +155,12 @@ export default function DataPage() {
       variationCode: variation.variation_code,
       variationName: variation.name,
       variationAmount: variation.variation_amount,
+      subsidizedAmount: hasSubsidy && !isZeroAmount
+        ? String(variation.subsidized?.subsidized_amount ?? variation.variation_amount)
+        : undefined,
+      savings: hasSubsidy && !isZeroAmount
+        ? Number(variation.subsidized?.savings ?? 0)
+        : undefined,
     };
 
     sessionStorage.setItem('dataFormData', JSON.stringify(dataToStore));
@@ -321,8 +332,8 @@ export default function DataPage() {
                             {hasSubsidy &&
                               !isZeroAmount &&
                               (variation.subsidized?.savings ?? 0) > 0 && (
-                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
-                                  Save ₦
+                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
+                                  💰 Save ₦
                                   {Number(
                                     variation.subsidized?.savings ?? 0,
                                   ).toLocaleString()}
@@ -331,7 +342,7 @@ export default function DataPage() {
                           </div>
 
                           <div className="shrink-0 text-right">
-                            {/* Subsidized (payable) price */}
+                            {/* Subsidized (payable) price - when subsidy is ON, show subsidized_amount */}
                             <p
                               className={`text-lg font-extrabold ${
                                 hasSubsidy && !isZeroAmount
@@ -340,22 +351,22 @@ export default function DataPage() {
                               }`}
                             >
                               ₦
-                              {Number(
-                                variation.variation_amount || 0,
+                              {(
+                                hasSubsidy && !isZeroAmount
+                                  ? Number(variation.subsidized?.subsidized_amount ?? variation.variation_amount)
+                                  : Number(variation.variation_amount || 0)
                               ).toLocaleString()}
                             </p>
 
-                            {/* Strikethrough original price - only when subsidy active */}
-                            {hasSubsidy &&
-                              !isZeroAmount &&
-                              variation.subsidized?.original_amount != null && (
-                                <p className="mt-0.5 text-xs font-medium text-gray-400 line-through">
-                                  ₦
-                                  {Number(
-                                    variation.subsidized!.original_amount,
-                                  ).toLocaleString()}
-                                </p>
-                              )}
+                            {/* Strikethrough original price - show variation_amount when subsidy is active */}
+                            {hasSubsidy && !isZeroAmount && (
+                              <p className="mt-0.5 text-xs font-medium text-gray-400 line-through">
+                                ₦
+                                {Number(
+                                  variation.variation_amount,
+                                ).toLocaleString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -407,10 +418,20 @@ export default function DataPage() {
                 </p>
                 <p className="mt-2 text-2xl font-extrabold text-[#d71927]">
                   ₦
-                  {Number(
-                    activeVariation?.variation_amount || 0
-                  ).toLocaleString()}
+                  {(() => {
+                    const hasSubsidy = activeVariation?.subsidized?.enabled === true;
+                    const isZeroAmount = Number(activeVariation?.variation_amount || 0) === 0;
+                    const displayAmount = hasSubsidy && !isZeroAmount
+                      ? Number(activeVariation?.subsidized?.subsidized_amount ?? activeVariation?.variation_amount)
+                      : Number(activeVariation?.variation_amount || 0);
+                    return displayAmount.toLocaleString();
+                  })()}
                 </p>
+                {activeVariation?.subsidized?.enabled === true && Number(activeVariation?.variation_amount || 0) > 0 && (
+                  <p className="mt-1 text-xs font-medium text-gray-400 line-through">
+                    ₦{Number(activeVariation.variation_amount).toLocaleString()}
+                  </p>
+                )}
               </div>
             </div>
 

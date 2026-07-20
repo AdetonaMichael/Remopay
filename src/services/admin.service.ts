@@ -148,7 +148,7 @@ class AdminService {
       });
     }
 
-    return apiClient.get(`/transactions/all?${params.toString()}`);
+    return apiClient.get(`/admin/transactions?${params.toString()}`);
   }
 
   async getTransactionDetails(transactionId: string): Promise<any> {

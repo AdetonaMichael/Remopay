@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ArrowDownToLine,
   ChevronLeft,
@@ -10,6 +11,7 @@ import {
   ReceiptText,
   Search,
   Wallet,
+  Eye,
 } from 'lucide-react';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
@@ -151,6 +153,7 @@ function getServiceName(transaction: TransactionItem) {
 }
 
 export default function HistoryPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,7 +201,27 @@ export default function HistoryPage() {
 
         const payload = res?.data;
 
-        setTransactions(payload?.transactions ?? []);
+        // Normalize nested format (basic/financial/timeline) to flat format
+        const rawTransactions = payload?.transactions ?? [];
+        const normalized = Array.isArray(rawTransactions)
+          ? rawTransactions.map((tx: any) => {
+              if (tx.basic) {
+                return {
+                  ...tx,
+                  id: tx.basic.id ?? tx.id,
+                  user_id: tx.user?.id ?? tx.user_id ?? 0,
+                  transaction_type: tx.basic.transaction_type ?? tx.transaction_type ?? '',
+                  amount: tx.financial?.amount ?? tx.amount ?? 0,
+                  status: tx.basic.status ?? tx.status ?? '',
+                  transaction_date: tx.timeline?.transaction_date ?? tx.transaction_date ?? '',
+                  reference: tx.basic.reference ?? tx.reference ?? '',
+                  service_logo: tx.basic.service_logo ?? tx.service_logo ?? null,
+                };
+              }
+              return tx;
+            })
+          : [];
+        setTransactions(normalized);
         setPagination({
           currentPage: payload?.pagination?.current_page ?? page,
           lastPage: payload?.pagination?.last_page ?? 1,
@@ -488,7 +511,8 @@ export default function HistoryPage() {
                   {transactions.map((transaction) => (
                     <tr
                       key={transaction.id}
-                      className="border-b border-black/5 transition-colors hover:bg-[#fff8f8]"
+                      className="border-b border-black/5 cursor-pointer transition-colors hover:bg-[#fff8f8]"
+                      onClick={() => router.push(`/dashboard/history/${transaction.id}`)}
                     >
                       <td className="px-6 py-4 text-sm font-semibold text-[#111]">
                         {formatDate(
@@ -533,7 +557,8 @@ export default function HistoryPage() {
               {transactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4"
+                  className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4 cursor-pointer transition-colors hover:bg-[#fff8f8]"
+                  onClick={() => router.push(`/dashboard/history/${transaction.id}`)}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>

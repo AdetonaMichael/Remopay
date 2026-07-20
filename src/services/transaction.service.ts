@@ -9,6 +9,7 @@ import {
   PaginatedResponse,
   ApiResponse,
 } from '@/types/api.types';
+import type { TransactionDetailData, TransactionDetailResponse } from '@/types/transaction-detail.types';
 import { useAuth } from '@/hooks/useAuth';
 
 // Extended transaction type for API responses
@@ -71,6 +72,19 @@ class TransactionService {
 
   async getTransaction(transactionId: string): Promise<ApiResponse<{ transaction: Transaction }>> {
     return apiClient.get(`/transactions/${transactionId}`);
+  }
+
+  /**
+   * Get detailed transaction information with full breakdown
+   * Uses the new /api/v1/transactions/{id} endpoint
+   */
+  async getTransactionDetail(transactionId: number | string): Promise<TransactionDetailResponse> {
+    const res = await apiClient.get<TransactionDetailData>(`/transactions/${transactionId}`);
+    return {
+      success: res.success,
+      message: res.message,
+      data: res.data!,
+    };
   }
 
   async purchaseAirtime(data: PurchaseAirtimeRequest): Promise<ApiResponse<{ transaction: Transaction }>> {

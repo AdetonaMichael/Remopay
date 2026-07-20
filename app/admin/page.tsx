@@ -175,17 +175,6 @@ export default function AdminDashboardPage() {
           console.error('❌ [VTPass] Failed to fetch balance:', err);
         }
 
-        // Maplerad — Legacy single balance (fallback)
-        try {
-          console.log('🔄 [Maplerad] Fetching legacy balance from /payment/maplerad-balance');
-          const res = await paymentService.getMapleradBalance();
-          console.log('✅ [Maplerad] Response:', res);
-          balances.maplerad = res.success ? parseFloat(res.data?.balance || '0') : 0;
-          console.log('   Final balance:', balances.maplerad);
-        } catch (err) {
-          console.error('❌ [Maplerad] Failed to fetch legacy balance:', err);
-        }
-
         // Maplerad — Aggregated wallets (Treasury NGN, Treasury USD, Spend USD)
         try {
           console.log('🔄 [Maplerad Wallets] Fetching from /payment/wallets/balances');

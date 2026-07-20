@@ -57,10 +57,11 @@ export interface VTUPaymentRequest {
   operator_id?: string;
   phone: string;
   product_type_id?: string;
-  request_id: string;
+  request_id?: string;
   serviceID: string;
   variation_code?: string;
   user_id?: number;
+  pin?: string;
 }
 
 export interface VTUPaymentResponse {
@@ -69,6 +70,51 @@ export interface VTUPaymentResponse {
   transaction_id?: string;
   status: string;
   message?: string;
+}
+
+// ========================================
+// VTU Pay (Wallet) API Types
+// ========================================
+
+/**
+ * Subsidy metadata returned in the pay response when subsidy was applied
+ */
+export interface SubsidyMeta {
+  subsidy_applied: boolean;
+  subsidy_type: 'percentage' | 'fixed';
+  subsidy_value: number;
+  original_amount: number;
+  subsidized_amount: number;
+  savings: number;
+}
+
+/**
+ * Response from POST /api/v1/wallet/pay-vtu endpoint
+ */
+export interface VtuPayResponse {
+  success: boolean;
+  reference: string;
+  vtu_reference?: string;
+  original_amount: number;
+  customer_payable: number;
+  balance: number;
+  status: string;
+  subsidy?: SubsidyMeta;
+  offer?: Record<string, any>;
+  request_id?: string;
+  message?: string;
+}
+
+/**
+ * Request payload for POST /api/v1/wallet/pay-vtu
+ */
+export interface VtuPayRequest {
+  serviceID: string;
+  phone: string;
+  amount: string | number;
+  variation_code: string;
+  billersCode?: string;
+  pin: string;
 }
 
 export interface AirtimeTransaction {

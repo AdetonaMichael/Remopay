@@ -36,6 +36,8 @@ interface FormData {
   variationCode?: string;
   variationName?: string;
   variationAmount?: string;
+  subsidizedAmount?: string;
+  savings?: number;
 }
 
 type TransactionStatus = 'idle' | 'processing' | 'success' | 'error';
@@ -341,16 +343,30 @@ export default function DataReviewPage() {
               <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-[#FFE5EB]  px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-gray-900">
-                    Total Amount
+                    {formData.subsidizedAmount ? 'Discounted Amount' : 'Total Amount'}
                   </p>
                   <p className="mt-1 text-xs leading-5 text-gray-600">
-                    This is the final amount that will be deducted.
+                    {formData.subsidizedAmount
+                      ? 'Subsidy discount has been applied to this plan.'
+                      : 'This is the final amount that will be deducted.'}
                   </p>
+                  {formData.subsidizedAmount && formData.savings && formData.savings > 0 && (
+                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
+                      💰 You save ₦{formData.savings.toLocaleString()}
+                    </span>
+                  )}
                 </div>
 
-                <p className="text-3xl font-extrabold tracking-tight text-[#d71927]">
-                  {formatCurrency(amount)}
-                </p>
+                <div className="text-right">
+                  <p className="text-3xl font-extrabold tracking-tight text-green-600">
+                    {formatCurrency(Number(formData.subsidizedAmount || amount))}
+                  </p>
+                  {formData.subsidizedAmount && (
+                    <p className="mt-1 text-sm font-medium text-gray-400 line-through">
+                      {formatCurrency(amount)}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </Card>

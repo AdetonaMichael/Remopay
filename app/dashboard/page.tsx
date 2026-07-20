@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ArrowRight,
@@ -118,7 +119,26 @@ const getTransactionIcon = (type: string, status: string) => {
   return <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />;
 };
 
+/** Normalize nested transaction format (basic/financial/timeline) to flat format */
+function normalizeTransaction(tx: any): any {
+  if (tx.basic) {
+    return {
+      ...tx,
+      id: tx.basic.id ?? tx.id,
+      user_id: tx.user?.id ?? tx.user_id ?? 0,
+      transaction_type: tx.basic.transaction_type ?? tx.transaction_type ?? '',
+      amount: tx.financial?.amount ?? tx.amount ?? 0,
+      status: tx.basic.status ?? tx.status ?? '',
+      transaction_date: tx.timeline?.transaction_date ?? tx.transaction_date ?? '',
+      reference: tx.basic.reference ?? tx.reference ?? '',
+      service_logo: tx.basic.service_logo ?? tx.service_logo ?? null,
+    };
+  }
+  return tx;
+}
+
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -212,7 +232,9 @@ export default function DashboardPage() {
         }
 
         if (transactionsRes?.data?.transactions) {
-          setTransactions(transactionsRes.data.transactions);
+          // Normalize nested API format to flat format the table expects
+          const normalized = transactionsRes.data.transactions.map(normalizeTransaction);
+          setTransactions(normalized);
 
           if (transactionsRes.data.pagination) {
             setPagination({
@@ -450,55 +472,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="flex gap-4 sm:gap-5 overflow-x-auto md:grid md:grid-cols-3 pb-2 -mx-6 px-6 md:mx-0 md:px-0">
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="caption font-semibold text-gray-500">Monthly Transactions</p>
-              <p className="mt-2 sm:mt-3 h2 text-gray-950">
-                {monthlyTransactionsCount}
-              </p>
-              <p className="mt-2 body-sm text-gray-500">Transactions this month</p>
-            </div>
-
-            <div className="rounded-xl sm:rounded-2xl bg-[#fff1f2] p-2 sm:p-2.5 md:p-3">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="caption font-semibold text-gray-500">Successful Payments</p>
-              <p className="mt-2 sm:mt-3 h2 text-gray-950">
-                {successfulTransactionsCount}
-              </p>
-              <p className="mt-2 body-sm text-gray-500">Completed transactions</p>
-            </div>
-
-            <div className="rounded-xl sm:rounded-2xl bg-green-50 p-2 sm:p-2.5 md:p-3">
-              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="min-w-[calc(100%-2rem)] md:min-w-fit rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white p-4 sm:p-5 md:p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="caption font-semibold text-gray-500">Total Records</p>
-              <p className="mt-2 sm:mt-3 h2 text-gray-950">
-                {pagination.total || transactions.length}
-              </p>
-              <p className="mt-2 body-sm text-gray-500">Transaction records</p>
-            </div>
-
-            <div className="rounded-xl sm:rounded-2xl bg-[#fff1f2] p-2 sm:p-2.5 md:p-3">
-              <ReceiptText className="h-4 w-4 sm:h-5 sm:w-5 text-[#d71927]" />
-            </div>
-          </div>
-        </Card>
-      </section>
 
       {/* Advertisements Carousel */}
       <section>
@@ -628,7 +601,8 @@ export default function DashboardPage() {
                       return (
                         <tr
                           key={transaction.id}
-                          className="border-b border-black/5 transition-colors hover:bg-[#fff8f8]"
+                          className="border-b border-black/5 cursor-pointer transition-colors hover:bg-[#fff8f8]"
+                          onClick={() => router.push(`/dashboard/history/${transaction.id}`)}
                         >
                           <td className="px-6 py-4 text-sm font-semibold text-[#111]">
                             {formatDate(
@@ -677,7 +651,8 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4"
+                      className="rounded-[22px] border border-black/5 bg-[#f8f8f8] p-4 cursor-pointer transition-colors hover:bg-[#fff8f8]"
+                      onClick={() => router.push(`/dashboard/history/${transaction.id}`)}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>

@@ -76,16 +76,22 @@ function extractValidity(name: string): string {
 
 function formatPrice(variation: VTUVariation): {
   display: string;
+  displayAmount: number;
   original: number | null;
 } {
-  const amount = Number(variation.variation_amount || 0);
+  const variationAmount = Number(variation.variation_amount || 0);
   const hasSubsidy = variation.subsidized?.enabled === true;
+
+  // When subsidy is ON, show the subsidized amount as the display price
+  // and the original variation_amount as strikethrough
+  const displayPrice = hasSubsidy
+    ? Number(variation.subsidized!.subsidized_amount)
+    : variationAmount;
+
   return {
-    display: `₦${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    original:
-      hasSubsidy && variation.subsidized!.original_amount
-        ? variation.subsidized!.original_amount
-        : null,
+    display: `₦${displayPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    displayAmount: displayPrice,
+    original: hasSubsidy ? variationAmount : null,
   };
 }
 
@@ -263,6 +269,12 @@ export function DataPricingShowcase() {
                           <p className="mt-1 text-xs text-gray-500">
                             {extractValidity(variation.name)}
                           </p>
+                          {/* Savings badge - mobile */}
+                          {price.original && variation.subsidized?.savings && variation.subsidized.savings > 0 && (
+                            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                              💰 Save ₦{variation.subsidized.savings.toLocaleString()}
+                            </span>
+                          )}
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-sm font-bold text-gray-900">
@@ -325,6 +337,12 @@ export function DataPricingShowcase() {
                               {price.original && (
                                 <p className="mt-0.5 text-xs text-gray-400 line-through">
                                   ₦{price.original.toLocaleString()}.00
+                                </p>
+                              )}
+                              {/* Savings badge - desktop */}
+                              {price.original && variation.subsidized?.savings && variation.subsidized.savings > 0 && (
+                                <p className="mt-1 text-[10px] font-bold text-green-600">
+                                  💰 Save ₦{variation.subsidized.savings.toLocaleString()}
                                 </p>
                               )}
                             </div>

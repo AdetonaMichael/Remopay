@@ -13,12 +13,26 @@ export const formatCurrency = (amount: number | null | undefined, currency: stri
 };
 
 // Date formatting
-export const formatDate = (date: string | Date): string => {
-  return format(new Date(date), 'MMM dd, yyyy');
+export const formatDate = (date: string | Date | null | undefined): string => {
+  if (!date) return '—';
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
+    return format(d, 'MMM dd, yyyy');
+  } catch {
+    return '—';
+  }
 };
 
-export const formatDateTime = (date: string | Date): string => {
-  return format(new Date(date), 'MMM dd, yyyy HH:mm');
+export const formatDateTime = (date: string | Date | null | undefined): string => {
+  if (!date) return '—';
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '—';
+    return format(d, 'MMM dd, yyyy HH:mm');
+  } catch {
+    return '—';
+  }
 };
 
 export const formatRelativeTime = (date: string | Date | null | undefined): string => {

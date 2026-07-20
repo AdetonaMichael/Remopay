@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Filter,
@@ -227,9 +227,30 @@ export default function AdminTransactionsPage() {
         return;
       }
 
+      // Normalize transactions from nested format (basic/financial/timeline)
+      // to flat format the component expects
+      const normalizeTx = (tx: any): Transaction => {
+        if (tx.basic) {
+          return {
+            id: tx.basic.id ?? tx.id,
+            user_id: tx.user?.id ?? tx.user_id ?? 0,
+            transaction_type: tx.basic.transaction_type ?? tx.transaction_type ?? '',
+            amount: tx.financial?.amount ?? tx.amount ?? 0,
+            status: tx.basic.status ?? tx.status ?? '',
+            transaction_date: tx.timeline?.transaction_date ?? tx.transaction_date ?? '',
+            reference: tx.basic.reference ?? tx.reference ?? '',
+            metadata: tx.metadata ?? {},
+            user: tx.user,
+            transactionable: tx.details ? { type: tx.details.type, ...tx.details.data } : tx.transactionable,
+            service_logo: tx.basic.service_logo ?? tx.service_logo ?? null,
+          };
+        }
+        return tx as Transaction;
+      };
+
       // Set transactions
       if (Array.isArray(transactionsData)) {
-        setTransactions(transactionsData);
+        setTransactions(transactionsData.map(normalizeTx));
       } else {
         setTransactions([]);
       }
@@ -497,17 +518,14 @@ export default function AdminTransactionsPage() {
                         {formatDate(tx.transaction_date)}
                       </td>
                       <td className="px-6 py-4 text-center whitespace-nowrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTransaction(tx);
-                            setShowDetails(true);
-                          }}
+                        <button
+                          onClick={() => router.push(`/admin/transactions/${tx.id}`)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-all hover:bg-gray-100 hover:text-[#d71927]"
                           aria-label={`View details for ${tx.reference}`}
+                          title="View transaction details"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -563,16 +581,13 @@ export default function AdminTransactionsPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedTransaction(tx);
-                          setShowDetails(true);
-                        }}
+                      <button
+                        onClick={() => router.push(`/admin/transactions/${tx.id}`)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-all hover:bg-gray-100 hover:text-[#d71927]"
+                        aria-label={`View details for ${tx.reference}`}
                       >
                         <Eye className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </div>
                   </div>
 
